@@ -1,0 +1,255 @@
+# DREEM Compact Context
+
+## Current Build State
+- Workspace: `C:\Users\MEDION\Documents\Codex\2026-05-13\i-have-checked-well-and-i`
+- App: `apps/web` React + Vite + TypeScript
+- Build status after latest session on `2026-07-24`: `npm run build` passed
+- Latest frontend build after command-center upgrade: `npm run build` passed
+- Supabase CLI is available locally and works when its home/config directory is pointed into the workspace
+- Supabase MCP is active for project `vpxtmgpxqlmkkyijuare` / `TSIDEK`
+- Shared Supabase boundary is now documented for DREEM vs TSIDKENU separation
+- DREEM must only share `auth.users` and `neutral_profiles` with TSIDKENU for now; business memberships, roles, data, storage, workers, and workflows remain separate
+
+## Product Goal
+- Build DREEM as a real school operating system, not a demo shell
+- Core surfaces: overview, academics, finance, transport, communications, operations
+- Control model: school-issued matricule access, role-aware experiences, school-scoped data
+- Storage direction: Supabase + OneDrive + local-node support
+
+## Already Implemented
+- Controlled login with demo matricule access, live email/password, and live email/phone OTP request support
+- Google OAuth login is wired in the frontend through Supabase; Google identifies the person, but DREEM access still requires approved school membership
+- Google/email users who authenticate without approved DREEM membership now see a pending school approval state instead of a silent login failure
+- Neutral identity and DREEM membership foundation added:
+  - `neutral_profiles`
+  - `dreem_school_memberships`
+  - `current_dreem_membership_status()`
+- Live Supabase has RLS enabled on `neutral_profiles` and `dreem_school_memberships`
+- `provision-access-user` Edge Function is now version `2` and writes both the compatibility `profiles` row and the new `dreem_school_memberships` row
+- Controlled login now blocks open OTP self-signup by using `shouldCreateUser=false`
+- Workspace shell with module navigation
+- Workspace command center is now a role-specific operating cockpit, not only summary cards:
+  - leadership sees corrections, learner risk, and finance posture
+  - teachers see attendance, continuity packs, and notices
+  - bursars see fee posting, cash settlement, and correction actions
+  - parents/students see family fee, learning, notices, and transport state
+  - transport/support see route, sync, identity, and audit queues
+- Command center now uses actual app state for payments, cash liabilities, classroom materials, announcements, sync mutations, audit events, corrections, routes, fees, and students
+- Role-based module visibility and starter permission model
+- Live auth seam now supports Supabase session hydration and profile loading
+- Overview now exposes a more truthful DREEM operating-system layer:
+  - core / edition / country-pack / school-configuration stack
+  - workflow lanes
+  - correction and sync truth cards
+  - honest built-vs-hardening status
+- Announcements, classroom continuity, storage, and operations panels
+- Academics, finance, transport, operations, and reporting module pages
+- School-owned configuration layer for admins and bursars:
+  - school name
+  - campus name
+  - academic year
+  - active term
+  - matricule prefix
+  - institution edition
+  - country pack
+  - enabled modules
+  - languages
+  - terminology
+  - grading label
+  - currency
+  - classes
+  - subjects
+  - fee categories
+- Finance ledger direction with payment records, payment method selection, MoMo/Orange Money/bank/cash totals, and receipt text export
+- Bursar reminder queue for SMS/app-style fee follow-up
+- Government-ready reporting workspace for class-level enrollment, girls/boys placeholder counts, risk, exam readiness, fee arrears, and attendance summary
+- Operations module now includes staged access provisioning for school-issued matricules, role/department/email/phone, plus sync readiness panels for Supabase, OneDrive, and local node
+- Operations module now lets authorised leadership/support users suspend and reactivate school users without self-lockout
+- Operations module now includes a school launch engine:
+  - setup readiness percentage
+  - identity, academic year, academic structure, finance structure, staff access, learner registry, family-link, and sync checks
+  - Cameroon bilingual private K-12 starter blueprint for modules, languages, classes, subjects, fee categories, matricule prefix, and terminology
+- Operations module now includes learner registry creation with guardian contact fields
+- Operations module now includes:
+  - parent-to-learner identity linking
+  - learner placement correction
+  - duplicate learner merge flow
+  - correction ledger
+  - sync outbox visibility
+- School configuration now has a Supabase-backed repository path, not only local storage
+- Operations repository now supports local-first workflows for:
+  - student creation
+  - parent linking
+  - placement changes
+  - duplicate merges
+  - fee adjustments
+  - payment reversal
+  - bursar settlement
+  - fee reminders
+  - route status updates
+- Supabase-ready schema for:
+  - schools
+  - profiles
+  - access_identities
+  - access_invites
+  - announcements
+  - classroom_materials
+  - storage_connections
+  - school_settings
+  - school_classes
+  - school_subjects
+  - fee_categories
+  - students
+  - attendance
+  - fee_accounts
+  - fee_payments
+  - fee_reminders
+  - transport_routes
+  - audit_events
+  - sync_queue
+- Additional migration prepared for:
+  - richer `school_settings`
+  - `workflow_corrections`
+  - `bursar_liabilities`
+  - `bursar_settlements`
+- Live Supabase project now has the workflow/config migrations applied and verified:
+  - `workflow_corrections_and_school_config`
+  - `tighten_student_select_policy`
+  - `tighten_operations_table_grants`
+- Live RLS verified on:
+  - `workflow_corrections`
+  - `bursar_liabilities`
+  - `bursar_settlements`
+  - `students`
+  - `school_settings`
+- Authenticated table grants were tightened for operational tables so they expose only the intended privileges through the Data API
+- Supabase schema now includes permission helper functions and stricter write policies for communications, school config, attendance, finance, reminders, transport, access invites, audit, and sync queue
+- Repository layer for announcements, classroom materials, and operations data
+- Demo fallback data for local development
+- Classroom materials now support class targeting, due dates, publisher display, and teacher-created assignment publishing flow
+- Assignment submission workflow now exists:
+  - parents/students can submit work or parent notes against assignment materials
+  - teachers/leadership/support can review submissions, add feedback, add score text, and mark reviewed or needs revision
+  - demo/offline mode persists submissions in local storage
+  - live mode persists submissions in Supabase through `assignment_submissions`
+- Live Supabase now has `assignment_submissions` table with RLS enabled, scoped policies, and authenticated grants limited to `SELECT`, `INSERT`, and `UPDATE`
+- Local migration file added for assignment submissions:
+  - `supabase/migrations/20260724103000_assignment_submissions.sql`
+- Deployment docs now reflect:
+  - Cloudflare Pages as the public frontend host
+  - `CLOUDFLARE_SUPABASE_LAUNCH.md`
+  - `RENDER_SUPABASE_LAUNCH.md` as the backend-worker lane
+  - `apps/web/.env.example` updated for production-shaped envs
+- Render backend-worker lane is now scaffolded:
+  - `render.yaml`
+  - `apps/worker/package.json`
+  - `apps/worker/src/server.mjs`
+  - `apps/worker/.env.example`
+  - endpoints: `/health`, `/integrations/status`, `/jobs/onedrive-sync`, `/jobs/email-dispatch`
+- Render worker checks required server env without exposing secrets:
+  - `SUPABASE_URL`
+  - `SUPABASE_SERVICE_ROLE_KEY`
+- Render worker checks optional integration readiness for:
+  - OneDrive OAuth credentials
+  - SMTP credentials
+- OneDrive direction clarified:
+  - API comes through Microsoft Graph app registration, not directly inside the OneDrive mailbox UI
+  - OneDrive should start as school-owned backup/document sync, while Supabase Storage remains better for app-native assignment attachments
+- Storage/backup topology now includes Supabase primary, Cloudflare R2 fast replica, Backblaze B2 cold backup, OneDrive school-owned copy, and future local node
+- Render worker now reports readiness for:
+  - OneDrive OAuth
+  - Cloudflare R2 bucket/API keys
+  - Backblaze B2 bucket/API keys
+  - SMTP
+  - protected backup job endpoints
+- Render worker now records backup attempts into Supabase `backup_jobs` instead of claiming fake success before transfer adapters exist
+- Render worker now has S3-compatible school snapshot upload adapters for Cloudflare R2 and Backblaze B2
+- Render worker now has R2/B2 restore-test endpoints using signed `HEAD` requests
+- Web app now reads `VITE_WORKER_URL/backup/topology` and `VITE_WORKER_URL/backup/jobs` when configured and shows worker-visible backup lanes plus recent backup job attempts
+- Supabase `storage_connections` now accepts `cloudflare-r2` and `backblaze-b2`; live project has planned rows for both providers
+- Supabase live project now has `backup_jobs` with RLS enabled and same-school read policy
+- New storage guide added:
+  - `DREEM_STORAGE_BACKUP_TOPOLOGY.md`
+- New infrastructure presentation blueprint added:
+  - `DREEM_INFRASTRUCTURE_PRESENTATION_BLUEPRINT.md`
+- SMTP direction clarified:
+  - do not block the app on SMTP
+  - prefer a transactional provider such as Resend/Brevo/SendGrid, or configure normal SMTP later
+- New guide added:
+  - `SMTP_AND_NOTIFICATIONS.md`
+- New boundary guide added:
+  - `DREEM_TSIDKENU_SUPABASE_BOUNDARY.md`
+- New world-class build guide added:
+  - `DREEM_WORLD_CLASS_BUILD_PLAN.md`
+- Local frontend env now wired to Supabase project `vpxtmgpxqlmkkyijuare` through `apps/web/.env.local`
+- Frontend env naming now prefers `VITE_SUPABASE_PUBLISHABLE_KEY` with compatibility fallback
+- Cloudflare Pages support files added:
+  - `apps/web/public/_redirects`
+  - `apps/web/public/_headers`
+- Supabase Edge Function added and deployed:
+  - `supabase/functions/provision-access-user/index.ts`
+  - `supabase/functions/update-access-status/index.ts`
+  - `supabase/functions/deno.json`
+  - `supabase/functions/.env.example`
+- Frontend is now wired to call the `provision-access-user` Edge Function in live mode from the access provisioning flow
+- Frontend is now wired to call the `update-access-status` Edge Function when suspending/reactivating school users
+- `provision-access-user` was hardened locally with allowed-role validation and confirmed email/phone handling
+- Live Supabase Edge Function status:
+  - slug: `provision-access-user`
+  - status: `ACTIVE`
+  - version: `2`
+  - `verify_jwt`: `true`
+  - slug: `update-access-status`
+  - status: `ACTIVE`
+  - version: `1`
+  - `verify_jwt`: `true`
+
+## Biggest Gap
+- Real auth is now connected through session/profile hydration and OTP/password paths, but live school-issued matricule-only login still needs a secure resolver Edge Function
+- Real auth launch path is now clearly:
+  - email/password
+  - email sign-in link
+  - controlled server-side user provisioning
+- Next.js-specific Supabase SSR instructions were intentionally not adopted because the DREEM app is Vite/React, not Next.js
+- Permissions now exist in frontend and the live SQL layer, but still need end-to-end testing with real Supabase users
+- Configurable school structure now has a sync repository, but it still needs richer conflict handling and permission-grade enforcement
+- Reporting exports now include a richer CSV, but exact Cameroon/ministry-format templates are still not built until the official templates are supplied
+- Teacher-simple submission paths like SMS/USSD are still not built yet
+- Core school domains are still incomplete:
+  - classes/teachers ownership
+  - subjects/assessment structure
+  - parent-student links
+  - assignment submissions and grading
+  - transport stops and trips
+  - audit logs
+- OneDrive integration is still represented as storage/sync strategy, not a real OAuth/rclone connector inside the app
+- R2 and B2 are now modeled, visible, job-logged, and have worker-side snapshot upload and restore-test adapters; they still need live credential testing after deploy
+- OneDrive is now part of the worker readiness model, but Microsoft Graph OAuth callback/token storage is not implemented yet
+- Cloudflare Pages project and Supabase live configuration still need to be completed in the live accounts
+- Render is now reserved for optional backend workers and sync services
+- The pasted service-role style secret should be rotated before production use
+- The UI is stronger than before, but the system still needs deeper task execution inside each module, not only surface-level control panels
+- Supabase workflow/config migrations are now applied and verified on the live TSIDEK project
+- Real auth provisioning now has the deployed Edge Function, but still needs end-to-end testing with a real leadership/support user session
+- Access suspension/reactivation now has a deployed Edge Function, but still needs end-to-end testing with a real leadership/support user session
+- Supabase secrets and pasted credentials should still be rotated before production/public launch
+- Parent, teacher, and leadership spaces still need richer end-to-end workflows, not just visibility
+- Assignment submission/review is now a real academic workflow, but it still needs file attachments, rubric-gradebook integration, and notification events
+- Pi node, true offline reconciliation, and OneDrive sync are still architectural lanes, not production features
+
+## Next Build Priorities
+1. End-to-end test live Supabase access provisioning with a real leadership/support user session
+2. End-to-end test live Supabase users for leadership, bursar, teacher, parent, and student roles
+3. End-to-end test live Supabase access suspension/reactivation from the Operations screen
+4. Replace remaining local-only workflows with real persisted CRUD for audit events, sync queue, assignment attachments, and transport trips
+5. Deepen the parent, teacher, and leadership workspaces into fuller task flows
+6. Start the local-node/Pi sync lane and OneDrive-backed storage integration
+7. Deploy and verify the Render worker, then run real R2 and B2 backup/restore-test jobs
+8. Add OneDrive OAuth callback and encrypted refresh-token storage
+9. Add scheduled backup automation
+10. Add frontend module code-splitting to remove the current 500 kB bundle warning
+11. Convert the launch readiness engine into a persisted onboarding wizard with approval history
+
+## Team Constraint
+- Do not regress into mirror work or presentation-only polish
+- Every new change should produce a real workflow, real state, or real persistence

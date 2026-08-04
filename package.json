@@ -1,0 +1,14 @@
+{
+  "name": "dreem-platform",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:web": "npm run dev --workspace web",
+    "build:web": "npm run build --workspace web",
+    "start:worker": "npm start --workspace worker",
+    "check:worker": "npm run check --workspace worker"
+  }
+}
