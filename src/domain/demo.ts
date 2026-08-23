@@ -28,7 +28,7 @@ export const demoTeachers: TeacherSummary[] = [
   {id:"t3",name:"Demo Teacher C",subject:"Physics",learnerGrowth:3,coverage:81,mastery:58,workload:"high",nextSupport:"Coaching and load review"},
 ];
 
-export const demoFinance: FinanceSummary = { expectedToday:1480000,collectedToday:1310000,reconciledToday:1276000,openExceptions:2,openExceptionValue:25000,nextDeposit:875000 };
+export const demoFinance: FinanceSummary = { expectedToday:1480000,collectedToday:1310000,reconciledToday:1276000,openExceptions:2,openExceptionValue:25000,nextDeposit:875000,cashCollected:925000,cashAwaitingDeposit:34000,digitalConfirmed:385000,parentConfirmationsPending:3 };
 
 export const demoSignals: CommunitySignal[] = [
   {id:"s1",sourceRole:"parent",sourceName:"Demo Parent A",subjectType:"student",subjectName:"Demo Learner C",category:"Recognition",message:"The learner now explains mathematics work confidently at home. Please continue the visual exercises.",severity:"normal",status:"new",assignedRole:"academic_head",createdAt:new Date().toISOString()},

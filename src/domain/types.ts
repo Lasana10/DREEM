@@ -107,6 +107,8 @@ export interface LearnerSummary {
   nextAction: string;
   interventionOwner?: string;
   idStatus: "active" | "expired" | "revoked";
+  feeAccountId?: string;
+  feeBalance?: number;
 }
 
 export interface StaffInvitation {
@@ -205,24 +207,43 @@ export interface FinanceSummary {
   openExceptions: number;
   openExceptionValue: number;
   nextDeposit: number;
+  cashCollected: number;
+  cashAwaitingDeposit: number;
+  digitalConfirmed: number;
+  parentConfirmationsPending: number;
 }
 
 export type PaymentMethod = "cash" | "momo" | "bank_transfer" | "card" | "cheque";
 
 export interface PaymentCommand {
-  studentId: string;
-  feeAccountId?: string;
+  paymentIntentId: string;
   cashierSessionId?: string;
   method: PaymentMethod;
+  railCode: "cash" | "wave" | "mtn_momo" | "orange_money" | "bank" | "card" | "cheque" | "other";
   amount: number;
   externalReference?: string;
   idempotencyKey: string;
-  payerName: string;
 }
 
 export interface PaymentReceipt {
   paymentId: string;
   receiptNumber: string;
+  confirmationToken: string;
+}
+
+export interface PaymentIntentCommand {
+  studentId: string;
+  feeAccountId: string;
+  amountExpected: number;
+  payerName: string;
+  payerPhone?: string;
+  allowedRails: PaymentCommand["railCode"][];
+  idempotencyKey: string;
+}
+
+export interface PaymentIntentResult {
+  intentId: string;
+  paymentReference: string;
 }
 
 export interface CommunitySignal {

@@ -16,3 +16,4 @@ Thumbs.db
 
 .vite/
 apps/*/.vite/
+*.tsbuildinfo

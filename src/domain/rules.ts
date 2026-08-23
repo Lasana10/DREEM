@@ -1,4 +1,4 @@
-import type { CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, Role } from "./types";
+import type { CommunitySignal, FinanceSummary, LearnerSummary, PaymentCommand, PaymentMethod, PulseAction, Role } from "./types";
 
 export function routeSignal(category: string): Role {
   if (category === "Finance") return "accountant";
@@ -19,6 +19,14 @@ export function canApproveClosure(submittedBy: string, reviewedBy: string, roles
 export function requirePositiveAmount(amount: number): number {
   if (!Number.isFinite(amount) || amount <= 0) throw new Error("Amount must be a positive number.");
   return Math.round(amount * 100) / 100;
+}
+
+export function paymentMethodForRail(rail: PaymentCommand["railCode"]): PaymentMethod {
+  if (["wave","mtn_momo","orange_money","other"].includes(rail)) return "momo";
+  if (rail === "bank") return "bank_transfer";
+  if (rail === "card") return "card";
+  if (rail === "cheque") return "cheque";
+  return "cash";
 }
 
 export function createIdempotencyKey(scope: string): string {

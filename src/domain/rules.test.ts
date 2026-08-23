@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOperationalPulse, canApproveClosure, cashVariance, derivePrefix, normalizeSlug, requirePositiveAmount, routeSignal } from "./rules";
+import { buildOperationalPulse, canApproveClosure, cashVariance, derivePrefix, normalizeSlug, paymentMethodForRail, requirePositiveAmount, routeSignal } from "./rules";
 
 describe("operational controls", () => {
   it("routes safeguarding directly to the principal", () => expect(routeSignal("Safeguarding")).toBe("principal"));
@@ -15,6 +15,13 @@ describe("operational controls", () => {
     expect(() => requirePositiveAmount(Number.NaN)).toThrow("positive");
     expect(requirePositiveAmount(25_000.555)).toBe(25_000.56);
   });
+  it("keeps providers interchangeable behind stable payment methods", () => {
+    expect(paymentMethodForRail("wave")).toBe("momo");
+    expect(paymentMethodForRail("mtn_momo")).toBe("momo");
+    expect(paymentMethodForRail("orange_money")).toBe("momo");
+    expect(paymentMethodForRail("bank")).toBe("bank_transfer");
+    expect(paymentMethodForRail("cash")).toBe("cash");
+  });
   it("normalizes school slugs consistently", () => {
     expect(normalizeSlug(" Demonstration Bilingual School ")).toBe("demonstration-bilingual-school");
   });
@@ -28,14 +35,14 @@ describe("operational pulse", () => {
   it("derives leadership actions from live evidence", () => {
     const pulse = buildOperationalPulse(
       [{ id:"learner-1",matricule:"DRM-001",name:"Test Learner",className:"Form 1",mastery:55,attendance:70,engagement:60,wellbeing:80,trend:0,nextAction:"Review",idStatus:"active" }],
-      { expectedToday:1000,collectedToday:900,reconciledToday:800,openExceptions:1,openExceptionValue:100,nextDeposit:0 },
+      { expectedToday:1000,collectedToday:900,reconciledToday:800,openExceptions:1,openExceptionValue:100,nextDeposit:0,cashCollected:500,cashAwaitingDeposit:100,digitalConfirmed:400,parentConfirmationsPending:1 },
       [],
     );
     expect(pulse.map((item)=>item.category)).toEqual(["finance","learning"]);
   });
 
   it("reports a clear operating state when there are no exceptions", () => {
-    const pulse = buildOperationalPulse([], { expectedToday:0,collectedToday:0,reconciledToday:0,openExceptions:0,openExceptionValue:0,nextDeposit:0 }, []);
+    const pulse = buildOperationalPulse([], { expectedToday:0,collectedToday:0,reconciledToday:0,openExceptions:0,openExceptionValue:0,nextDeposit:0,cashCollected:0,cashAwaitingDeposit:0,digitalConfirmed:0,parentConfirmationsPending:0 }, []);
     expect(pulse).toHaveLength(1);
     expect(pulse[0].severity).toBe("positive");
   });

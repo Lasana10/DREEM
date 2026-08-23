@@ -1,4 +1,4 @@
-import type { AccessMembership, AcademicYearConfig, AssessmentCommand, AttendanceCommand, BootstrapPayload, BootstrapStatus, ClassConfig, CommunitySignal, CredentialIssueResult, EnrollmentPayload, EnrollmentResult, FinanceSummary, LearnerSummary, OperationalSummary, PaymentCommand, PaymentReceipt, Role, SchoolBrand, SchoolSetup, StaffInvitation, SubjectConfig, TeacherSummary, TermConfig } from "../domain/types";
+import type { AccessMembership, AcademicYearConfig, AssessmentCommand, AttendanceCommand, BootstrapPayload, BootstrapStatus, ClassConfig, CommunitySignal, CredentialIssueResult, EnrollmentPayload, EnrollmentResult, FinanceSummary, LearnerSummary, OperationalSummary, PaymentCommand, PaymentIntentCommand, PaymentIntentResult, PaymentReceipt, Role, SchoolBrand, SchoolSetup, StaffInvitation, SubjectConfig, TeacherSummary, TermConfig } from "../domain/types";
 import { demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoTeachers } from "../domain/demo";
 import { requirePositiveAmount, routeSignal } from "../domain/rules";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
@@ -66,16 +66,18 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const rawSchool=schoolResult.data;
   const rawBrand=brandResult.data;
 
-  const [studentResult, growthResult, interventionResult, credentialResult, teacherResult, signalResult, accountResult, paymentResult, reconciliationResult, academicYearResult, termResult, classResult, subjectResult, invitationResult, attendanceResult, assessmentResult] = await Promise.all([
+  const [studentResult, growthResult, interventionResult, credentialResult, teacherResult, signalResult, accountResult, paymentResult, reconciliationResult, confirmationResult, depositResult, academicYearResult, termResult, classResult, subjectResult, invitationResult, attendanceResult, assessmentResult] = await Promise.all([
     supabase.from("students").select("id,matricule,full_name,class_name,attendance_rate,risk_level").eq("school_id",schoolId).is("merged_into_student_id",null).limit(100),
     supabase.from("dreem_growth_snapshots").select("*").eq("school_id",schoolId).order("snapshot_date",{ascending:false}).limit(500),
     supabase.from("dreem_interventions").select("student_id,title,owner_user_id,status,review_on").eq("school_id",schoolId).not("status","in","(closed,cancelled)").order("review_on").limit(200),
     supabase.from("dreem_student_credentials").select("student_id,status,valid_until,issued_at").eq("school_id",schoolId).order("issued_at",{ascending:false}).limit(200),
     supabase.from("dreem_teacher_growth_snapshots").select("*").eq("school_id",schoolId).order("snapshot_date",{ascending:false}).limit(200),
     supabase.from("dreem_community_signals").select("*").eq("school_id", schoolId).order("created_at", { ascending: false }).limit(100),
-    supabase.from("fee_accounts").select("amount_due").eq("school_id",schoolId),
-    supabase.from("dreem_financial_payments").select("amount,received_at").eq("school_id",schoolId),
+    supabase.from("fee_accounts").select("id,student_id,amount_due,amount_paid,balance_due,status").eq("school_id",schoolId),
+    supabase.from("dreem_financial_payments").select("id,amount,method,received_at").eq("school_id",schoolId),
     supabase.from("dreem_reconciliation_reviews").select("variance,status,submitted_at").eq("school_id",schoolId),
+    supabase.from("dreem_payment_confirmations").select("acknowledgement_status").eq("school_id",schoolId),
+    supabase.from("dreem_cash_deposit_batches").select("amount,status").eq("school_id",schoolId),
     supabase.from("dreem_academic_years").select("*").eq("school_id",schoolId).order("starts_on",{ascending:false}),
     supabase.from("dreem_terms").select("*").eq("school_id",schoolId).order("order_index"),
     supabase.from("dreem_classes").select("*").eq("school_id",schoolId).order("name"),
@@ -90,6 +92,11 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   if (credentialResult.error) throw credentialResult.error;
   if (teacherResult.error) throw teacherResult.error;
   if (signalResult.error) throw signalResult.error;
+  if (accountResult.error) throw accountResult.error;
+  if (paymentResult.error) throw paymentResult.error;
+  if (reconciliationResult.error) throw reconciliationResult.error;
+  if (confirmationResult.error) throw confirmationResult.error;
+  if (depositResult.error) throw depositResult.error;
   if (invitationResult.error) throw invitationResult.error;
   if (attendanceResult.error) throw attendanceResult.error;
   if (assessmentResult.error) throw assessmentResult.error;
@@ -107,9 +114,14 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const interventions=new Map((interventionResult.data??[]).map(row=>[String(row.student_id),row]));
   const credentials=new Map<string,Record<string,unknown>>();
   for(const row of credentialResult.data??[]) if(!credentials.has(String(row.student_id))) credentials.set(String(row.student_id),row);
+  const feeAccounts=new Map<string,Record<string,unknown>>();
+  for(const row of accountResult.data??[]) if(!feeAccounts.has(String(row.student_id))) feeAccounts.set(String(row.student_id),row);
   const today=new Date().toISOString().slice(0,10);
   const todaysPayments=(paymentResult.data??[]).filter(row=>String(row.received_at).startsWith(today));
   const openExceptions=(reconciliationResult.data??[]).filter(row=>row.status==="pending"&&Number(row.variance)!==0);
+  const cashCollected=todaysPayments.filter(row=>row.method==="cash").reduce((sum,row)=>sum+Number(row.amount),0);
+  const digitalConfirmed=todaysPayments.filter(row=>row.method!=="cash").reduce((sum,row)=>sum+Number(row.amount),0);
+  const confirmedDeposits=(depositResult.data??[]).filter(row=>row.status==="confirmed").reduce((sum,row)=>sum+Number(row.amount),0);
 
   return {
     viewer:{
@@ -134,8 +146,9 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
       recentAttendance:attendanceResult.data?.length??0,
       recentAssessments:assessmentResult.data?.length??0,
     },
-    learners:(studentResult.data??[]).map(row=>{const growth=latestGrowth.get(String(row.id));const action=interventions.get(String(row.id));const credential=credentials.get(String(row.id));return {
+    learners:(studentResult.data??[]).map(row=>{const growth=latestGrowth.get(String(row.id));const action=interventions.get(String(row.id));const credential=credentials.get(String(row.id));const fee=feeAccounts.get(String(row.id));return {
       id:String(row.id),matricule:String(row.matricule),name:String(row.full_name),className:String(row.class_name??"Unassigned"),mastery:Number(growth?.mastery??0),attendance:Number(growth?.attendance??row.attendance_rate??0),engagement:Number(growth?.engagement??0),wellbeing:Number(growth?.wellbeing??0),trend:0,nextAction:String(action?.title??"Review learner OneFile"),interventionOwner:action?.owner_user_id?profileNames.get(String(action.owner_user_id)):undefined,idStatus:(credential?.status??"expired") as LearnerSummary["idStatus"],
+      feeAccountId:fee?.id?String(fee.id):undefined,feeBalance:fee?Number(fee.balance_due??0):undefined,
     }}),
     teachers:Array.from(latestTeacher.values()).map(row=>({
       id:String(row.teacher_user_id),name:profileNames.get(String(row.teacher_user_id))??"Teacher",subject:String(row.subject_name),learnerGrowth:Number(row.learner_growth),coverage:Number(row.curriculum_coverage),mastery:Number(row.mastery),workload:row.workload as TeacherSummary["workload"],nextSupport:String(row.next_support),
@@ -143,7 +156,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     signals: (signalResult.data ?? []).map((row) => ({
       id:String(row.id),sourceRole:row.source_role as CommunitySignal["sourceRole"],sourceName:String(row.source_name),subjectType:row.subject_type as CommunitySignal["subjectType"],subjectName:String(row.subject_name),category:String(row.category),message:String(row.message),severity:row.severity as CommunitySignal["severity"],status:row.status as CommunitySignal["status"],assignedRole:row.assigned_role as CommunitySignal["assignedRole"],createdAt:String(row.created_at),
     })),
-    finance:{expectedToday:(accountResult.data??[]).reduce((sum,row)=>sum+Number(row.amount_due),0),collectedToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0),reconciledToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0)-openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),openExceptions:openExceptions.length,openExceptionValue:openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),nextDeposit:0},
+    finance:{expectedToday:(accountResult.data??[]).reduce((sum,row)=>sum+Number(row.balance_due??row.amount_due),0),collectedToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0),reconciledToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0)-openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),openExceptions:openExceptions.length,openExceptionValue:openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),nextDeposit:Math.max(cashCollected-confirmedDeposits,0),cashCollected,cashAwaitingDeposit:Math.max(cashCollected-confirmedDeposits,0),digitalConfirmed,parentConfirmationsPending:(confirmationResult.data??[]).filter(row=>row.acknowledgement_status==="pending").length},
   };
 }
 
@@ -386,28 +399,49 @@ export async function openCashierSession(openingFloat: number) {
   return { id:String(data.id), status:"open" as const };
 }
 
+export async function createPaymentIntent(command: PaymentIntentCommand): Promise<PaymentIntentResult> {
+  const amountExpected = requirePositiveAmount(command.amountExpected);
+  if (!command.studentId || !command.feeAccountId) throw new Error("Choose a learner with an open fee account.");
+  if (!command.payerName.trim()) throw new Error("Payer name is required.");
+  if (!command.allowedRails.length) throw new Error("Choose at least one permitted payment rail.");
+  if (!isSupabaseConfigured || !supabase) {
+    return { intentId:crypto.randomUUID(), paymentReference:`DEMO-PAY-${crypto.randomUUID().slice(0,8).toUpperCase()}` };
+  }
+  const { data, error } = await supabase.rpc("dreem_create_payment_intent", {
+    p_student_id: command.studentId,
+    p_fee_account_id: command.feeAccountId,
+    p_amount_expected: amountExpected,
+    p_payer_name: command.payerName.trim(),
+    p_payer_phone: command.payerPhone?.trim() || null,
+    p_allowed_rails: command.allowedRails,
+    p_idempotency_key: command.idempotencyKey,
+  });
+  if (error) throw error;
+  const intent = Array.isArray(data) ? data[0] : data;
+  if (!intent) throw new Error("Payment reference was not created.");
+  return { intentId:String(intent.intent_id), paymentReference:String(intent.payment_reference) };
+}
+
 export async function recordPayment(command: PaymentCommand): Promise<PaymentReceipt> {
   const amount = requirePositiveAmount(command.amount);
-  if (!command.studentId) throw new Error("Choose a learner before recording payment.");
-  if (!command.payerName.trim()) throw new Error("Payer name is required.");
+  if (!command.paymentIntentId) throw new Error("Create or select a payment reference first.");
   if (!command.idempotencyKey.trim()) throw new Error("Idempotency key is required.");
   if (!isSupabaseConfigured || !supabase) {
-    return { paymentId: crypto.randomUUID(), receiptNumber: `DEMO-${new Date().toISOString().slice(0,10).replaceAll("-","")}` };
+    return { paymentId: crypto.randomUUID(), receiptNumber: `DEMO-${new Date().toISOString().slice(0,10).replaceAll("-","")}`, confirmationToken:crypto.randomUUID() };
   }
-  const { data, error } = await supabase.rpc("dreem_record_payment", {
-    p_student_id: command.studentId,
-    p_fee_account_id: command.feeAccountId ?? null,
+  const { data, error } = await supabase.rpc("dreem_record_verified_payment", {
+    p_payment_intent_id: command.paymentIntentId,
     p_cashier_session_id: command.cashierSessionId ?? null,
     p_method: command.method,
+    p_rail_code: command.railCode,
     p_amount: amount,
     p_external_reference: command.externalReference ?? null,
     p_idempotency_key: command.idempotencyKey,
-    p_payer_name: command.payerName.trim(),
   });
   if (error) throw error;
   const receipt = Array.isArray(data) ? data[0] : data;
   if (!receipt) throw new Error("Payment command did not return a receipt.");
-  return { paymentId:String(receipt.payment_id), receiptNumber:String(receipt.receipt_number) };
+  return { paymentId:String(receipt.payment_id), receiptNumber:String(receipt.receipt_number), confirmationToken:String(receipt.confirmation_token) };
 }
 
 export async function updateSignalStatus(signalId: string, status: CommunitySignal["status"]) {
