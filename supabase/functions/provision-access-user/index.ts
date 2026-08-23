@@ -1,245 +1,78 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "@supabase/supabase-js";
-
-type ProvisionPayload = {
-  schoolId: string;
-  fullName: string;
-  role:
-    | "leadership"
-    | "teacher"
-    | "student"
-    | "parent"
-    | "bursar"
-    | "transport"
-    | "support";
-  department?: string;
-  matricule: string;
-  email?: string;
-  phone?: string;
-  temporaryPassword?: string;
-};
+import { createClient } from "npm:@supabase/supabase-js@2.90.1";
 
 const corsHeaders = {
-  "Content-Type": "application/json",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type"
+  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-function jsonResponse(body: unknown, status = 200) {
+function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: corsHeaders
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
 }
 
-Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
-  }
+Deno.serve(async (request: Request) => {
+  if (request.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  if (request.method !== "POST") return json({ error: "Method not allowed." }, 405);
 
-  if (request.method !== "POST") {
-    return jsonResponse({ error: "Method not allowed." }, 405);
-  }
+  const authorization = request.headers.get("Authorization");
+  if (!authorization?.startsWith("Bearer ")) return json({ error: "Authentication is required." }, 401);
 
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const authHeader = request.headers.get("Authorization");
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const anonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !anonKey || !serviceRoleKey) return json({ error: "Server configuration is incomplete." }, 500);
 
-  if (!supabaseUrl || !serviceRoleKey) {
-    return jsonResponse({ error: "Missing Supabase server credentials." }, 500);
-  }
+  const userClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authorization } } });
+  const token = authorization.slice("Bearer ".length);
+  const { data: authData, error: authError } = await userClient.auth.getUser(token);
+  if (authError || !authData.user) return json({ error: "Invalid session." }, 401);
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    return jsonResponse({ error: "Missing bearer token." }, 401);
-  }
-
-  const token = authHeader.replace("Bearer ", "");
-  const admin = createClient(supabaseUrl, serviceRoleKey);
-
-  const {
-    data: { user: caller },
-    error: callerError
-  } = await admin.auth.getUser(token);
-
-  if (callerError || !caller) {
-    return jsonResponse({ error: "Invalid caller session." }, 401);
-  }
-
-  const { data: callerProfile, error: profileError } = await admin
-    .from("profiles")
-    .select("id,school_id,role")
-    .eq("id", caller.id)
-    .single();
-
-  if (profileError || !callerProfile) {
-    return jsonResponse({ error: "Caller profile was not found." }, 403);
-  }
-
-  if (!["leadership", "support"].includes(callerProfile.role)) {
-    return jsonResponse({ error: "Caller is not allowed to provision school users." }, 403);
-  }
-
-  let payload: ProvisionPayload;
-
+  let invitationId = "";
   try {
-    payload = (await request.json()) as ProvisionPayload;
+    const payload = await request.json();
+    invitationId = String(payload.invitationId ?? "");
   } catch {
-    return jsonResponse({ error: "Invalid JSON body." }, 400);
+    return json({ error: "A JSON request body is required." }, 400);
   }
+  if (!/^[0-9a-f-]{36}$/i.test(invitationId)) return json({ error: "A valid invitationId is required." }, 400);
 
-  const matricule = payload.matricule.trim().toUpperCase();
-  const email = payload.email?.trim().toLowerCase() || undefined;
-  const phone = payload.phone?.trim() || undefined;
-  const allowedRoles: ProvisionPayload["role"][] = [
-    "leadership",
-    "teacher",
-    "student",
-    "parent",
-    "bursar",
-    "transport",
-    "support"
-  ];
+  // RLS proves that the caller may inspect this invitation.
+  const { data: invitation, error: invitationError } = await userClient
+    .from("dreem_staff_invitations")
+    .select("id,school_id,email,full_name,role,status,expires_at")
+    .eq("id", invitationId)
+    .single();
+  if (invitationError || !invitation) return json({ error: "Invitation not found or access denied." }, 404);
+  if (invitation.status !== "pending") return json({ error: "Only pending invitations can be provisioned." }, 409);
+  if (new Date(invitation.expires_at).getTime() <= Date.now()) return json({ error: "Invitation has expired." }, 409);
 
-  if (!payload.schoolId || payload.schoolId !== callerProfile.school_id) {
-    return jsonResponse({ error: "School mismatch." }, 403);
-  }
-
-  if (!payload.fullName?.trim() || !matricule) {
-    return jsonResponse({ error: "Full name and matricule are required." }, 400);
-  }
-
-  if (!allowedRoles.includes(payload.role)) {
-    return jsonResponse({ error: "Invalid role." }, 400);
-  }
-
-  if (!email && !phone) {
-    return jsonResponse({ error: "An email or phone identifier is required." }, 400);
-  }
-
-  const existingIdentity = await admin
-    .from("access_identities")
-    .select("id")
-    .eq("school_id", payload.schoolId)
-    .eq("matricule", matricule)
-    .maybeSingle();
-
-  if (existingIdentity.data) {
-    return jsonResponse({ error: "That matricule already exists." }, 409);
-  }
-
-  const authUserResult = await admin.auth.admin.createUser({
-    ...(email ? { email } : {}),
-    ...(phone ? { phone } : {}),
-    ...(payload.temporaryPassword ? { password: payload.temporaryPassword } : {}),
-    email_confirm: Boolean(email),
-    phone_confirm: Boolean(phone),
-    user_metadata: {
-      full_name: payload.fullName.trim()
-    },
-    app_metadata: {
-      school_id: payload.schoolId,
-      role: payload.role,
-      matricule
-    }
+  const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const redirectTo = Deno.env.get("DREEM_APP_URL") || undefined;
+  const { data: invited, error: inviteError } = await admin.auth.admin.inviteUserByEmail(invitation.email, {
+    redirectTo,
+    data: { full_name: invitation.full_name },
   });
+  if (inviteError || !invited.user) return json({ error: inviteError?.message ?? "User invitation failed." }, 409);
 
-  if (authUserResult.error || !authUserResult.data.user) {
-    return jsonResponse(
-      { error: authUserResult.error?.message ?? "Could not create auth user." },
-      400
-    );
-  }
+  const { error: membershipError } = await admin.from("dreem_school_memberships").upsert({
+    profile_id: invited.user.id,
+    school_id: invitation.school_id,
+    role: invitation.role,
+    status: "pending",
+    invited_by: authData.user.id,
+  }, { onConflict: "profile_id,school_id" });
+  if (membershipError) return json({ error: "The invitation was sent, but membership provisioning failed." }, 500);
 
-  const newUser = authUserResult.data.user;
+  const { error: updateError } = await admin.from("dreem_staff_invitations").update({
+    accepted_by: invited.user.id,
+    updated_at: new Date().toISOString(),
+  }).eq("id", invitation.id);
+  if (updateError) return json({ error: "Membership was created, but invitation tracking failed." }, 500);
 
-  const neutralProfileUpsert = await admin.from("neutral_profiles").upsert({
-    id: newUser.id,
-    email: email ?? null,
-    full_name: payload.fullName.trim(),
-    last_provider: email ? "email" : "phone",
-    last_seen_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  });
-
-  if (neutralProfileUpsert.error) {
-    return jsonResponse({ error: neutralProfileUpsert.error.message }, 400);
-  }
-
-  const profileUpsert = await admin.from("profiles").upsert({
-    id: newUser.id,
-    school_id: payload.schoolId,
-    full_name: payload.fullName.trim(),
-    matricule,
-    role: payload.role,
-    department: payload.department?.trim() ?? ""
-  });
-
-  if (profileUpsert.error) {
-    return jsonResponse({ error: profileUpsert.error.message }, 400);
-  }
-
-  const membershipUpsert = await admin.from("dreem_school_memberships").upsert({
-    school_id: payload.schoolId,
-    profile_id: newUser.id,
-    legacy_profile_id: newUser.id,
-    role: payload.role,
-    status: "approved",
-    department: payload.department?.trim() ?? "",
-    matricule,
-    approved_by: caller.id,
-    approved_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  });
-
-  if (membershipUpsert.error) {
-    return jsonResponse({ error: membershipUpsert.error.message }, 400);
-  }
-
-  const identityUpsert = await admin.from("access_identities").upsert({
-    school_id: payload.schoolId,
-    profile_id: newUser.id,
-    matricule,
-    email: email ?? null,
-    phone: phone ?? null,
-    is_active: true,
-    must_reset_password: Boolean(payload.temporaryPassword)
-  });
-
-  if (identityUpsert.error) {
-    return jsonResponse({ error: identityUpsert.error.message }, 400);
-  }
-
-  await admin.from("access_invites").upsert({
-    school_id: payload.schoolId,
-    full_name: payload.fullName.trim(),
-    role: payload.role,
-    department: payload.department?.trim() ?? "",
-    matricule,
-    email: email ?? null,
-    phone: phone ?? null,
-    status: "sent",
-    created_by: caller.id
-  });
-
-  await admin.from("audit_events").insert({
-    school_id: payload.schoolId,
-    actor_id: caller.id,
-    action: "access.user.provisioned",
-    entity_type: "profiles",
-    entity_id: newUser.id,
-    detail: {
-      matricule,
-      role: payload.role,
-      email,
-      phone
-    }
-  });
-
-  return jsonResponse({
-    ok: true,
-    userId: newUser.id,
-    matricule,
-    email,
-    phone
-  });
+  return json({ userId: invited.user.id, membershipStatus: "pending", invitationId: invitation.id }, 201);
 });
+
