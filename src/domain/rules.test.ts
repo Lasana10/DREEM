@@ -37,8 +37,9 @@ describe("operational pulse", () => {
       [{ id:"learner-1",matricule:"DRM-001",name:"Test Learner",className:"Form 1",mastery:55,attendance:70,engagement:60,wellbeing:80,trend:0,nextAction:"Review",idStatus:"active" }],
       { expectedToday:1000,collectedToday:900,reconciledToday:800,openExceptions:1,openExceptionValue:100,nextDeposit:0,cashCollected:500,cashAwaitingDeposit:100,digitalConfirmed:400,parentConfirmationsPending:1 },
       [],
+      [{id:"case-1",caseNumber:"DCS-1",studentId:"learner-1",studentName:"Test Learner",category:"safeguarding",priority:"critical",confidentiality:"restricted",status:"open",title:"Urgent concern",summary:"Immediate leadership review is required.",openedBy:"Teacher",openedAt:"2026-08-23",updatedAt:"2026-08-23"}],
     );
-    expect(pulse.map((item)=>item.category)).toEqual(["finance","learning"]);
+    expect(pulse.map((item)=>item.category)).toEqual(["care","finance","learning"]);
   });
 
   it("reports a clear operating state when there are no exceptions", () => {

@@ -1,5 +1,5 @@
-import type { AccessMembership, AcademicYearConfig, AssessmentCommand, AttendanceCommand, BootstrapPayload, BootstrapStatus, ClassConfig, CommunitySignal, CredentialIssueResult, EnrollmentPayload, EnrollmentResult, FinanceSummary, LearnerSummary, OperationalSummary, PaymentCommand, PaymentIntentCommand, PaymentIntentResult, PaymentReceipt, Role, SchoolBrand, SchoolSetup, StaffInvitation, SubjectConfig, TeacherSummary, TermConfig } from "../domain/types";
-import { demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoTeachers } from "../domain/demo";
+import type { AccessMembership, AcademicYearConfig, AssessmentCommand, AttendanceCommand, BootstrapPayload, BootstrapStatus, ClassConfig, CommunitySignal, CredentialIssueResult, EnrollmentPayload, EnrollmentResult, FinanceSummary, LearnerSummary, OpenStudentCaseCommand, OperationalSummary, PaymentCommand, PaymentIntentCommand, PaymentIntentResult, PaymentReceipt, ProgressStudentCaseCommand, Role, SchoolBrand, SchoolSetup, StaffInvitation, StudentCaseSummary, SubjectConfig, TeacherSummary, TermConfig } from "../domain/types";
+import { demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers } from "../domain/demo";
 import { requirePositiveAmount, routeSignal } from "../domain/rules";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
 
@@ -11,6 +11,7 @@ export interface WorkspaceData {
   learners: LearnerSummary[];
   teachers: TeacherSummary[];
   signals: CommunitySignal[];
+  cases: StudentCaseSummary[];
   finance: FinanceSummary;
 }
 
@@ -43,7 +44,7 @@ async function activeSchool() {
 
 export async function loadWorkspace(): Promise<WorkspaceData> {
   if (!isSupabaseConfigured || !supabase) {
-    if (isDemoMode) return { viewer:{name:"Demo leader",email:"demo@dreem.local",role:"principal"}, brand: demoBrand, setup: demoSetup, operations:{invitations:[],memberships:[],recentAttendance:0,recentAssessments:0}, learners: demoLearners, teachers: demoTeachers, signals: demoSignals, finance:demoFinance };
+    if (isDemoMode) return { viewer:{name:"Demo leader",email:"demo@dreem.local",role:"principal"}, brand: demoBrand, setup: demoSetup, operations:{invitations:[],memberships:[],recentAttendance:0,recentAssessments:0}, learners: demoLearners, teachers: demoTeachers, signals: demoSignals, cases:demoStudentCases, finance:demoFinance };
     throw new Error("DREEM is not connected to its Supabase project. Production data is unavailable.");
   }
 
@@ -66,13 +67,14 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const rawSchool=schoolResult.data;
   const rawBrand=brandResult.data;
 
-  const [studentResult, growthResult, interventionResult, credentialResult, teacherResult, signalResult, accountResult, paymentResult, reconciliationResult, confirmationResult, depositResult, academicYearResult, termResult, classResult, subjectResult, invitationResult, attendanceResult, assessmentResult] = await Promise.all([
+  const [studentResult, growthResult, interventionResult, credentialResult, teacherResult, signalResult, caseResult, accountResult, paymentResult, reconciliationResult, confirmationResult, depositResult, academicYearResult, termResult, classResult, subjectResult, invitationResult, attendanceResult, assessmentResult] = await Promise.all([
     supabase.from("students").select("id,matricule,full_name,class_name,attendance_rate,risk_level").eq("school_id",schoolId).is("merged_into_student_id",null).limit(100),
     supabase.from("dreem_growth_snapshots").select("*").eq("school_id",schoolId).order("snapshot_date",{ascending:false}).limit(500),
     supabase.from("dreem_interventions").select("student_id,title,owner_user_id,status,review_on").eq("school_id",schoolId).not("status","in","(closed,cancelled)").order("review_on").limit(200),
     supabase.from("dreem_student_credentials").select("student_id,status,valid_until,issued_at").eq("school_id",schoolId).order("issued_at",{ascending:false}).limit(200),
     supabase.from("dreem_teacher_growth_snapshots").select("*").eq("school_id",schoolId).order("snapshot_date",{ascending:false}).limit(200),
     supabase.from("dreem_community_signals").select("*").eq("school_id", schoolId).order("created_at", { ascending: false }).limit(100),
+    supabase.from("dreem_student_cases").select("*").eq("school_id",schoolId).order("updated_at",{ascending:false}).limit(200),
     supabase.from("fee_accounts").select("id,student_id,amount_due,amount_paid,balance_due,status").eq("school_id",schoolId),
     supabase.from("dreem_financial_payments").select("id,amount,method,received_at").eq("school_id",schoolId),
     supabase.from("dreem_reconciliation_reviews").select("variance,status,submitted_at").eq("school_id",schoolId),
@@ -92,6 +94,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   if (credentialResult.error) throw credentialResult.error;
   if (teacherResult.error) throw teacherResult.error;
   if (signalResult.error) throw signalResult.error;
+  if (caseResult.error) throw caseResult.error;
   if (accountResult.error) throw accountResult.error;
   if (paymentResult.error) throw paymentResult.error;
   if (reconciliationResult.error) throw reconciliationResult.error;
@@ -122,6 +125,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const cashCollected=todaysPayments.filter(row=>row.method==="cash").reduce((sum,row)=>sum+Number(row.amount),0);
   const digitalConfirmed=todaysPayments.filter(row=>row.method!=="cash").reduce((sum,row)=>sum+Number(row.amount),0);
   const confirmedDeposits=(depositResult.data??[]).filter(row=>row.status==="confirmed").reduce((sum,row)=>sum+Number(row.amount),0);
+  const learnerNames=new Map((studentResult.data??[]).map(row=>[String(row.id),String(row.full_name)]));
 
   return {
     viewer:{
@@ -155,6 +159,12 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     })),
     signals: (signalResult.data ?? []).map((row) => ({
       id:String(row.id),sourceRole:row.source_role as CommunitySignal["sourceRole"],sourceName:String(row.source_name),subjectType:row.subject_type as CommunitySignal["subjectType"],subjectName:String(row.subject_name),category:String(row.category),message:String(row.message),severity:row.severity as CommunitySignal["severity"],status:row.status as CommunitySignal["status"],assignedRole:row.assigned_role as CommunitySignal["assignedRole"],createdAt:String(row.created_at),
+    })),
+    cases:(caseResult.data??[]).map((row):StudentCaseSummary=>({
+      id:String(row.id),caseNumber:String(row.case_number),studentId:String(row.student_id),studentName:learnerNames.get(String(row.student_id))??"Learner",
+      category:row.category as StudentCaseSummary["category"],priority:row.priority as StudentCaseSummary["priority"],confidentiality:row.confidentiality as StudentCaseSummary["confidentiality"],status:row.status as StudentCaseSummary["status"],
+      title:String(row.title),summary:String(row.summary),openedBy:profileNames.get(String(row.opened_by))??"School staff",assignedTo:row.assigned_to?profileNames.get(String(row.assigned_to))??String(row.assigned_to):undefined,
+      reviewDueOn:row.review_due_on?String(row.review_due_on):undefined,closureOutcome:row.closure_outcome?String(row.closure_outcome):undefined,openedAt:String(row.opened_at),updatedAt:String(row.updated_at),
     })),
     finance:{expectedToday:(accountResult.data??[]).reduce((sum,row)=>sum+Number(row.balance_due??row.amount_due),0),collectedToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0),reconciledToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0)-openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),openExceptions:openExceptions.length,openExceptionValue:openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),nextDeposit:Math.max(cashCollected-confirmedDeposits,0),cashCollected,cashAwaitingDeposit:Math.max(cashCollected-confirmedDeposits,0),digitalConfirmed,parentConfirmationsPending:(confirmationResult.data??[]).filter(row=>row.acknowledgement_status==="pending").length},
   };
@@ -458,4 +468,32 @@ export async function updateSignalStatus(signalId: string, status: CommunitySign
   });
   if (eventError) throw eventError;
   return status;
+}
+
+export async function openStudentCase(command: OpenStudentCaseCommand) {
+  if (!command.studentId) throw new Error("Choose a learner.");
+  if (command.title.trim().length < 3) throw new Error("Add a clear case title.");
+  if (command.summary.trim().length < 10) throw new Error("Add enough factual detail to support follow-up.");
+  if (!isSupabaseConfigured || !supabase) return { caseId:crypto.randomUUID(), caseNumber:`DCS-DEMO-${Date.now()}`, status:command.assignedTo?"assigned":"open" };
+  const { data,error }=await supabase.rpc("dreem_open_student_case",{
+    p_student_id:command.studentId,p_category:command.category,p_priority:command.priority,p_title:command.title.trim(),p_summary:command.summary.trim(),
+    p_review_due_on:command.reviewDueOn||null,p_assigned_to:command.assignedTo||null,p_idempotency_key:command.idempotencyKey,
+  });
+  if(error) throw error;
+  const result=Array.isArray(data)?data[0]:data;
+  return {caseId:String(result.case_id),caseNumber:String(result.case_number),status:String(result.case_status)};
+}
+
+export async function progressStudentCase(command: ProgressStudentCaseCommand) {
+  if (!command.caseId) throw new Error("Choose a case.");
+  if (command.note.trim().length < 2) throw new Error("Add a case note.");
+  if (["resolved","closed"].includes(command.targetStatus)&&command.note.trim().length<10) throw new Error("Explain the resolution outcome.");
+  if (!isSupabaseConfigured || !supabase) return {caseId:command.caseId,status:command.targetStatus};
+  const {data,error}=await supabase.rpc("dreem_progress_student_case",{
+    p_case_id:command.caseId,p_target_status:command.targetStatus,p_note:command.note.trim(),p_assigned_to:command.assignedTo||null,
+    p_review_due_on:command.reviewDueOn||null,p_idempotency_key:command.idempotencyKey,
+  });
+  if(error) throw error;
+  const result=Array.isArray(data)?data[0]:data;
+  return {caseId:String(result.case_id),status:String(result.case_status)};
 }

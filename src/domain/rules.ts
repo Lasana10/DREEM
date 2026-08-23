@@ -1,4 +1,4 @@
-import type { CommunitySignal, FinanceSummary, LearnerSummary, PaymentCommand, PaymentMethod, PulseAction, Role } from "./types";
+import type { CommunitySignal, FinanceSummary, LearnerSummary, PaymentCommand, PaymentMethod, PulseAction, Role, StudentCaseSummary } from "./types";
 
 export function routeSignal(category: string): Role {
   if (category === "Finance") return "accountant";
@@ -46,8 +46,14 @@ export function buildOperationalPulse(
   learners: LearnerSummary[],
   finance: FinanceSummary,
   signals: CommunitySignal[],
+  cases: StudentCaseSummary[] = [],
 ): PulseAction[] {
   const actions: PulseAction[] = [];
+  const criticalCases=cases.filter((item)=>!["resolved","closed"].includes(item.status)&&["urgent","critical"].includes(item.priority));
+  if(criticalCases.length>0) actions.push({
+    id:"critical-care-cases",category:"care",title:`${criticalCases.length} urgent learner care case${criticalCases.length===1?"":"s"}`,
+    explanation:"A time-sensitive learner support or safeguarding case requires authorised leadership action.",owner:"Principal",dueLabel:"Immediate review",severity:"critical",evidenceCount:criticalCases.length,
+  });
   if (finance.openExceptions > 0) actions.push({
     id:"finance-exceptions", category:"finance",
     title:`${finance.openExceptions} reconciliation exception${finance.openExceptions === 1 ? "" : "s"}`,

@@ -1,4 +1,4 @@
-import type { CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, TeacherSummary } from "./types";
+import type { CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary } from "./types";
 
 export const demoBrand: SchoolBrand = {
   name: "DREEM Demonstration School",
@@ -33,6 +33,16 @@ export const demoFinance: FinanceSummary = { expectedToday:1480000,collectedToda
 export const demoSignals: CommunitySignal[] = [
   {id:"s1",sourceRole:"parent",sourceName:"Demo Parent A",subjectType:"student",subjectName:"Demo Learner C",category:"Recognition",message:"The learner now explains mathematics work confidently at home. Please continue the visual exercises.",severity:"normal",status:"new",assignedRole:"academic_head",createdAt:new Date().toISOString()},
   {id:"s2",sourceRole:"teacher",sourceName:"Demo Teacher A",subjectType:"student",subjectName:"Demo Learner B",category:"Learning support",message:"The learner understands examples orally but struggles when the question is written in English. Bilingual support may unlock progress.",severity:"important",status:"assigned",assignedRole:"academic_head",createdAt:new Date(Date.now()-86400000).toISOString()},
+];
+
+export const demoStudentCases: StudentCaseSummary[] = [
+  {
+    id:"case-demo-1",caseNumber:"DCS-DEMO-001",studentId:"2",studentName:"Demo Learner B",
+    category:"learning_support",priority:"important",confidentiality:"standard",status:"assigned",
+    title:"Bilingual mathematics support",summary:"Written English appears to be obstructing otherwise demonstrated mathematical understanding.",
+    openedBy:"Demo Teacher A",assignedTo:"Demo Teacher B",reviewDueOn:"2026-09-18",
+    openedAt:"2026-09-02T08:00:00.000Z",updatedAt:"2026-09-03T10:00:00.000Z",
+  },
 ];
 
 export const demoPulse: PulseAction[] = [

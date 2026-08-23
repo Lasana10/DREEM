@@ -189,6 +189,57 @@ export interface OperationalSummary {
   recentAssessments: number;
 }
 
+export type StudentCaseCategory =
+  | "learning_support"
+  | "attendance"
+  | "wellbeing"
+  | "safeguarding"
+  | "discipline"
+  | "health"
+  | "financial_support"
+  | "other";
+
+export type StudentCaseStatus = "open" | "triaged" | "assigned" | "in_progress" | "resolved" | "closed";
+
+export interface StudentCaseSummary {
+  id: string;
+  caseNumber: string;
+  studentId: string;
+  studentName: string;
+  category: StudentCaseCategory;
+  priority: "normal" | "important" | "urgent" | "critical";
+  confidentiality: "standard" | "restricted";
+  status: StudentCaseStatus;
+  title: string;
+  summary: string;
+  openedBy: string;
+  assignedTo?: string;
+  reviewDueOn?: string;
+  closureOutcome?: string;
+  openedAt: string;
+  updatedAt: string;
+}
+
+export interface OpenStudentCaseCommand {
+  studentId: string;
+  category: StudentCaseCategory;
+  priority: StudentCaseSummary["priority"];
+  title: string;
+  summary: string;
+  reviewDueOn?: string;
+  assignedTo?: string;
+  idempotencyKey: string;
+}
+
+export interface ProgressStudentCaseCommand {
+  caseId: string;
+  targetStatus: StudentCaseStatus;
+  note: string;
+  assignedTo?: string;
+  reviewDueOn?: string;
+  idempotencyKey: string;
+}
+
 export interface TeacherSummary {
   id: string;
   name: string;
@@ -262,7 +313,7 @@ export interface CommunitySignal {
 
 export interface PulseAction {
   id: string;
-  category: "finance" | "learning" | "attendance" | "feedback" | "operations";
+  category: "finance" | "learning" | "attendance" | "feedback" | "care" | "operations";
   title: string;
   explanation: string;
   owner: string;

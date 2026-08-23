@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import BootstrapView from "./components/BootstrapView";
+import CareView from "./components/CareView";
 import FeedbackDialog from "./components/FeedbackDialog";
 import OperationalWorkflowsView from "./components/OperationalWorkflows";
 import Shell, { type ViewKey } from "./components/Shell";
@@ -68,10 +69,11 @@ function WorkspaceApp() {
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
-      {view === "command" && <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals)} signals={workspace.signals} />}
+      {view === "command" && <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />}
       {view === "operations" && <OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />}
       {view === "learners" && <LearnersView learners={workspace.learners} brand={workspace.brand} />}
       {view === "teachers" && <TeachersView teachers={workspace.teachers} />}
+      {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "finance" && <FinanceView finance={workspace.finance} learners={workspace.learners} onRecorded={refreshWorkspace} />}
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} />}

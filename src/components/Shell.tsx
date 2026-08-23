@@ -1,28 +1,29 @@
-import { BarChart3, BookOpenCheck, Building2, CircleUserRound, ClipboardCheck, GraduationCap, MessageSquareMore, ReceiptText, Settings2, ShieldCheck, UsersRound } from "lucide-react";
+import { BarChart3, BookOpenCheck, Building2, CircleUserRound, ClipboardCheck, FolderHeart, GraduationCap, MessageSquareMore, ReceiptText, Settings2, ShieldCheck, UsersRound } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Role, SchoolBrand } from "../domain/types";
 
-export type ViewKey = "command" | "operations" | "learners" | "teachers" | "finance" | "signals" | "studio";
+export type ViewKey = "command" | "operations" | "learners" | "teachers" | "care" | "finance" | "signals" | "studio";
 const nav = [
   {id:"command" as const,label:"Command centre",icon:BarChart3},
   {id:"operations" as const,label:"Daily operations",icon:ClipboardCheck},
   {id:"learners" as const,label:"Learner OneFiles",icon:GraduationCap},
   {id:"teachers" as const,label:"Teacher studio",icon:BookOpenCheck},
+  {id:"care" as const,label:"Care & safeguarding",icon:FolderHeart},
   {id:"finance" as const,label:"TrustLedger",icon:ReceiptText},
   {id:"signals" as const,label:"Voice & signals",icon:MessageSquareMore},
   {id:"studio" as const,label:"School studio",icon:Settings2},
 ];
 
 const roleViews: Record<Role, ViewKey[]> = {
-  platform_founder:["command","operations","learners","teachers","finance","signals","studio"],
-  school_owner:["command","operations","learners","teachers","finance","signals","studio"],
-  principal:["command","operations","learners","teachers","finance","signals","studio"],
-  administrator:["command","operations","learners","teachers","finance","signals","studio"],
-  academic_head:["command","operations","learners","teachers","signals","studio"],
+  platform_founder:["command","operations","learners","teachers","care","finance","signals","studio"],
+  school_owner:["command","operations","learners","teachers","care","finance","signals","studio"],
+  principal:["command","operations","learners","teachers","care","finance","signals","studio"],
+  administrator:["command","operations","learners","teachers","care","finance","signals","studio"],
+  academic_head:["command","operations","learners","teachers","care","signals","studio"],
   bursar:["command","learners","finance"],
   accountant:["command","finance"],
-  teacher:["operations","learners","teachers","signals"],
-  tutor:["learners","signals"],
+  teacher:["operations","learners","teachers","care","signals"],
+  tutor:["learners","care","signals"],
   parent:["learners","signals"],
   student:["learners","signals"],
   auditor:["command","learners","finance","signals"],
