@@ -1,4 +1,4 @@
-import type { CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary } from "./types";
+import type { AdmissionSummary, CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary } from "./types";
 
 export const demoBrand: SchoolBrand = {
   name: "DREEM Demonstration School",
@@ -44,6 +44,8 @@ export const demoStudentCases: StudentCaseSummary[] = [
     openedAt:"2026-09-02T08:00:00.000Z",updatedAt:"2026-09-03T10:00:00.000Z",
   },
 ];
+
+export const demoAdmissions:AdmissionSummary[]=[{id:"admission-demo-1",applicationNumber:"ADM-DEMO-001",learnerName:"Synthetic Applicant A",targetClassName:"Form 1",guardianName:"Synthetic Guardian A",guardianPhone:"+237 600 000 000",status:"under_review",source:"school_desk",assignedTo:"Demo Administrator",submittedAt:"2026-08-20T09:00:00.000Z",updatedAt:"2026-08-21T11:00:00.000Z"}];
 
 export const demoPulse: PulseAction[] = [
   {id:"p1",category:"finance",title:"Cash closure variance · 12,500 FCFA",explanation:"Expected 487,500 · physically counted 475,000 · explanation attached",owner:"Accountant",dueLabel:"Today · 11:00",severity:"warning",evidenceCount:24},

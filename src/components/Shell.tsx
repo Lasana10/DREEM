@@ -1,10 +1,11 @@
-import { BarChart3, BookOpenCheck, Building2, CircleUserRound, ClipboardCheck, FolderHeart, GraduationCap, MessageSquareMore, ReceiptText, Settings2, ShieldCheck, UsersRound } from "lucide-react";
+import { BarChart3, BookOpenCheck, Building2, CircleUserRound, ClipboardCheck, FolderHeart, GraduationCap, MessageSquareMore, ReceiptText, Settings2, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Role, SchoolBrand } from "../domain/types";
 
-export type ViewKey = "command" | "operations" | "learners" | "teachers" | "care" | "finance" | "signals" | "studio";
+export type ViewKey = "command" | "admissions" | "operations" | "learners" | "teachers" | "care" | "finance" | "signals" | "studio";
 const nav = [
   {id:"command" as const,label:"Command centre",icon:BarChart3},
+  {id:"admissions" as const,label:"Admissions",icon:UserPlus},
   {id:"operations" as const,label:"Daily operations",icon:ClipboardCheck},
   {id:"learners" as const,label:"Learner OneFiles",icon:GraduationCap},
   {id:"teachers" as const,label:"Teacher studio",icon:BookOpenCheck},
@@ -15,11 +16,11 @@ const nav = [
 ];
 
 const roleViews: Record<Role, ViewKey[]> = {
-  platform_founder:["command","operations","learners","teachers","care","finance","signals","studio"],
-  school_owner:["command","operations","learners","teachers","care","finance","signals","studio"],
-  principal:["command","operations","learners","teachers","care","finance","signals","studio"],
-  administrator:["command","operations","learners","teachers","care","finance","signals","studio"],
-  academic_head:["command","operations","learners","teachers","care","signals","studio"],
+  platform_founder:["command","admissions","operations","learners","teachers","care","finance","signals","studio"],
+  school_owner:["command","admissions","operations","learners","teachers","care","finance","signals","studio"],
+  principal:["command","admissions","operations","learners","teachers","care","finance","signals","studio"],
+  administrator:["command","admissions","operations","learners","teachers","care","finance","signals","studio"],
+  academic_head:["command","admissions","operations","learners","teachers","care","signals","studio"],
   bursar:["command","learners","finance"],
   accountant:["command","finance"],
   teacher:["operations","learners","teachers","care","signals"],

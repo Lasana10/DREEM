@@ -10,6 +10,7 @@
 
 @media(max-width:900px){.care-grid{grid-template-columns:1fr}}
 @media(max-width:680px){.care-assurance{margin-top:15px}.case-row header{align-items:flex-start}.case-row footer{display:grid;grid-template-columns:1fr 1fr}}
+.consent-check{display:flex!important;align-items:flex-start;gap:8px;margin-top:10px;padding:10px;border-radius:8px;background:#f5f8f5}.consent-check input{width:auto!important;margin:2px 0 0!important}
 
 .ops-grid{display:grid;grid-template-columns:1fr 1fr;gap:17px;margin-bottom:17px}.settings-form textarea{width:100%;margin-top:5px;border:1px solid #d6ded8;border-radius:8px;padding:9px;background:white;color:#23342b}.settings-form>button,.settings-form form>button{margin-top:14px}.settings-form small{display:block;margin-top:10px;color:#718078}.compact-table{margin:12px 0;border:1px solid #e3e8e4;border-radius:10px;overflow:hidden}.compact-table label{display:grid;grid-template-columns:minmax(150px,1fr) 120px minmax(140px,1fr);gap:8px;align-items:center;padding:8px 10px;border-top:1px solid #edf0ed}.compact-table label:first-child{border-top:0}.compact-table input,.compact-table select{margin:0}
 .payment-form{margin-top:18px;padding-top:17px;border-top:1px solid #e2e8e3}.intent-proof{margin-bottom:12px;padding:13px;border-radius:10px;background:#edf5ef}.intent-proof small,.intent-proof strong{display:block}.intent-proof small{color:#6d8075;font-size:9px;letter-spacing:.12em}.intent-proof strong{margin-top:4px;color:var(--brand);font-size:18px;letter-spacing:.04em}

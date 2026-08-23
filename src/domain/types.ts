@@ -240,6 +240,22 @@ export interface ProgressStudentCaseCommand {
   idempotencyKey: string;
 }
 
+export type AdmissionStatus="submitted"|"under_review"|"documents_pending"|"interview"|"offered"|"accepted"|"waitlisted"|"rejected"|"withdrawn"|"enrolled";
+
+export interface AdmissionSummary {
+  id:string; applicationNumber:string; learnerName:string; dateOfBirth?:string; sex?:"female"|"male"|"other"; targetClassName:string;
+  guardianName:string; guardianPhone?:string; guardianEmail?:string; status:AdmissionStatus; source:"school_desk"|"referral"|"website"|"campaign"|"transfer"|"other";
+  assignedTo?:string; enrolledStudentId?:string; submittedAt:string; updatedAt:string;
+}
+
+export interface RecordAdmissionCommand {
+  learnerFullName:string;dateOfBirth?:string;sex?:"female"|"male"|"other";targetClassName:string;previousSchool?:string;supportNotes?:string;
+  guardianFullName:string;guardianPhone?:string;guardianEmail?:string;guardianRelationship:string;source:AdmissionSummary["source"];
+  assignedTo?:string;consentAccuracy:boolean;consentDataProcessing:boolean;idempotencyKey:string;
+}
+
+export interface ProgressAdmissionCommand {applicationId:string;targetStatus:Exclude<AdmissionStatus,"submitted">;note:string;assignedTo?:string;openingBalance:number;idempotencyKey:string;}
+
 export interface TeacherSummary {
   id: string;
   name: string;
