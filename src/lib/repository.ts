@@ -1,5 +1,5 @@
-import type { AccessMembership, AcademicYearConfig, AdmissionSummary, AssessmentCommand, AttendanceCommand, BootstrapPayload, BootstrapStatus, ClassConfig, CommunitySignal, CredentialIssueResult, EnrollmentPayload, EnrollmentResult, FinanceSummary, LearnerSummary, OpenStudentCaseCommand, OperationalSummary, PaymentCommand, PaymentIntentCommand, PaymentIntentResult, PaymentReceipt, ProgressAdmissionCommand, ProgressStudentCaseCommand, RecordAdmissionCommand, Role, SchoolBrand, SchoolSetup, StaffInvitation, StudentCaseSummary, SubjectConfig, TeacherSummary, TermConfig } from "../domain/types";
-import { demoAdmissions, demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers } from "../domain/demo";
+import type { AccessMembership, AcademicOperations, AcademicYearConfig, AdmissionSummary, AssessmentCommand, AssignTeacherCommand, AttendanceCommand, BootstrapPayload, BootstrapStatus, ClassConfig, CommunitySignal, CredentialIssueResult, EnrollmentPayload, EnrollmentResult, FinanceSummary, LearnerSummary, OpenStudentCaseCommand, OperationalSummary, PaymentCommand, PaymentIntentCommand, PaymentIntentResult, PaymentReceipt, ProgressAdmissionCommand, ProgressStudentCaseCommand, RecordAdmissionCommand, ReviewAssessmentCommand, Role, SchedulePeriodCommand, SchoolBrand, SchoolSetup, StaffInvitation, StudentCaseSummary, SubjectConfig, TeacherSummary, TermConfig } from "../domain/types";
+import { demoAcademics, demoAdmissions, demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers } from "../domain/demo";
 import { requirePositiveAmount, routeSignal } from "../domain/rules";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
 
@@ -13,6 +13,7 @@ export interface WorkspaceData {
   signals: CommunitySignal[];
   cases: StudentCaseSummary[];
   admissions:AdmissionSummary[];
+  academics:AcademicOperations;
   finance: FinanceSummary;
 }
 
@@ -45,7 +46,7 @@ async function activeSchool() {
 
 export async function loadWorkspace(): Promise<WorkspaceData> {
   if (!isSupabaseConfigured || !supabase) {
-    if (isDemoMode) return { viewer:{name:"Demo leader",email:"demo@dreem.local",role:"principal"}, brand: demoBrand, setup: demoSetup, operations:{invitations:[],memberships:[],recentAttendance:0,recentAssessments:0}, learners: demoLearners, teachers: demoTeachers, signals: demoSignals, cases:demoStudentCases, admissions:demoAdmissions, finance:demoFinance };
+    if (isDemoMode) return { viewer:{name:"Demo leader",email:"demo@dreem.local",role:"principal"}, brand: demoBrand, setup: demoSetup, operations:{invitations:[],memberships:[],recentAttendance:0,recentAssessments:0}, learners: demoLearners, teachers: demoTeachers, signals: demoSignals, cases:demoStudentCases, admissions:demoAdmissions, academics:demoAcademics, finance:demoFinance };
     throw new Error("DREEM is not connected to its Supabase project. Production data is unavailable.");
   }
 
@@ -68,7 +69,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const rawSchool=schoolResult.data;
   const rawBrand=brandResult.data;
 
-  const [studentResult, growthResult, interventionResult, credentialResult, teacherResult, signalResult, caseResult, admissionResult, accountResult, paymentResult, reconciliationResult, confirmationResult, depositResult, academicYearResult, termResult, classResult, subjectResult, invitationResult, attendanceResult, assessmentResult] = await Promise.all([
+  const [studentResult, growthResult, interventionResult, credentialResult, teacherResult, signalResult, caseResult, admissionResult, accountResult, paymentResult, reconciliationResult, confirmationResult, depositResult, academicYearResult, termResult, classResult, subjectResult, invitationResult, attendanceResult, assessmentResult, teachingAssignmentResult, timetableResult, assessmentRowsResult, reportCardResult] = await Promise.all([
     supabase.from("students").select("id,matricule,full_name,class_name,attendance_rate,risk_level").eq("school_id",schoolId).is("merged_into_student_id",null).limit(100),
     supabase.from("dreem_growth_snapshots").select("*").eq("school_id",schoolId).order("snapshot_date",{ascending:false}).limit(500),
     supabase.from("dreem_interventions").select("student_id,title,owner_user_id,status,review_on").eq("school_id",schoolId).not("status","in","(closed,cancelled)").order("review_on").limit(200),
@@ -89,6 +90,10 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     supabase.from("dreem_staff_invitations").select("id,email,full_name,role,status,accepted_by,created_at,expires_at").eq("school_id",schoolId).order("created_at",{ascending:false}).limit(50),
     supabase.from("dreem_attendance_sessions").select("id").eq("school_id",schoolId).gte("session_date",new Date(Date.now()-7*86400000).toISOString().slice(0,10)),
     supabase.from("dreem_assessments").select("id").eq("school_id",schoolId).gte("assessment_date",new Date(Date.now()-30*86400000).toISOString().slice(0,10)),
+    supabase.from("dreem_teaching_assignments").select("*").eq("school_id",schoolId).order("created_at",{ascending:false}).limit(200),
+    supabase.from("dreem_timetable_entries").select("*").eq("school_id",schoolId).order("weekday").order("starts_at").limit(300),
+    supabase.from("dreem_assessments").select("*,dreem_marks(score)").eq("school_id",schoolId).order("assessment_date",{ascending:false}).limit(200),
+    supabase.from("dreem_report_cards").select("*").eq("school_id",schoolId).order("generated_at",{ascending:false}).limit(200),
   ]);
   if (studentResult.error) throw studentResult.error;
   if (growthResult.error) throw growthResult.error;
@@ -106,6 +111,10 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   if (invitationResult.error) throw invitationResult.error;
   if (attendanceResult.error) throw attendanceResult.error;
   if (assessmentResult.error) throw assessmentResult.error;
+  if (teachingAssignmentResult.error) throw teachingAssignmentResult.error;
+  if (timetableResult.error) throw timetableResult.error;
+  if (assessmentRowsResult.error) throw assessmentRowsResult.error;
+  if (reportCardResult.error) throw reportCardResult.error;
   const { data: membershipRows, error: membershipRowsError } = await supabase.from("dreem_school_memberships").select("id,profile_id,role,status").eq("school_id",schoolId);
   if (membershipRowsError) throw membershipRowsError;
   const profileNames=new Map(
@@ -129,6 +138,11 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   const digitalConfirmed=todaysPayments.filter(row=>row.method!=="cash").reduce((sum,row)=>sum+Number(row.amount),0);
   const confirmedDeposits=(depositResult.data??[]).filter(row=>row.status==="confirmed").reduce((sum,row)=>sum+Number(row.amount),0);
   const learnerNames=new Map((studentResult.data??[]).map(row=>[String(row.id),String(row.full_name)]));
+  const classNames=new Map((classResult.data??[]).map(row=>[String(row.id),String(row.name)]));
+  const subjectNames=new Map((subjectResult.data??[]).map(row=>[String(row.id),String(row.name)]));
+  const termNames=new Map((termResult.data??[]).map(row=>[String(row.id),String(row.name)]));
+  const memberNames=new Map((membershipRows??[]).map(row=>[String(row.profile_id),profileNames.get(String(row.profile_id))??(String(row.profile_id)===userResult.data.user?.id?String(userResult.data.user?.user_metadata?.full_name??userResult.data.user?.email??"Current user"):"School member")]));
+  const assignmentsById=new Map((teachingAssignmentResult.data??[]).map(row=>[String(row.id),row]));
 
   return {
     viewer:{
@@ -170,6 +184,12 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
       reviewDueOn:row.review_due_on?String(row.review_due_on):undefined,closureOutcome:row.closure_outcome?String(row.closure_outcome):undefined,openedAt:String(row.opened_at),updatedAt:String(row.updated_at),
     })),
     admissions:(admissionResult.data??[]).map((row):AdmissionSummary=>({id:String(row.id),applicationNumber:String(row.application_number),learnerName:String(row.learner_full_name),dateOfBirth:row.date_of_birth?String(row.date_of_birth):undefined,sex:row.sex as AdmissionSummary["sex"],targetClassName:String(row.target_class_name),guardianName:String(row.guardian_full_name),guardianPhone:row.guardian_phone?String(row.guardian_phone):undefined,guardianEmail:row.guardian_email?String(row.guardian_email):undefined,status:row.status as AdmissionSummary["status"],source:row.source as AdmissionSummary["source"],assignedTo:row.assigned_to?profileNames.get(String(row.assigned_to))??String(row.assigned_to):undefined,enrolledStudentId:row.enrolled_student_id?String(row.enrolled_student_id):undefined,submittedAt:String(row.submitted_at),updatedAt:String(row.updated_at)})),
+    academics:{
+      assignments:(teachingAssignmentResult.data??[]).map(row=>({id:String(row.id),academicYearId:String(row.academic_year_id),termId:String(row.term_id),classId:String(row.class_id),className:classNames.get(String(row.class_id))??"Unknown class",subjectId:String(row.subject_id),subjectName:subjectNames.get(String(row.subject_id))??"Unknown subject",teacherUserId:String(row.teacher_user_id),teacherName:memberNames.get(String(row.teacher_user_id))??"School teacher",weeklyPeriods:Number(row.weekly_periods),status:row.status})),
+      timetable:(timetableResult.data??[]).map(row=>{const assignment=assignmentsById.get(String(row.teaching_assignment_id));return{id:String(row.id),assignmentId:String(assignment?.id??row.teaching_assignment_id),className:classNames.get(String(row.class_id))??"Unknown class",subjectName:subjectNames.get(String(row.subject_id))??"Unknown subject",teacherName:memberNames.get(String(row.teacher_user_id))??"School teacher",weekday:Number(row.weekday),startsAt:String(row.starts_at).slice(0,5),endsAt:String(row.ends_at).slice(0,5),room:row.room?String(row.room):undefined,effectiveFrom:String(row.effective_from),effectiveTo:String(row.effective_to),status:row.status}}),
+      assessments:(assessmentRowsResult.data??[]).map(row=>{const marks=(row.dreem_marks??[]) as {score:number}[];return{id:String(row.id),title:String(row.title),className:String(row.class_name),subjectName:subjectNames.get(String(row.subject_id))??"Unassigned subject",assessmentDate:String(row.assessment_date),maxScore:Number(row.max_score),status:row.status,createdBy:String(row.created_by),creatorName:memberNames.get(String(row.created_by))??"School teacher",marksCount:marks.length,averagePercent:marks.length?marks.reduce((sum,mark)=>sum+Number(mark.score)/Number(row.max_score)*100,0)/marks.length:undefined}}),
+      reportCards:(reportCardResult.data??[]).map(row=>({id:String(row.id),studentId:String(row.student_id),studentName:learnerNames.get(String(row.student_id))??"Learner",termId:String(row.term_id),termName:termNames.get(String(row.term_id))??"Term",status:row.status,revision:Number(row.revision),overallAverage:row.overall_average===null?undefined:Number(row.overall_average),evidenceCount:Number(row.evidence_count),generatedBy:String(row.generated_by),generatedAt:String(row.generated_at),publishedAt:row.published_at?String(row.published_at):undefined})),
+    },
     finance:{expectedToday:(accountResult.data??[]).reduce((sum,row)=>sum+Number(row.balance_due??row.amount_due),0),collectedToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0),reconciledToday:todaysPayments.reduce((sum,row)=>sum+Number(row.amount),0)-openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),openExceptions:openExceptions.length,openExceptionValue:openExceptions.reduce((sum,row)=>sum+Math.abs(Number(row.variance)),0),nextDeposit:Math.max(cashCollected-confirmedDeposits,0),cashCollected,cashAwaitingDeposit:Math.max(cashCollected-confirmedDeposits,0),digitalConfirmed,parentConfirmationsPending:(confirmationResult.data??[]).filter(row=>row.acknowledgement_status==="pending").length},
   };
 }
@@ -514,4 +534,43 @@ export async function progressAdmissionApplication(command:ProgressAdmissionComm
   if(!isSupabaseConfigured||!supabase)return{applicationId:command.applicationId,status:command.targetStatus,enrolledStudentId:undefined,matricule:undefined};
   const{data,error}=await supabase.rpc("dreem_progress_admission_application",{p_application_id:command.applicationId,p_target_status:command.targetStatus,p_note:command.note.trim(),p_assigned_to:command.assignedTo||null,p_opening_balance:command.openingBalance,p_idempotency_key:command.idempotencyKey});
   if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{applicationId:String(result.application_id),status:String(result.application_status),enrolledStudentId:result.enrolled_student_id?String(result.enrolled_student_id):undefined,matricule:result.matricule?String(result.matricule):undefined};
+}
+
+export async function assignTeacher(command:AssignTeacherCommand){
+  if(!command.academicYearId||!command.termId||!command.classId||!command.subjectId||!command.teacherUserId)throw new Error("Choose the year, term, class, subject and teacher.");
+  if(!Number.isInteger(command.weeklyPeriods)||command.weeklyPeriods<1||command.weeklyPeriods>30)throw new Error("Weekly periods must be between 1 and 30.");
+  if(!isSupabaseConfigured||!supabase)return{assignmentId:crypto.randomUUID(),status:"active"};
+  const{data,error}=await supabase.rpc("dreem_assign_teacher",{p_academic_year_id:command.academicYearId,p_term_id:command.termId,p_class_id:command.classId,p_subject_id:command.subjectId,p_teacher_user_id:command.teacherUserId,p_weekly_periods:command.weeklyPeriods,p_idempotency_key:command.idempotencyKey});
+  if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{assignmentId:String(result.assignment_id),status:String(result.assignment_status)};
+}
+
+export async function scheduleTimetableEntry(command:SchedulePeriodCommand){
+  if(!command.assignmentId)throw new Error("Choose a teaching assignment.");
+  if(command.weekday<1||command.weekday>7||!command.startsAt||!command.endsAt||command.startsAt>=command.endsAt)throw new Error("Enter a valid weekday and time range.");
+  if(!command.effectiveFrom||!command.effectiveTo||command.effectiveFrom>command.effectiveTo)throw new Error("Enter a valid effective date range.");
+  if(!isSupabaseConfigured||!supabase)return{entryId:crypto.randomUUID(),status:"active"};
+  const{data,error}=await supabase.rpc("dreem_schedule_timetable_entry",{p_assignment_id:command.assignmentId,p_weekday:command.weekday,p_starts_at:command.startsAt,p_ends_at:command.endsAt,p_room:command.room?.trim()||null,p_effective_from:command.effectiveFrom,p_effective_to:command.effectiveTo,p_idempotency_key:command.idempotencyKey});
+  if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{entryId:String(result.entry_id),status:String(result.entry_status)};
+}
+
+export async function reviewAssessment(command:ReviewAssessmentCommand){
+  if(!command.assessmentId)throw new Error("Choose a submitted assessment.");if(command.note.trim().length<5)throw new Error("Add an evidence-based review note.");
+  if(!isSupabaseConfigured||!supabase)return{assessmentId:command.assessmentId,status:command.decision};
+  const{data,error}=await supabase.rpc("dreem_review_assessment",{p_assessment_id:command.assessmentId,p_decision:command.decision,p_note:command.note.trim(),p_idempotency_key:command.idempotencyKey});
+  if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{assessmentId:String(result.assessment_id),status:String(result.assessment_status)};
+}
+
+export async function publishAssessment(assessmentId:string,idempotencyKey:string){
+  if(!assessmentId)throw new Error("Choose an approved assessment.");if(!isSupabaseConfigured||!supabase)return{assessmentId,status:"published"};
+  const{data,error}=await supabase.rpc("dreem_publish_assessment",{p_assessment_id:assessmentId,p_idempotency_key:idempotencyKey});if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{assessmentId:String(result.assessment_id),status:String(result.assessment_status)};
+}
+
+export async function generateReportCard(studentId:string,termId:string,teacherComment:string,idempotencyKey:string){
+  if(!studentId||!termId)throw new Error("Choose a learner and term.");if(!isSupabaseConfigured||!supabase)return{reportCardId:crypto.randomUUID(),status:"draft",evidenceCount:1,overallAverage:75};
+  const{data,error}=await supabase.rpc("dreem_generate_report_card",{p_student_id:studentId,p_term_id:termId,p_teacher_comment:teacherComment.trim()||null,p_idempotency_key:idempotencyKey});if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{reportCardId:String(result.report_card_id),status:String(result.report_status),evidenceCount:Number(result.evidence_count),overallAverage:Number(result.overall_average)};
+}
+
+export async function publishReportCard(reportCardId:string,idempotencyKey:string){
+  if(!reportCardId)throw new Error("Choose a draft report card.");if(!isSupabaseConfigured||!supabase)return{reportCardId,status:"published"};
+  const{data,error}=await supabase.rpc("dreem_publish_report_card",{p_report_card_id:reportCardId,p_idempotency_key:idempotencyKey});if(error)throw error;const result=Array.isArray(data)?data[0]:data;return{reportCardId:String(result.report_card_id),status:String(result.report_status)};
 }

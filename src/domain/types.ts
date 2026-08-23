@@ -189,6 +189,34 @@ export interface OperationalSummary {
   recentAssessments: number;
 }
 
+export interface TeachingAssignmentSummary {
+  id:string;academicYearId:string;termId:string;classId:string;className:string;subjectId:string;subjectName:string;
+  teacherUserId:string;teacherName:string;weeklyPeriods:number;status:"planned"|"active"|"completed"|"cancelled";
+}
+
+export interface TimetableEntrySummary {
+  id:string;assignmentId:string;className:string;subjectName:string;teacherName:string;weekday:number;startsAt:string;endsAt:string;
+  room?:string;effectiveFrom:string;effectiveTo:string;status:"planned"|"active"|"cancelled";
+}
+
+export interface AssessmentSummary {
+  id:string;title:string;className:string;subjectName:string;assessmentDate:string;maxScore:number;status:"draft"|"submitted"|"approved"|"rejected"|"published"|"cancelled";
+  createdBy:string;creatorName:string;marksCount:number;averagePercent?:number;
+}
+
+export interface ReportCardSummary {
+  id:string;studentId:string;studentName:string;termId:string;termName:string;status:"draft"|"published"|"superseded";
+  revision:number;overallAverage?:number;evidenceCount:number;generatedBy:string;generatedAt:string;publishedAt?:string;
+}
+
+export interface AcademicOperations {
+  assignments:TeachingAssignmentSummary[];timetable:TimetableEntrySummary[];assessments:AssessmentSummary[];reportCards:ReportCardSummary[];
+}
+
+export interface AssignTeacherCommand {academicYearId:string;termId:string;classId:string;subjectId:string;teacherUserId:string;weeklyPeriods:number;idempotencyKey:string;}
+export interface SchedulePeriodCommand {assignmentId:string;weekday:number;startsAt:string;endsAt:string;room?:string;effectiveFrom:string;effectiveTo:string;idempotencyKey:string;}
+export interface ReviewAssessmentCommand {assessmentId:string;decision:"approved"|"rejected";note:string;idempotencyKey:string;}
+
 export type StudentCaseCategory =
   | "learning_support"
   | "attendance"

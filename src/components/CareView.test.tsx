@@ -2,7 +2,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { demoAdmissions, demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers } from "../domain/demo";
+import { demoAcademics, demoAdmissions, demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers } from "../domain/demo";
 import type { WorkspaceData } from "../lib/repository";
 import CareView from "./CareView";
 
@@ -17,7 +17,7 @@ vi.mock("../lib/repository",async()=>{
 const workspace:WorkspaceData={
   viewer:{name:"Test Principal",email:"principal@example.test",role:"principal"},brand:demoBrand,setup:demoSetup,
   operations:{invitations:[],memberships:[{id:"m1",profileId:"staff-1",name:"Care Lead",role:"academic_head",status:"approved"}],recentAttendance:0,recentAssessments:0},
-  learners:demoLearners,teachers:demoTeachers,signals:demoSignals,cases:demoStudentCases,admissions:demoAdmissions,finance:demoFinance,
+  learners:demoLearners,teachers:demoTeachers,signals:demoSignals,cases:demoStudentCases,admissions:demoAdmissions,academics:demoAcademics,finance:demoFinance,
 };
 
 describe("Care and safeguarding workflow",()=>{

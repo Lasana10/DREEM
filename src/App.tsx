@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import AdmissionsView from "./components/AdmissionsView";
+import AcademicOperationsView from "./components/AcademicOperationsView";
 import BootstrapView from "./components/BootstrapView";
 import CareView from "./components/CareView";
 import FeedbackDialog from "./components/FeedbackDialog";
@@ -73,6 +74,7 @@ function WorkspaceApp() {
       {view === "command" && <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace}/>}
       {view === "operations" && <OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />}
+      {view === "academics" && <AcademicOperationsView workspace={workspace} onRefresh={refreshWorkspace}/>}
       {view === "learners" && <LearnersView learners={workspace.learners} brand={workspace.brand} />}
       {view === "teachers" && <TeachersView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}

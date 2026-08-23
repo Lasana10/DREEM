@@ -1,4 +1,4 @@
-import type { AdmissionSummary, CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary } from "./types";
+import type { AcademicOperations, AdmissionSummary, CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary } from "./types";
 
 export const demoBrand: SchoolBrand = {
   name: "DREEM Demonstration School",
@@ -27,6 +27,13 @@ export const demoTeachers: TeacherSummary[] = [
   {id:"t2",name:"Demo Teacher B",subject:"Français",learnerGrowth:9,coverage:68,mastery:73,workload:"balanced",nextSupport:"Share reading intervention"},
   {id:"t3",name:"Demo Teacher C",subject:"Physics",learnerGrowth:3,coverage:81,mastery:58,workload:"high",nextSupport:"Coaching and load review"},
 ];
+
+export const demoAcademics:AcademicOperations={
+  assignments:[{id:"assign-1",academicYearId:"ay-1",termId:"term-1",classId:"class-1",className:"Form 4A",subjectId:"sub-1",subjectName:"Mathematics",teacherUserId:"t1",teacherName:"Demo Teacher A",weeklyPeriods:5,status:"active"}],
+  timetable:[{id:"period-1",assignmentId:"assign-1",className:"Form 4A",subjectName:"Mathematics",teacherName:"Demo Teacher A",weekday:1,startsAt:"08:00",endsAt:"08:50",room:"Room 4A",effectiveFrom:"2026-09-01",effectiveTo:"2026-12-18",status:"active"}],
+  assessments:[{id:"assessment-1",title:"Algebra checkpoint",className:"Form 4A",subjectName:"Mathematics",assessmentDate:"2026-09-08",maxScore:20,status:"submitted",createdBy:"t1",creatorName:"Demo Teacher A",marksCount:4,averagePercent:74}],
+  reportCards:[],
+};
 
 export const demoFinance: FinanceSummary = { expectedToday:1480000,collectedToday:1310000,reconciledToday:1276000,openExceptions:2,openExceptionValue:25000,nextDeposit:875000,cashCollected:925000,cashAwaitingDeposit:34000,digitalConfirmed:385000,parentConfirmationsPending:3 };
 
