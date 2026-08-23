@@ -1,0 +1,251 @@
+export type Role =
+  | "platform_founder"
+  | "school_owner"
+  | "principal"
+  | "administrator"
+  | "academic_head"
+  | "bursar"
+  | "accountant"
+  | "teacher"
+  | "tutor"
+  | "parent"
+  | "student"
+  | "auditor";
+
+export type SignalSeverity = "normal" | "important" | "urgent" | "safeguarding";
+export type SignalStatus = "new" | "triaged" | "assigned" | "in_progress" | "resolved" | "closed";
+
+export interface SchoolBrand {
+  name: string;
+  shortName: string;
+  motto: string;
+  address: string;
+  city: string;
+  subsystem: "anglophone" | "francophone" | "bilingual";
+  primaryColor: string;
+  accentColor: string;
+  logoUrl?: string;
+  receiptPrefix: string;
+  studentIdPrefix: string;
+  timezone: string;
+  currency: string;
+}
+
+export interface AcademicYearConfig {
+  id: string;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  status: "planning" | "active" | "closed";
+}
+
+export interface TermConfig {
+  id: string;
+  academicYearId: string;
+  name: string;
+  startsOn: string;
+  endsOn: string;
+  orderIndex: number;
+}
+
+export interface ClassConfig {
+  id: string;
+  academicYearId?: string;
+  name: string;
+  sectionName: string;
+  streamName: string;
+  levelName: string;
+}
+
+export interface SubjectConfig {
+  id: string;
+  name: string;
+  code: string;
+  subsystem: "anglophone" | "francophone" | "bilingual";
+  gradingWeight: number;
+}
+
+export interface SchoolSetup {
+  academicYears: AcademicYearConfig[];
+  terms: TermConfig[];
+  classes: ClassConfig[];
+  subjects: SubjectConfig[];
+}
+
+export interface BootstrapStatus {
+  mode: "ready" | "claimed" | "pending" | "rejected" | "approved" | "restricted";
+  canBootstrap: boolean;
+  schoolId?: string;
+  role?: string;
+  status?: string;
+}
+
+export interface BootstrapPayload {
+  schoolName: string;
+  schoolSlug: string;
+  shortName: string;
+  motto: string;
+  city: string;
+  subsystem: "anglophone" | "francophone" | "bilingual";
+  receiptPrefix: string;
+  studentIdPrefix: string;
+  primaryColor: string;
+  accentColor: string;
+}
+
+export interface LearnerSummary {
+  id: string;
+  matricule: string;
+  name: string;
+  className: string;
+  photoUrl?: string;
+  mastery: number;
+  attendance: number;
+  engagement: number;
+  wellbeing: number;
+  trend: number;
+  nextAction: string;
+  interventionOwner?: string;
+  idStatus: "active" | "expired" | "revoked";
+}
+
+export interface StaffInvitation {
+  id: string;
+  email: string;
+  fullName: string;
+  role: Exclude<Role, "platform_founder" | "parent" | "student">;
+  status: "pending" | "accepted" | "cancelled" | "expired";
+  createdAt: string;
+  expiresAt: string;
+}
+
+export interface AccessMembership {
+  id: string;
+  profileId: string;
+  name: string;
+  role: Role;
+  status: "pending" | "approved" | "suspended" | "rejected";
+}
+
+export interface EnrollmentPayload {
+  fullName: string;
+  className: string;
+  dateOfBirth?: string;
+  sex?: "female" | "male" | "other";
+  guardianName: string;
+  guardianPhone: string;
+  guardianEmail?: string;
+  relationship: string;
+  openingBalance: number;
+  idempotencyKey: string;
+}
+
+export interface EnrollmentResult {
+  studentId: string;
+  matricule: string;
+}
+
+export interface CredentialIssueResult {
+  credentialId: string;
+  verificationToken: string;
+}
+
+export interface AttendanceMarkInput {
+  studentId: string;
+  status: "present" | "late" | "absent" | "excused";
+  note?: string;
+}
+
+export interface AttendanceCommand {
+  className: string;
+  sessionDate: string;
+  periodLabel: string;
+  marks: AttendanceMarkInput[];
+  idempotencyKey: string;
+}
+
+export interface AssessmentMarkInput {
+  studentId: string;
+  score: number;
+  comment?: string;
+}
+
+export interface AssessmentCommand {
+  subjectId?: string;
+  className: string;
+  title: string;
+  maxScore: number;
+  assessmentDate: string;
+  marks: AssessmentMarkInput[];
+  idempotencyKey: string;
+}
+
+export interface OperationalSummary {
+  invitations: StaffInvitation[];
+  memberships: AccessMembership[];
+  recentAttendance: number;
+  recentAssessments: number;
+}
+
+export interface TeacherSummary {
+  id: string;
+  name: string;
+  subject: string;
+  learnerGrowth: number;
+  coverage: number;
+  mastery: number;
+  workload: "balanced" | "high" | "critical";
+  nextSupport: string;
+}
+
+export interface FinanceSummary {
+  expectedToday: number;
+  collectedToday: number;
+  reconciledToday: number;
+  openExceptions: number;
+  openExceptionValue: number;
+  nextDeposit: number;
+}
+
+export type PaymentMethod = "cash" | "momo" | "bank_transfer" | "card" | "cheque";
+
+export interface PaymentCommand {
+  studentId: string;
+  feeAccountId?: string;
+  cashierSessionId?: string;
+  method: PaymentMethod;
+  amount: number;
+  externalReference?: string;
+  idempotencyKey: string;
+  payerName: string;
+}
+
+export interface PaymentReceipt {
+  paymentId: string;
+  receiptNumber: string;
+}
+
+export interface CommunitySignal {
+  id: string;
+  sourceRole: "parent" | "student" | "teacher" | "staff";
+  sourceName: string;
+  subjectType: "student" | "teacher" | "school" | "service";
+  subjectName: string;
+  category: string;
+  message: string;
+  severity: SignalSeverity;
+  status: SignalStatus;
+  assignedRole: Role;
+  createdAt: string;
+}
+
+export interface PulseAction {
+  id: string;
+  category: "finance" | "learning" | "attendance" | "feedback" | "operations";
+  title: string;
+  explanation: string;
+  owner: string;
+  dueLabel: string;
+  severity: "positive" | "info" | "warning" | "critical";
+  evidenceCount: number;
+}

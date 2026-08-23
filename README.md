@@ -1,45 +1,33 @@
-# DREEM Platform
+# DREEM School Operating System
 
-DREEM is a hybrid school operating system for academics, communication, finance, transport, guidance, and resilient local-first operations.
+DREEM connects school leadership, learner OneFiles, teacher growth, protected finance operations, and parent/teacher signals in one bilingual-ready workspace.
 
-## Current Build Focus
+## Run locally
 
-This workspace now contains:
+```bash
+npm ci
+cp .env.example .env.local
+npm run dev
+```
 
-- product blueprint files
-- deployment and stack recommendations
-- the first `apps/web` scaffold for the online platform
+The demo workspace is available only when it is explicitly enabled. Production must set:
 
-## Deployment Direction
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY` (never a secret or service-role key)
+- `VITE_DREEM_DEMO_MODE=false`
 
-Current active deployment path:
+Run `npm run check` before release. It performs linting, unit tests, TypeScript checking, and the production build.
 
-- Cloudflare Pages for the web app
-- Supabase for auth, Postgres, storage, realtime, and Edge Functions
+## Cloud deployment
 
-Reference files:
+The production path is **Cloudflare Pages/Workers for the Vite frontend + the dedicated DREEM Supabase project for Auth/Postgres/Storage**. Deploy `Lasana10/DREEM` from `main`, use the repository root, run `npm ci && npm run build`, publish `dist`, and add the three environment variables above. `wrangler.jsonc` provides SPA fallback and observability for direct Worker deployment.
 
-- [CLOUDFLARE_DEPLOYMENT_PLAN.md](/C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/CLOUDFLARE_DEPLOYMENT_PLAN.md)
-- [CLOUDFLARE_SUPABASE_LAUNCH.md](/C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/CLOUDFLARE_SUPABASE_LAUNCH.md)
-- [RENDER_SUPABASE_LAUNCH.md](/C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/RENDER_SUPABASE_LAUNCH.md)
+Do not deploy a second database: project `vlukkucwtfmfgpzvjyvd` is the authoritative DREEM system of record. Render remains a temporary compatibility lane only for worker responsibilities that have not yet moved to Cloudflare.
 
-Future local resilience targets:
+## Data safety
 
-- local school computer node
-- Raspberry Pi edge node
-
-Optional backend service target:
-
-- Render for sync workers, report generation, OneDrive jobs, and heavier server-side processes
-
-## App Goals
-
-The web app should evolve into:
-
-- leadership command center
-- bursar and finance surface
-- teacher workspace
-- student workspace
-- parent workspace
-- transport and operations surface
-- communication and campus news system
+- Public clients use only the Supabase publishable key.
+- DREEM tables use row-level security and school membership/role checks.
+- Payments and payment events are immutable; corrections use reversal records.
+- Cashier and reviewer separation is enforced in the database.
+- DREEM uses its dedicated Supabase project. AFAT and TSIDKENU data and deployments remain separate.
