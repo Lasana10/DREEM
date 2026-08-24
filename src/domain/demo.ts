@@ -1,4 +1,4 @@
-import type { AcademicOperations, AdmissionSummary, CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary } from "./types";
+import type { AcademicOperations, AdmissionSummary, CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary, TransportOperations } from "./types";
 
 export const demoBrand: SchoolBrand = {
   name: "DREEM Demonstration School",
@@ -34,6 +34,7 @@ export const demoAcademics:AcademicOperations={
   assessments:[{id:"assessment-1",title:"Algebra checkpoint",className:"Form 4A",subjectName:"Mathematics",assessmentDate:"2026-09-08",maxScore:20,status:"submitted",createdBy:"t1",creatorName:"Demo Teacher A",marksCount:4,averagePercent:74}],
   reportCards:[],
 };
+export const demoTransport:TransportOperations={routes:[{id:"route-1",code:"R-NKOL",name:"Nkolbisson school line",direction:"both",status:"active",stops:[{id:"stop-1",routeId:"route-1",order:1,name:"Nkolbisson Junction",pickupTime:"06:30"},{id:"stop-2",routeId:"route-1",order:2,name:"DREEM Demonstration School",pickupTime:"07:20"}]}],vehicles:[{id:"vehicle-1",code:"BUS-01",registrationNumber:"CE 000 AA",vehicleType:"minibus",capacity:18,status:"available",inspectionDueOn:"2027-01-31",insuranceDueOn:"2027-02-28"}],drivers:[{id:"driver-1",userId:"driver-user-1",name:"Demo Driver",licenseReference:"LIC-DEMO-01",licenseExpiresOn:"2027-12-31",status:"active"}],assignments:[],trips:[]};
 
 export const demoFinance: FinanceSummary = { expectedToday:1480000,collectedToday:1310000,reconciledToday:1276000,openExceptions:2,openExceptionValue:25000,nextDeposit:875000,cashCollected:925000,cashAwaitingDeposit:34000,digitalConfirmed:385000,parentConfirmationsPending:3 };
 

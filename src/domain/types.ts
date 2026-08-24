@@ -8,6 +8,8 @@ export type Role =
   | "accountant"
   | "teacher"
   | "tutor"
+  | "transport_manager"
+  | "driver"
   | "parent"
   | "student"
   | "auditor";
@@ -212,6 +214,14 @@ export interface ReportCardSummary {
 export interface AcademicOperations {
   assignments:TeachingAssignmentSummary[];timetable:TimetableEntrySummary[];assessments:AssessmentSummary[];reportCards:ReportCardSummary[];
 }
+
+export interface TransportStopSummary{id:string;routeId:string;order:number;name:string;landmark?:string;pickupTime?:string;dropoffTime?:string;}
+export interface TransportRouteSummary{id:string;code:string;name:string;direction:"inbound"|"outbound"|"both";status:"planning"|"active"|"paused"|"retired";stops:TransportStopSummary[];}
+export interface TransportVehicleSummary{id:string;code:string;registrationNumber:string;vehicleType:string;capacity:number;status:"available"|"assigned"|"maintenance"|"retired";inspectionDueOn?:string;insuranceDueOn?:string;}
+export interface TransportDriverSummary{id:string;userId:string;name:string;licenseReference:string;licenseExpiresOn:string;status:"active"|"suspended"|"expired"|"inactive";}
+export interface TransportAssignmentSummary{id:string;studentId:string;studentName:string;routeId:string;routeName:string;pickupStopId:string;pickupStopName:string;dropoffStopId:string;dropoffStopName:string;status:"active"|"paused"|"ended";}
+export interface TransportTripSummary{id:string;routeId:string;routeName:string;vehicleId:string;vehicleCode:string;driverId:string;driverName:string;serviceDate:string;direction:"inbound"|"outbound";status:"dispatched"|"in_progress"|"delayed"|"completed"|"cancelled";assignedStudents:number;scheduledDeparture?:string;}
+export interface TransportOperations{routes:TransportRouteSummary[];vehicles:TransportVehicleSummary[];drivers:TransportDriverSummary[];assignments:TransportAssignmentSummary[];trips:TransportTripSummary[];}
 
 export interface AssignTeacherCommand {academicYearId:string;termId:string;classId:string;subjectId:string;teacherUserId:string;weeklyPeriods:number;idempotencyKey:string;}
 export interface SchedulePeriodCommand {assignmentId:string;weekday:number;startsAt:string;endsAt:string;room?:string;effectiveFrom:string;effectiveTo:string;idempotencyKey:string;}

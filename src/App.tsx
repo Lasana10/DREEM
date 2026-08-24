@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import AdmissionsView from "./components/AdmissionsView";
 import AcademicOperationsView from "./components/AcademicOperationsView";
+import TransportView from "./components/TransportView";
 import BootstrapView from "./components/BootstrapView";
 import CareView from "./components/CareView";
 import FeedbackDialog from "./components/FeedbackDialog";
@@ -14,7 +15,7 @@ import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loa
 
 const defaultViewByRole: Record<Role, ViewKey> = {
   platform_founder:"command",school_owner:"command",principal:"command",administrator:"command",academic_head:"command",
-  bursar:"finance",accountant:"finance",teacher:"operations",tutor:"learners",parent:"learners",student:"learners",auditor:"command",
+  bursar:"finance",accountant:"finance",teacher:"operations",tutor:"learners",transport_manager:"transport",driver:"transport",parent:"learners",student:"learners",auditor:"command",
 };
 
 function WorkspaceApp() {
@@ -78,6 +79,7 @@ function WorkspaceApp() {
       {view === "learners" && <LearnersView learners={workspace.learners} brand={workspace.brand} />}
       {view === "teachers" && <TeachersView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
+      {view === "transport" && <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>}
       {view === "finance" && <FinanceView finance={workspace.finance} learners={workspace.learners} onRecorded={refreshWorkspace} />}
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} />}
