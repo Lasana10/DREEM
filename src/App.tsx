@@ -12,6 +12,7 @@ import { CommandView, FinanceView, LearnersView, SchoolStudioView, SignalsView, 
 import type { BootstrapStatus, CommunitySignal, Role } from "./domain/types";
 import { buildOperationalPulse } from "./domain/rules";
 import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loadBootstrapStatus, loadWorkspace, recordAssessment, recordAttendance, saveSchoolBrand, saveSchoolSetup, updateAccessStatus, updateSignalStatus, type WorkspaceData } from "./lib/repository";
+import { supabase } from "./lib/supabase";
 
 const defaultViewByRole: Record<Role, ViewKey> = {
   platform_founder:"command",school_owner:"command",principal:"command",administrator:"command",academic_head:"command",
@@ -51,7 +52,7 @@ function WorkspaceApp() {
   }, []);
 
   if (error) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><h1>Workspace unavailable</h1><p>{error}</p><button onClick={() => window.location.reload()}>Try again</button></div></div>;
-  if (bootstrap) return <BootstrapView status={bootstrap} onBootstrap={async(payload)=>{await bootstrapSchool(payload);const data=await loadWorkspace();setWorkspace(data);setBootstrap(null);}} />;
+  if (bootstrap) return <BootstrapView status={bootstrap} onSignOut={async()=>{await supabase?.auth.signOut();}} onBootstrap={async(payload)=>{await bootstrapSchool(payload);const data=await loadWorkspace();setWorkspace(data);setBootstrap(null);}} />;
   if (!workspace) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><p>Preparing the school operating picture…</p></div></div>;
 
   const addSignal = (signal: CommunitySignal) => setWorkspace((current) => current ? { ...current, signals: [signal, ...current.signals] } : current);
