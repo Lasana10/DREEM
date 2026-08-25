@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from "react";
-import { Building2, CheckCircle2, ShieldCheck } from "lucide-react";
+import { Building2, CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
 import type { BootstrapPayload, BootstrapStatus } from "../domain/types";
 import { derivePrefix, normalizeSlug } from "../domain/rules";
 
@@ -12,6 +12,7 @@ function errorMessage(reason: unknown) {
 export default function BootstrapView({ status, onBootstrap, onSignOut }:{status:BootstrapStatus;onBootstrap:(payload:BootstrapPayload)=>Promise<void>;onSignOut:()=>Promise<void>}) {
   const [busy,setBusy]=useState(false);
   const [message,setMessage]=useState("");
+  const [hasError,setHasError]=useState(false);
   const [schoolName,setSchoolName]=useState("");
   const [subsystem,setSubsystem]=useState<BootstrapPayload["subsystem"]>("bilingual");
   const slug = useMemo(()=>normalizeSlug(schoolName),[schoolName]);
@@ -22,6 +23,7 @@ export default function BootstrapView({ status, onBootstrap, onSignOut }:{status
   async function submit(event:FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setBusy(true);
+    setHasError(false);
     setMessage("Creating the first protected DREEM school...");
     try{
       await onBootstrap({
@@ -37,8 +39,10 @@ export default function BootstrapView({ status, onBootstrap, onSignOut }:{status
         accentColor: "#c9df83",
       });
       setMessage("Founder bootstrap completed. Loading your school workspace...");
+      setHasError(false);
     }catch(reason){
       setMessage(errorMessage(reason));
+      setHasError(true);
     }finally{
       setBusy(false);
     }
@@ -52,8 +56,8 @@ export default function BootstrapView({ status, onBootstrap, onSignOut }:{status
         : status.mode === "rejected"
           ? "This account was reviewed and is not approved for school access yet."
           : "Bootstrap is locked for this account.";
-    return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><h1>Access not ready yet</h1><p>{body}</p><div className="form-status success"><ShieldCheck/>{status.role ? `${status.role} · ${status.status}` : "Protected onboarding state"}</div><button type="button" onClick={onSignOut}>Sign out / switch account</button></div></div>;
+    return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><h1>Access not ready yet</h1><p>{body}</p><div className="form-status warning"><ShieldCheck/>{status.role ? `${status.role} — ${status.status}` : status.status}</div><button onClick={onSignOut}>Sign out</button></div></div>;
   }
 
-  return <div className="auth-screen"><form className="auth-card" onSubmit={submit}><strong>DREEM</strong><h1>Create the first school</h1><p>This founder bootstrap creates the school, approves the founder membership, and unlocks protected configuration.</p><label>School name<input value={schoolName} onChange={event=>setSchoolName(event.target.value)} required placeholder="Graceland Bilingual Complex"/></label><label>Motto<input name="motto" placeholder="Discipline · Wisdom · Service"/></label><label>City<input name="city" placeholder="Douala or Yaounde" required/></label><label>Subsystem<select value={subsystem} onChange={event=>setSubsystem(event.target.value as BootstrapPayload["subsystem"])}><option value="bilingual">Bilingual</option><option value="anglophone">Anglophone</option><option value="francophone">Francophone</option></select></label><div className="form-grid"><label>School slug <small>Generated automatically</small><input value={slug} readOnly/></label><label>Short name <small>Generated automatically</small><input value={shortName} readOnly/></label><label>Receipt prefix <small>Generated automatically</small><input value={receiptPrefix} readOnly/></label><label>Student ID prefix <small>Generated automatically</small><input value={studentPrefix} readOnly/></label></div>{message&&<div className={`form-status ${message.includes("could not")||message.includes("required")||message.includes("available")?"error":"success"}`}><Building2/>{message}</div>}<button type="submit" disabled={busy||!schoolName.trim()}>{busy?"Creating school...":"Create founder school"}</button><small style={{display:"block",marginTop:12,color:"#68776f"}}><CheckCircle2 size={14} style={{verticalAlign:"middle",marginRight:6}}/>The first school can only be created once. Future staff and guardians join by invitation.</small></form></div>;
+  return <div className="auth-screen"><form className="auth-card" onSubmit={submit}><strong>DREEM</strong><h1>Create the first school</h1><p>This founder bootstrap creates the school, approves the first platform founder, and establishes the school brand.</p><label><span>School name</span><input value={schoolName} onChange={(e)=>setSchoolName(e.target.value)} placeholder="Your school name" required/></label><label><span>Short name</span><input value={shortName} disabled/></label><label><span>Slug</span><input value={slug} disabled/></label><label><span>Subsystem</span><select value={subsystem} onChange={(e)=>setSubsystem(e.target.value as BootstrapPayload["subsystem"])}><option value="bilingual">Bilingual</option><option value="anglophone">Anglophone</option><option value="francophone">Francophone</option></select></label><label><span>Motto (optional)</span><input name="motto" placeholder="School motto"/></label><label><span>City (optional)</span><input name="city" placeholder="City"/></label>{message && <div className={`form-status ${hasError ? "error" : "success"}`}>{hasError ? <AlertCircle/> : <Building2/>}{message}</div>}<button type="submit" disabled={busy||!schoolName.trim()||!slug}>{busy?"Creating...":"Create school"}</button><button type="button" onClick={onSignOut}>Sign out</button></form></div>;
 }
