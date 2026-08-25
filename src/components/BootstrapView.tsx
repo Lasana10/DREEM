@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from "react";
-import { Building2, CheckCircle2, ShieldCheck, AlertCircle } from "lucide-react";
+import { AlertCircle, Building2, ShieldCheck } from "lucide-react";
 import type { BootstrapPayload, BootstrapStatus } from "../domain/types";
 import { derivePrefix, normalizeSlug } from "../domain/rules";
 
