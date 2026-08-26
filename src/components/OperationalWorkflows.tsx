@@ -156,11 +156,14 @@ export default function OperationalWorkflowsView({
         <small>{workspace.operations.invitations.filter((item) => item.status === "pending").length} pending invitations</small>
         {canManageAccess&&workspace.operations.memberships.filter((item)=>item.status==="pending").map((membership)=><div className="access-review" key={membership.id}><span><strong>{membership.name}</strong><small>{membership.role.replaceAll("_"," ")}</small></span><button type="button" onClick={()=>run(async()=>{await onUpdateAccess(membership.id,"approved");return `${membership.name} approved.`})}>Approve</button><button type="button" onClick={()=>run(async()=>{await onUpdateAccess(membership.id,"rejected");return `${membership.name} rejected.`})}>Reject</button></div>)}
       </form>
-      <form className="panel settings-form" onSubmit={enrol}>
-        <div className="panel-title"><div><span>ONEFILE</span><h3>Enrol learner</h3></div><GraduationCap/></div>
+      <details className="panel direct-enrolment">
+        <summary><span><small>EXCEPTION WORKFLOW</small><strong>Direct enrolment without an application</strong></span><GraduationCap/></summary>
+        <p>Use only for a walk-in, approved import or historical learner. Accepted admissions create their OneFile automatically from the Admissions screen.</p>
+      <form className="settings-form" onSubmit={enrol}>
         <div className="form-grid"><label>Full name<input name="fullName" required/></label><label>Class<input name="className" list="classes" required/></label><label>Date of birth<input name="dateOfBirth" type="date"/></label><label>Sex<select name="sex" defaultValue=""><option value="">Not set</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></label><label>Guardian<input name="guardianName" required/></label><label>Guardian phone<input name="guardianPhone"/></label><label>Guardian email<input name="guardianEmail" type="email"/></label><label>Relationship<input name="relationship" defaultValue="parent"/></label><label>Opening balance<input name="openingBalance" type="number" min="0" step="1" defaultValue="0"/></label></div>
-        <button className="primary" type="submit"><GraduationCap/>Enrol learner</button>
+        <button className="primary" type="submit"><GraduationCap/>Create direct learner OneFile</button>
       </form>
+      </details>
     </div>
     <datalist id="classes">{classes.map((name) => <option key={name} value={name}/>)}</datalist>
     <div className="ops-grid">
