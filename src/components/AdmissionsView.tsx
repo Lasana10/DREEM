@@ -39,6 +39,43 @@ const allowedAdmissionTransitions: Record<AdmissionStatus, TargetAdmissionStatus
   enrolled: [],
 };
 
+const recommendedAdmissionTransition: Partial<Record<AdmissionStatus, TargetAdmissionStatus>> = {
+  submitted: "under_review",
+  under_review: "offered",
+  documents_pending: "under_review",
+  interview: "offered",
+  offered: "accepted",
+  accepted: "enrolled",
+  waitlisted: "under_review",
+};
+
+const admissionActionLabels: Record<TargetAdmissionStatus, string> = {
+  under_review: "Start application review",
+  documents_pending: "Request missing documents",
+  interview: "Schedule interview",
+  offered: "Approve and send offer",
+  accepted: "Record guardian acceptance",
+  waitlisted: "Place on waiting list",
+  rejected: "Reject application",
+  withdrawn: "Record withdrawal",
+  enrolled: "Enrol and create learner OneFile",
+};
+
+const journeySteps = ["Application", "Review", "Offer", "Accepted", "OneFile"];
+
+function admissionJourneyPosition(status: AdmissionStatus) {
+  if (status === "enrolled") return 4;
+  if (status === "accepted") return 3;
+  if (status === "offered") return 2;
+  if (["under_review", "documents_pending", "interview", "waitlisted"].includes(status)) return 1;
+  return 0;
+}
+
+function displayOwner(owner?: string) {
+  if (!owner) return "Admissions queue";
+  return /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(owner) ? "Assigned staff member" : owner;
+}
+
 function admissionErrorMessage(reason: unknown) {
   if (reason instanceof Error && reason.message) return reason.message;
   if (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string") {
@@ -54,9 +91,11 @@ function admissionErrorMessage(reason: unknown) {
 export default function AdmissionsView({
   workspace,
   onRefresh,
+  onOpenLearners,
 }: {
   workspace: WorkspaceData;
   onRefresh: () => Promise<void>;
+  onOpenLearners?: () => void;
 }) {
   const initialApplication = workspace.admissions[0];
   const [state, setState] = useState<State>({ error: false, message: "" });
@@ -79,9 +118,12 @@ export default function AdmissionsView({
     () => (selectedApplication ? allowedAdmissionTransitions[selectedApplication.status] : []),
     [selectedApplication],
   );
+  const recommendedStatus = selectedApplication
+    ? recommendedAdmissionTransition[selectedApplication.status]
+    : undefined;
   const effectiveTargetStatus = availableStatuses.includes(targetStatus as TargetAdmissionStatus)
     ? targetStatus
-    : availableStatuses[0] ?? "";
+    : recommendedStatus ?? availableStatuses[0] ?? "";
 
   async function run(action: () => Promise<string>) {
     setState({ error: false, message: "Saving admission evidence..." });
@@ -89,8 +131,10 @@ export default function AdmissionsView({
       const message = await action();
       await onRefresh();
       setState({ error: false, message });
+      return true;
     } catch (reason) {
       setState({ error: true, message: admissionErrorMessage(reason) });
+      return false;
     }
   }
 
@@ -142,14 +186,17 @@ export default function AdmissionsView({
       idempotencyKey: createIdempotencyKey("admission-progress"),
     };
 
-    await run(async () => {
+    let enrolled = false;
+    const succeeded = await run(async () => {
       const result = await progressAdmissionApplication(command);
       element.reset();
       const resultStatus = result.status as AdmissionStatus;
+      enrolled = Boolean(result.matricule);
       return result.matricule
         ? `Applicant enrolled with matricule ${result.matricule}.`
         : `Application moved to ${admissionStatusLabels[resultStatus]}.`;
     });
+    if (succeeded && enrolled) onOpenLearners?.();
   }
 
   return (
@@ -315,27 +362,26 @@ export default function AdmissionsView({
               ))}
             </select>
           </label>
+          {selectedApplication ? (
+            <div className="admission-journey" aria-label="Admission journey">
+              {journeySteps.map((step, index) => (
+                <span
+                  className={index < admissionJourneyPosition(selectedApplication.status) ? "complete" : index === admissionJourneyPosition(selectedApplication.status) ? "current" : ""}
+                  key={step}
+                >
+                  <b>{index + 1}</b>{step}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          {effectiveTargetStatus ? (
+            <div className="workflow-next">
+              <small>RECOMMENDED NEXT ACTION</small>
+              <strong>{admissionActionLabels[effectiveTargetStatus]}</strong>
+              <p>The current record is {selectedApplication ? admissionStatusLabels[selectedApplication.status].toLowerCase() : "not selected"}. This action will be saved to its evidence trail.</p>
+            </div>
+          ) : null}
           <div className="form-grid">
-            <label>
-              Next state
-              <select
-                name="targetStatus"
-                required
-                disabled={!availableStatuses.length}
-                value={effectiveTargetStatus}
-                onChange={e => setTargetStatus(e.target.value as TargetAdmissionStatus)}
-              >
-                {availableStatuses.length ? (
-                  availableStatuses.map(status => (
-                    <option key={status} value={status}>
-                      {admissionStatusLabels[status]}
-                    </option>
-                  ))
-                ) : (
-                  <option value="">No further action</option>
-                )}
-              </select>
-            </label>
             <label>
               Assign to
               <select name="assignedTo">
@@ -354,6 +400,23 @@ export default function AdmissionsView({
               </label>
             ) : null}
           </div>
+          {availableStatuses.length > 1 ? (
+            <details className="workflow-exceptions">
+              <summary>Use a different valid action</summary>
+              <label>
+                Alternative action
+                <select
+                  name="targetStatus"
+                  value={effectiveTargetStatus}
+                  onChange={e => setTargetStatus(e.target.value as TargetAdmissionStatus)}
+                >
+                  {availableStatuses.map(status => (
+                    <option key={status} value={status}>{admissionActionLabels[status]}</option>
+                  ))}
+                </select>
+              </label>
+            </details>
+          ) : null}
           {!availableStatuses.length && selectedApplication ? (
             <div className="form-status warning">
               <AlertTriangle />
@@ -362,11 +425,11 @@ export default function AdmissionsView({
           ) : null}
           <label>
             Decision / action evidence
-            <textarea name="note" required minLength={2} rows={5} />
+            <textarea name="note" required minLength={2} rows={4} placeholder="Record who confirmed the decision, the evidence checked, and any next condition." />
           </label>
           <button className="primary" type="submit" disabled={!selectedApplicationId || !availableStatuses.length}>
             <ClipboardList />
-            Record admission action
+            {effectiveTargetStatus ? admissionActionLabels[effectiveTargetStatus] : "No further action"}
           </button>
         </form>
       </div>
@@ -395,7 +458,7 @@ export default function AdmissionsView({
             </p>
             <footer>
               <span>Source: {item.source.replaceAll("_", " ")}</span>
-              <span>Owner: {item.assignedTo ?? "Admissions queue"}</span>
+              <span>Owner: {displayOwner(item.assignedTo)}</span>
             </footer>
           </article>
         ))}
