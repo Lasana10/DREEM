@@ -207,7 +207,7 @@ export default function AdmissionsView({
           <div className="form-grid">
             <label>
               Learner full name
-              <input name="learnerFullName" required minLength={3} />
+              <input name="learnerFullName" required minLength={3} autoComplete="name" />
             </label>
             <label>
               Date of birth
@@ -232,15 +232,15 @@ export default function AdmissionsView({
             </label>
             <label>
               Guardian full name
-              <input name="guardianFullName" required minLength={3} />
+              <input name="guardianFullName" required minLength={3} autoComplete="section-guardian name" />
             </label>
             <label>
               Guardian phone
-              <input name="guardianPhone" inputMode="tel" />
+              <input name="guardianPhone" type="tel" inputMode="tel" autoComplete="tel" />
             </label>
             <label>
               Guardian email
-              <input name="guardianEmail" type="email" />
+              <input name="guardianEmail" type="email" autoComplete="email" />
             </label>
             <label>
               Relationship
