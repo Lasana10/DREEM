@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { AlertTriangle, BadgeCheck, ClipboardList, FileCheck2, UserPlus } from "lucide-react";
 import type { AdmissionStatus, ProgressAdmissionCommand, RecordAdmissionCommand } from "../domain/types";
 import { createIdempotencyKey } from "../domain/rules";
@@ -99,6 +99,8 @@ export default function AdmissionsView({
 }) {
   const initialApplication = workspace.admissions[0];
   const [state, setState] = useState<State>({ error: false, message: "" });
+  const [busy, setBusy] = useState(false);
+  const actionLock = useRef(false);
   const [selected, setSelected] = useState(initialApplication?.id ?? "");
   const [targetStatus, setTargetStatus] = useState<TargetAdmissionStatus | "">("");
 
@@ -126,6 +128,9 @@ export default function AdmissionsView({
     : recommendedStatus ?? availableStatuses[0] ?? "";
 
   async function run(action: () => Promise<string>) {
+    if (actionLock.current) return false;
+    actionLock.current = true;
+    setBusy(true);
     setState({ error: false, message: "Saving admission evidence..." });
     try {
       const message = await action();
@@ -135,6 +140,9 @@ export default function AdmissionsView({
     } catch (reason) {
       setState({ error: true, message: admissionErrorMessage(reason) });
       return false;
+    } finally {
+      actionLock.current = false;
+      setBusy(false);
     }
   }
 
@@ -328,9 +336,9 @@ export default function AdmissionsView({
             <input type="checkbox" name="consentDataProcessing" required />
             Guardian authorises processing for admission and school operations.
           </label>
-          <button className="primary" type="submit">
+          <button className="primary" type="submit" disabled={busy}>
             <FileCheck2 />
-            Submit application
+            {busy ? "Saving…" : "Submit application"}
           </button>
         </form>
 
@@ -427,9 +435,9 @@ export default function AdmissionsView({
             Decision / action evidence
             <textarea name="note" required minLength={2} rows={4} placeholder="Record who confirmed the decision, the evidence checked, and any next condition." />
           </label>
-          <button className="primary" type="submit" disabled={!selectedApplicationId || !availableStatuses.length}>
+          <button className="primary" type="submit" disabled={busy || !selectedApplicationId || !availableStatuses.length}>
             <ClipboardList />
-            {effectiveTargetStatus ? admissionActionLabels[effectiveTargetStatus] : "No further action"}
+            {busy ? "Saving…" : effectiveTargetStatus ? admissionActionLabels[effectiveTargetStatus] : "No further action"}
           </button>
         </form>
       </div>
