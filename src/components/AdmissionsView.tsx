@@ -69,6 +69,12 @@ export default function AdmissionsView({
   const active = workspace.admissions.filter(item => !terminalAdmissionStatuses.includes(item.status));
   const selectedApplication = workspace.admissions.find(item => item.id === selected) ?? initialApplication;
   const selectedApplicationId = selectedApplication?.id ?? "";
+  const decisionApplications = [...workspace.admissions].sort((a, b) => {
+    const aTerminal = terminalAdmissionStatuses.includes(a.status);
+    const bTerminal = terminalAdmissionStatuses.includes(b.status);
+    if (aTerminal !== bTerminal) return aTerminal ? 1 : -1;
+    return Date.parse(b.updatedAt) - Date.parse(a.updatedAt);
+  });
   const availableStatuses = useMemo(
     () => (selectedApplication ? allowedAdmissionTransitions[selectedApplication.status] : []),
     [selectedApplication],
@@ -302,7 +308,7 @@ export default function AdmissionsView({
               }}
             >
               <option value="">Choose application</option>
-              {workspace.admissions.map(item => (
+              {decisionApplications.map(item => (
                 <option key={item.id} value={item.id}>
                   {item.applicationNumber} - {item.learnerName} - {admissionStatusLabels[item.status]}
                 </option>
@@ -341,10 +347,12 @@ export default function AdmissionsView({
                 ))}
               </select>
             </label>
-            <label>
-              Opening fee balance
-              <input name="openingBalance" type="number" min="0" defaultValue="0" />
-            </label>
+            {effectiveTargetStatus === "enrolled" ? (
+              <label>
+                Opening fee balance
+                <input name="openingBalance" type="number" min="0" defaultValue="0" />
+              </label>
+            ) : null}
           </div>
           {!availableStatuses.length && selectedApplication ? (
             <div className="form-status warning">
