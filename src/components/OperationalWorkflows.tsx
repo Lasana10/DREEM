@@ -5,6 +5,19 @@ import { createIdempotencyKey } from "../domain/rules";
 import type { WorkspaceData } from "../lib/repository";
 
 type Status = { tone: "idle" | "success" | "error"; message: string };
+const roleOptions:{value:StaffInvitation["role"];label:string;purpose:string}[]=[
+  {value:"principal",label:"Principal",purpose:"Full school operations and approvals"},
+  {value:"administrator",label:"Administrator",purpose:"Admissions, access and daily records"},
+  {value:"academic_head",label:"Academic head",purpose:"Teaching structure, timetable and assessment review"},
+  {value:"bursar",label:"Bursar / cashier",purpose:"Collect payments and open cashier sessions"},
+  {value:"accountant",label:"Accountant",purpose:"Review deposits, exceptions and finance closure"},
+  {value:"teacher",label:"Teacher",purpose:"Attendance, marks and classroom evidence"},
+  {value:"tutor",label:"Tutor",purpose:"Learner follow-up and pastoral support"},
+  {value:"transport_manager",label:"Transport manager",purpose:"Routes, vehicles, consents and dispatch"},
+  {value:"driver",label:"Driver",purpose:"Assigned trips and journey events"},
+  {value:"security_guard",label:"Security / gate officer",purpose:"Scan pickup badges and confirm approved collectors"},
+  {value:"auditor",label:"Auditor",purpose:"Read-only review of finance and evidence"},
+];
 function readableError(reason:unknown){if(reason instanceof Error&&reason.message)return reason.message;if(reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"){const item=reason as {message:string;details?:unknown;hint?:unknown;code?:unknown};return [item.message,item.details,item.hint?"Hint: "+item.hint:null,item.code?"Code: "+item.code:null].filter(Boolean).join(" ");}return "The operation could not be completed. Check the required setup and permissions.";}
 
 export default function OperationalWorkflowsView({
@@ -152,7 +165,7 @@ export default function OperationalWorkflowsView({
     <div className="ops-grid">
       <form className="panel settings-form" onSubmit={invite}>
         <div className="panel-title"><div><span>ACCESS</span><h3>Invite staff</h3></div><MailPlus/></div>
-        <div className="form-grid"><label>Full name<input name="fullName" required/></label><label>Email<input name="email" type="email" required/></label><label>Role<select name="role" defaultValue="teacher"><option value="principal">Principal</option><option value="administrator">Administrator</option><option value="academic_head">Academic head</option><option value="bursar">Bursar / cashier</option><option value="accountant">Accountant</option><option value="teacher">Teacher</option><option value="tutor">Tutor</option><option value="transport_manager">Transport manager</option><option value="driver">Driver</option><option value="security_guard">Security / gate officer</option><option value="auditor">Auditor</option></select></label></div>
+        <p className="form-help">This is where leadership creates teachers, bursars, accountants, transport staff, security gate officers and auditors. The invited person accepts the email, then leadership approves the membership below.</p><div className="role-guide">{roleOptions.map(role=><article key={role.value}><strong>{role.label}</strong><small>{role.purpose}</small></article>)}</div><div className="form-grid"><label>Full name<input name="fullName" autoComplete="name" required/></label><label>Email<input name="email" type="email" inputMode="email" autoComplete="email" required/></label><label>Role<select name="role" defaultValue="teacher">{roleOptions.map(role=><option key={role.value} value={role.value}>{role.label}</option>)}</select></label></div>
         <button className="primary" type="submit"><UserPlus/>Create invitation</button>
         <small>{workspace.operations.invitations.filter((item) => item.status === "pending").length} pending invitations</small>
         {canManageAccess&&workspace.operations.memberships.filter((item)=>item.status==="pending").map((membership)=><div className="access-review" key={membership.id}><span><strong>{membership.name}</strong><small>{membership.role.replaceAll("_"," ")}</small></span><button type="button" onClick={()=>run(async()=>{await onUpdateAccess(membership.id,"approved");return `${membership.name} approved.`})}>Approve</button><button type="button" onClick={()=>run(async()=>{await onUpdateAccess(membership.id,"rejected");return `${membership.name} rejected.`})}>Reject</button></div>)}
