@@ -5,6 +5,7 @@ import { createIdempotencyKey } from "../domain/rules";
 import type { WorkspaceData } from "../lib/repository";
 
 type Status = { tone: "idle" | "success" | "error"; message: string };
+function readableError(reason:unknown){if(reason instanceof Error&&reason.message)return reason.message;if(reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"){const item=reason as {message:string;details?:unknown;hint?:unknown;code?:unknown};return [item.message,item.details,item.hint?"Hint: "+item.hint:null,item.code?"Code: "+item.code:null].filter(Boolean).join(" ");}return "The operation could not be completed. Check the required setup and permissions.";}
 
 export default function OperationalWorkflowsView({
   workspace,
@@ -39,7 +40,7 @@ export default function OperationalWorkflowsView({
       await onRefresh();
       setStatus({ tone: "success", message });
     } catch (reason) {
-      setStatus({ tone: "error", message: reason instanceof Error ? reason.message : "The operation could not be completed." });
+      setStatus({ tone: "error", message: readableError(reason) });
     }
   }
 
