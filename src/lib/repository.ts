@@ -4,7 +4,7 @@ import { requirePositiveAmount, routeSignal } from "../domain/rules";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
 
 export interface WorkspaceData {
-  viewer: { name: string; email: string; role: Role };
+  viewer: { id?:string; name: string; email: string; role: Role };
   brand: SchoolBrand;
   setup: SchoolSetup;
   operations: OperationalSummary;
@@ -66,6 +66,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     supabase.auth.getUser(),
   ]);
   if(schoolResult.error) throw schoolResult.error;
+  if(brandResult.error) throw brandResult.error;
   if(userResult.error) throw userResult.error;
   const rawSchool=schoolResult.data;
   const rawBrand=brandResult.data;
@@ -160,6 +161,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
 
   return {
     viewer:{
+      id:userResult.data.user?.id,
       name:String(userResult.data.user?.user_metadata?.full_name??userResult.data.user?.email??"DREEM user"),
       email:String(userResult.data.user?.email??""),
       role:String(membership.role) as Role,
@@ -499,6 +501,35 @@ export async function recordPayment(command: PaymentCommand): Promise<PaymentRec
   return { paymentId:String(receipt.payment_id), receiptNumber:String(receipt.receipt_number), confirmationToken:String(receipt.confirmation_token) };
 }
 
+export interface FinanceControlDeskData {
+  openSession?: { id:string; openedAt:string; openingFloat:number };
+  pendingReviews: { id:string; sessionId:string; variance:number; explanation:string; submittedAt:string }[];
+  unsettledCash: { id:string; receiptNumber:string; amount:number; receivedAt:string }[];
+  settlementRails: { id:string; name:string; code:string }[];
+  pendingDeposits: { id:string; reference:string; amount:number; depositReference:string; submittedAt:string }[];
+}
+
+export async function loadFinanceControlDesk():Promise<FinanceControlDeskData>{
+  if(!isSupabaseConfigured||!supabase)return{openSession:{id:"demo-session",openedAt:new Date().toISOString(),openingFloat:0},pendingReviews:[],unsettledCash:[],settlementRails:[],pendingDeposits:[]};
+  const{schoolId,userId}=await activeSchool();
+  const[sessions,reviews,payments,items,rails,deposits]=await Promise.all([
+    supabase.from("dreem_cashier_sessions").select("id,opened_at,opening_float,status,cashier_user_id").eq("school_id",schoolId).eq("cashier_user_id",userId).eq("status","open").maybeSingle(),
+    supabase.from("dreem_reconciliation_reviews").select("id,cashier_session_id,variance,explanation,submitted_at,status").eq("school_id",schoolId).eq("status","pending").order("submitted_at"),
+    supabase.from("dreem_financial_payments").select("id,receipt_number,amount,received_at,method,received_by").eq("school_id",schoolId).eq("method","cash").eq("received_by",userId).is("reverses_payment_id",null).order("received_at"),
+    supabase.from("dreem_cash_deposit_items").select("payment_id").eq("school_id",schoolId),
+    supabase.from("dreem_payment_rails").select("id,display_name,rail_code,rail_type,enabled").eq("school_id",schoolId).eq("enabled",true).in("rail_type",["bank","mobile_money"]).order("priority"),
+    supabase.from("dreem_cash_deposit_batches").select("id,batch_reference,amount,deposit_reference,submitted_at,status").eq("school_id",schoolId).eq("status","submitted").order("submitted_at"),
+  ]);
+  for(const result of[sessions,reviews,payments,items,rails,deposits])if(result.error)throw result.error;
+  const settled=new Set((items.data??[]).map(row=>String(row.payment_id)));
+  return{openSession:sessions.data?{id:String(sessions.data.id),openedAt:String(sessions.data.opened_at),openingFloat:Number(sessions.data.opening_float)}:undefined,pendingReviews:(reviews.data??[]).map(row=>({id:String(row.id),sessionId:String(row.cashier_session_id),variance:Number(row.variance),explanation:String(row.explanation??""),submittedAt:String(row.submitted_at)})),unsettledCash:(payments.data??[]).filter(row=>!settled.has(String(row.id))).map(row=>({id:String(row.id),receiptNumber:String(row.receipt_number),amount:Number(row.amount),receivedAt:String(row.received_at)})),settlementRails:(rails.data??[]).map(row=>({id:String(row.id),name:String(row.display_name),code:String(row.rail_code)})),pendingDeposits:(deposits.data??[]).map(row=>({id:String(row.id),reference:String(row.batch_reference),amount:Number(row.amount),depositReference:String(row.deposit_reference),submittedAt:String(row.submitted_at)}))};
+}
+
+export async function submitCashierSession(input:{sessionId:string;declaredCash:number;explanation:string;evidenceReference:string}){if(!input.sessionId||input.declaredCash<0)throw new Error("Open session and a non-negative cash count are required.");if(!isSupabaseConfigured||!supabase)return{reviewId:crypto.randomUUID(),expectedCash:input.declaredCash,variance:0};const{data,error}=await supabase.rpc("dreem_submit_cashier_session",{p_cashier_session_id:input.sessionId,p_declared_cash:input.declaredCash,p_explanation:input.explanation.trim()||null,p_evidence:{reference:input.evidenceReference.trim()}});if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{reviewId:String(row.review_id),expectedCash:Number(row.expected_cash),variance:Number(row.variance)}}
+export async function reviewCashierSession(input:{reviewId:string;approved:boolean;note:string;evidenceReference:string}){if(!input.reviewId||input.note.trim().length<3)throw new Error("Review decision and evidence note are required.");if(!isSupabaseConfigured||!supabase)return input.approved?"approved":"rejected";const{data,error}=await supabase.rpc("dreem_review_cashier_session",{p_review_id:input.reviewId,p_approved:input.approved,p_note:input.note.trim(),p_evidence:{reference:input.evidenceReference.trim()}});if(error)throw error;return String(data)}
+export async function createCashDepositBatch(input:{paymentIds:string[];destinationRailId:string;depositReference:string;evidenceReference:string}){if(!input.paymentIds.length||!input.destinationRailId||!input.depositReference.trim())throw new Error("Select cash receipts, settlement account and deposit reference.");if(!isSupabaseConfigured||!supabase)return{batchId:crypto.randomUUID(),reference:"DEMO-DEP",amount:0};const{data,error}=await supabase.rpc("dreem_create_cash_deposit_batch",{p_payment_ids:input.paymentIds,p_destination_rail_id:input.destinationRailId,p_deposit_reference:input.depositReference.trim(),p_evidence:{reference:input.evidenceReference.trim()}});if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{batchId:String(row.batch_id),reference:String(row.batch_reference),amount:Number(row.amount)}}
+export async function reviewCashDepositBatch(input:{batchId:string;approved:boolean;note:string}){if(!input.batchId||input.note.trim().length<3)throw new Error("Deposit decision and review note are required.");if(!isSupabaseConfigured||!supabase)return input.approved?"confirmed":"rejected";const{data,error}=await supabase.rpc("dreem_review_cash_deposit_batch",{p_batch_id:input.batchId,p_approved:input.approved,p_note:input.note.trim()});if(error)throw error;return String(data)}
+
 export async function updateSignalStatus(signalId: string, status: CommunitySignal["status"]) {
   if (!isSupabaseConfigured || !supabase) return status;
   const { schoolId, userId } = await activeSchool();
@@ -603,3 +634,58 @@ export async function recordTransportConsent(input:{studentId:string;decision:"g
 export async function assignStudentTransport(input:{studentId:string;routeId:string;pickupStopId:string;dropoffStopId:string;effectiveFrom:string;effectiveTo?:string;idempotencyKey:string}){if(!input.studentId||!input.routeId||!input.pickupStopId||!input.dropoffStopId||!input.effectiveFrom)throw new Error("Learner, route, stops and start date are required.");if(!isSupabaseConfigured||!supabase)return{assignmentId:crypto.randomUUID(),status:"active"};const{data,error}=await supabase.rpc("dreem_assign_student_transport",{p_student_id:input.studentId,p_route_id:input.routeId,p_pickup_stop_id:input.pickupStopId,p_dropoff_stop_id:input.dropoffStopId,p_effective_from:input.effectiveFrom,p_effective_to:input.effectiveTo||null,p_idempotency_key:input.idempotencyKey});if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{assignmentId:String(row.assignment_id),status:String(row.assignment_status)}}
 export async function dispatchTransportTrip(input:{routeId:string;vehicleId:string;driverId:string;serviceDate:string;direction:"inbound"|"outbound";scheduledDeparture:string;idempotencyKey:string}){if(!input.routeId||!input.vehicleId||!input.driverId||!input.serviceDate||!input.scheduledDeparture)throw new Error("Route, vehicle, driver, date and departure are required.");if(!isSupabaseConfigured||!supabase)return{tripId:crypto.randomUUID(),status:"dispatched",assignedStudents:0};const{data,error}=await supabase.rpc("dreem_dispatch_transport_trip",{p_route_id:input.routeId,p_vehicle_id:input.vehicleId,p_driver_id:input.driverId,p_service_date:input.serviceDate,p_direction:input.direction,p_scheduled_departure:input.scheduledDeparture,p_idempotency_key:input.idempotencyKey});if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{tripId:String(row.trip_id),status:String(row.trip_status),assignedStudents:Number(row.assigned_students)}}
 export async function progressTransportTrip(input:{tripId:string;eventType:string;stopId?:string;studentId?:string;note?:string;idempotencyKey:string}){if(!input.tripId||!input.eventType)throw new Error("Trip and event are required.");if(!isSupabaseConfigured||!supabase)return{tripId:input.tripId,status:input.eventType==="completed"?"completed":"in_progress"};const{data,error}=await supabase.rpc("dreem_progress_transport_trip",{p_trip_id:input.tripId,p_event_type:input.eventType,p_stop_id:input.stopId||null,p_student_id:input.studentId||null,p_note:input.note||null,p_evidence:{source:"workspace"},p_idempotency_key:input.idempotencyKey});if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{tripId:String(row.trip_id),status:String(row.trip_status)}}
+
+export async function authorizeLearnerCollector(input:{studentId:string;guardianId?:string;fullName:string;relationship:string;phoneLast4?:string;photoUrl?:string;validFrom?:string;validUntil?:string;evidenceNote:string;idempotencyKey:string}){
+  if(!input.studentId||input.fullName.trim().length<3||!input.relationship.trim()||!input.evidenceNote.trim())throw new Error("Learner, collector identity, relationship and authorization evidence are required.");
+  if(input.phoneLast4&&!/^\d{4}$/.test(input.phoneLast4))throw new Error("Enter only the final four phone digits.");
+  if(!isSupabaseConfigured||!supabase)return{collectorId:crypto.randomUUID(),status:"active",collectorToken:`demo-collector-${crypto.randomUUID()}`};
+  const{data,error}=await supabase.rpc("dreem_authorize_collector",{p_student_id:input.studentId,p_guardian_id:input.guardianId||null,p_full_name:input.fullName.trim(),p_relationship:input.relationship.trim(),p_phone_last4:input.phoneLast4||null,p_photo_url:input.photoUrl?.trim()||null,p_valid_from:input.validFrom||null,p_valid_until:input.validUntil||null,p_evidence:{note:input.evidenceNote.trim()},p_idempotency_key:input.idempotencyKey});
+  if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{collectorId:String(row.collector_id),status:String(row.collector_status),collectorToken:String(row.collector_token)};
+}
+
+export async function verifyLearnerRelease(input:{credentialToken:string;collectorToken:string;decision:"released"|"denied";reason:string;idempotencyKey:string}){
+  if(!input.credentialToken.trim())throw new Error("Scan or enter the learner credential.");
+  if(input.decision==="released"&&!input.collectorToken.trim())throw new Error("Scan or enter the collector authorization.");
+  if(!input.reason.trim())throw new Error("Record the reason for this gate decision.");
+  if(!isSupabaseConfigured||!supabase)return{eventId:crypto.randomUUID(),decision:input.decision,studentId:"demo",studentName:"Demo learner",matricule:"DEMO-001",collectorName:input.collectorToken?"Demo authorized collector":"Unrecognized collector",collectorPhotoUrl:""};
+  const{data,error}=await supabase.rpc("dreem_verify_and_record_learner_release",{p_credential_token:input.credentialToken.trim(),p_collector_token:input.collectorToken.trim(),p_decision:input.decision,p_reason:input.reason.trim(),p_evidence:{capture:"gate_scanner"},p_idempotency_key:input.idempotencyKey});
+  if(error)throw error;const row=Array.isArray(data)?data[0]:data;return{eventId:String(row.event_id),decision:String(row.release_decision),studentId:String(row.student_id),studentName:String(row.student_display_name),matricule:String(row.matricule),collectorName:String(row.collector_display_name),collectorPhotoUrl:row.collector_photo_url?String(row.collector_photo_url):""};
+}
+
+export interface LearnerOneFileData {
+  identity:{id:string;matricule:string;name:string;className:string;dateOfBirth?:string;sex?:string;attendanceRate:number;riskLevel:string};
+  guardians:{name:string;relationship:string;phone?:string;email?:string;isPrimary:boolean;canCollect:boolean}[];
+  attendance:{status:string;note?:string;recordedAt:string}[];
+  assessments:{title:string;score:number;maxScore:number;date:string;comment?:string}[];
+  interventions:{title:string;status:string;reviewOn:string;actionPlan:string}[];
+  cases:{number:string;title:string;category:string;priority:string;status:string;reviewDueOn?:string}[];
+  finance:{amountDue:number;amountPaid:number;balanceDue:number;status:string;receipts:{number:string;amount:number;method:string;receivedAt:string}[]};
+  credential?:{status:string;validUntil:string;issuedAt:string};
+  transport?:{routeName:string;pickupStop:string;dropoffStop:string;status:string};
+}
+
+export async function loadLearnerOneFile(studentId:string):Promise<LearnerOneFileData>{
+  if(!studentId)throw new Error("Choose a learner OneFile.");
+  if(!isSupabaseConfigured||!supabase){const learner=demoLearners.find(item=>item.id===studentId)??demoLearners[0];return{identity:{id:learner.id,matricule:learner.matricule,name:learner.name,className:learner.className,attendanceRate:learner.attendance,riskLevel:"monitored"},guardians:[],attendance:[],assessments:[],interventions:[],cases:[],finance:{amountDue:learner.feeBalance??0,amountPaid:0,balanceDue:learner.feeBalance??0,status:"open",receipts:[]},credential:{status:learner.idStatus,validUntil:"",issuedAt:""}};}
+  const{schoolId}=await activeSchool();
+  const[student,links,guardians,attendance,marks,assessments,interventions,cases,account,payments,credential,assignment,routes,stops]=await Promise.all([
+    supabase.from("students").select("id,matricule,full_name,class_name,date_of_birth,sex,attendance_rate,risk_level").eq("school_id",schoolId).eq("id",studentId).single(),
+    supabase.from("dreem_student_guardians").select("guardian_id,relationship,is_primary,can_collect").eq("school_id",schoolId).eq("student_id",studentId),
+    supabase.from("dreem_guardians").select("id,full_name,phone,email").eq("school_id",schoolId),
+    supabase.from("dreem_attendance_marks").select("status,note,created_at").eq("school_id",schoolId).eq("student_id",studentId).order("created_at",{ascending:false}).limit(50),
+    supabase.from("dreem_marks").select("assessment_id,score,comment,created_at").eq("school_id",schoolId).eq("student_id",studentId).order("created_at",{ascending:false}).limit(50),
+    supabase.from("dreem_assessments").select("id,title,max_score,assessment_date").eq("school_id",schoolId),
+    supabase.from("dreem_interventions").select("title,status,review_on,action_plan").eq("school_id",schoolId).eq("student_id",studentId).order("review_on").limit(50),
+    supabase.from("dreem_student_cases").select("case_number,title,category,priority,status,review_due_on,confidentiality").eq("school_id",schoolId).eq("student_id",studentId).neq("confidentiality","restricted").order("created_at",{ascending:false}).limit(50),
+    supabase.from("fee_accounts").select("id,amount_due,amount_paid,balance_due,status").eq("school_id",schoolId).eq("student_id",studentId).maybeSingle(),
+    supabase.from("dreem_financial_payments").select("receipt_number,amount,method,received_at").eq("school_id",schoolId).eq("student_id",studentId).is("reverses_payment_id",null).order("received_at",{ascending:false}).limit(50),
+    supabase.from("dreem_student_credentials").select("status,valid_until,issued_at").eq("school_id",schoolId).eq("student_id",studentId).order("issued_at",{ascending:false}).limit(1).maybeSingle(),
+    supabase.from("dreem_transport_assignments").select("route_id,pickup_stop_id,dropoff_stop_id,status").eq("school_id",schoolId).eq("student_id",studentId).eq("status","active").maybeSingle(),
+    supabase.from("dreem_transport_routes").select("id,name").eq("school_id",schoolId),
+    supabase.from("dreem_transport_stops").select("id,name").eq("school_id",schoolId),
+  ]);
+  for(const result of[student,links,guardians,attendance,marks,assessments,interventions,cases,account,payments,credential,assignment,routes,stops])if(result.error)throw result.error;
+  if(!student.data)throw new Error("Learner OneFile was not found in this school.");
+  const guardianMap=new Map((guardians.data??[]).map(row=>[String(row.id),row])),assessmentMap=new Map((assessments.data??[]).map(row=>[String(row.id),row])),routeMap=new Map((routes.data??[]).map(row=>[String(row.id),String(row.name)])),stopMap=new Map((stops.data??[]).map(row=>[String(row.id),String(row.name)]));const s=student.data,a=account.data,transport=assignment.data;
+  return{identity:{id:String(s.id),matricule:String(s.matricule),name:String(s.full_name),className:String(s.class_name??"Unassigned"),dateOfBirth:s.date_of_birth?String(s.date_of_birth):undefined,sex:s.sex?String(s.sex):undefined,attendanceRate:Number(s.attendance_rate??0),riskLevel:String(s.risk_level??"unknown")},guardians:(links.data??[]).map(link=>{const g=guardianMap.get(String(link.guardian_id));return{name:String(g?.full_name??"Guardian"),relationship:String(link.relationship),phone:g?.phone?String(g.phone):undefined,email:g?.email?String(g.email):undefined,isPrimary:Boolean(link.is_primary),canCollect:Boolean(link.can_collect)}}),attendance:(attendance.data??[]).map(row=>({status:String(row.status),note:row.note?String(row.note):undefined,recordedAt:String(row.created_at)})),assessments:(marks.data??[]).map(mark=>{const assessment=assessmentMap.get(String(mark.assessment_id));return{title:String(assessment?.title??"Assessment"),score:Number(mark.score),maxScore:Number(assessment?.max_score??0),date:String(assessment?.assessment_date??mark.created_at),comment:mark.comment?String(mark.comment):undefined}}),interventions:(interventions.data??[]).map(row=>({title:String(row.title),status:String(row.status),reviewOn:String(row.review_on),actionPlan:String(row.action_plan)})),cases:(cases.data??[]).map(row=>({number:String(row.case_number),title:String(row.title),category:String(row.category),priority:String(row.priority),status:String(row.status),reviewDueOn:row.review_due_on?String(row.review_due_on):undefined})),finance:{amountDue:Number(a?.amount_due??0),amountPaid:Number(a?.amount_paid??0),balanceDue:Number(a?.balance_due??0),status:String(a?.status??"none"),receipts:(payments.data??[]).map(row=>({number:String(row.receipt_number),amount:Number(row.amount),method:String(row.method),receivedAt:String(row.received_at)}))},credential:credential.data?{status:String(credential.data.status),validUntil:String(credential.data.valid_until),issuedAt:String(credential.data.issued_at)}:undefined,transport:transport?{routeName:routeMap.get(String(transport.route_id))??"Route",pickupStop:stopMap.get(String(transport.pickup_stop_id))??"Stop",dropoffStop:stopMap.get(String(transport.dropoff_stop_id))??"Stop",status:String(transport.status)}:undefined};
+}

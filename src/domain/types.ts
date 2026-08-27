@@ -10,6 +10,7 @@ export type Role =
   | "tutor"
   | "transport_manager"
   | "driver"
+  | "security_guard"
   | "parent"
   | "student"
   | "auditor";
