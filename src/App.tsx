@@ -36,14 +36,14 @@ function WorkspaceApp() {
         const data = await loadWorkspace();
         if (active) { setWorkspace(data); setView(defaultViewByRole[data.viewer.role]); setBootstrap(null); setError(""); }
       }catch(reason){
-        const message = reason instanceof Error ? reason.message : "The school workspace could not be loaded.";
+        const message = reason instanceof Error ? reason.message : (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string" ? reason.message : "The school workspace could not be loaded.");
         if (/active school membership|attached to an active school/i.test(message)) {
           try{
             const bootstrapState = await loadBootstrapStatus();
             if (active) { setBootstrap(bootstrapState); setError(""); }
             return;
           }catch(innerReason){
-            if (active) setError(innerReason instanceof Error ? innerReason.message : message);
+            if (active) setError(innerReason instanceof Error ? innerReason.message : (innerReason && typeof innerReason === "object" && "message" in innerReason && typeof innerReason.message === "string" ? innerReason.message : message));
             return;
           }
         }
