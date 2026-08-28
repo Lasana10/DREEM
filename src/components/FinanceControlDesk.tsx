@@ -5,12 +5,13 @@ import { createCashDepositBatch, loadFinanceControlDesk, reviewCashDepositBatch,
 
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 
+function readableError(reason:unknown){if(reason instanceof Error&&reason.message)return reason.message;if(reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"){const item=reason as {message:string;details?:unknown;hint?:unknown;code?:unknown};return [item.message,item.details,item.hint?"Hint: "+item.hint:null,item.code?"Code: "+item.code:null].filter(Boolean).join(" ");}return "Finance command could not be completed. Check the finance setup and permissions.";}
 export default function FinanceControlDesk({role,onChanged}:{role:Role;onChanged:()=>Promise<void>}){
   const[data,setData]=useState<FinanceControlDeskData|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
   const isCashier=role==="bursar",isReviewer=["platform_founder","school_owner","principal","accountant"].includes(role),isReadOnly=role==="auditor";
-  async function reload(){try{setData(await loadFinanceControlDesk())}catch(reason){setError(reason instanceof Error?reason.message:"Finance controls could not be loaded.")}}
+  async function reload(){try{setData(await loadFinanceControlDesk())}catch(reason){setError(readableError(reason))}}
   useEffect(()=>{void reload()},[]);
-  async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await Promise.all([reload(),onChanged()]);setMessage(success)}catch(reason){setError(reason instanceof Error?reason.message:"Finance command failed.")}finally{setBusy(false)}}
+  async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await Promise.all([reload(),onChanged()]);setMessage(success)}catch(reason){setError(readableError(reason))}finally{setBusy(false)}}
   async function closeSession(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!data?.openSession)return;const f=new FormData(event.currentTarget);await run(()=>submitCashierSession({sessionId:data.openSession!.id,declaredCash:Number(f.get("declaredCash")),explanation:String(f.get("explanation")),evidenceReference:String(f.get("evidence"))}),"Cash count submitted for independent review.")}
   async function reviewSession(event:FormEvent<HTMLFormElement>,reviewId:string){event.preventDefault();const f=new FormData(event.currentTarget);await run(()=>reviewCashierSession({reviewId,approved:String(f.get("decision"))==="approved",note:String(f.get("note")),evidenceReference:String(f.get("evidence"))}),"Independent cashier review recorded.")}
   async function deposit(event:FormEvent<HTMLFormElement>){event.preventDefault();const f=new FormData(event.currentTarget);await run(()=>createCashDepositBatch({paymentIds:f.getAll("paymentIds").map(String),destinationRailId:String(f.get("railId")),depositReference:String(f.get("depositReference")),evidenceReference:String(f.get("evidence"))}),"Deposit batch submitted for independent confirmation.")}
