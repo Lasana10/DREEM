@@ -8,13 +8,14 @@ import CareView from "./components/CareView";
 import FeedbackDialog from "./components/FeedbackDialog";
 import OperationalWorkflowsView from "./components/OperationalWorkflows";
 import Shell, { type ViewKey } from "./components/Shell";
-import { CommandView, SchoolStudioView, SignalsView, TeachersView } from "./components/Views";
+import { CommandView, SignalsView, TeachersView } from "./components/Views";
+import { SchoolStudioView } from "./components/SchoolStudioView";
 import FinanceWorkspace from "./components/FinanceWorkspace";
 import LearnersWorkspace from "./components/LearnersWorkspace";
 import ClassroomWorkspace from "./components/ClassroomWorkspace";
 import type { BootstrapStatus, CommunitySignal, Role } from "./domain/types";
 import { buildOperationalPulse } from "./domain/rules";
-import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loadBootstrapStatus, loadWorkspace, recordAssessment, recordAttendance, saveSchoolBrand, saveSchoolSetup, updateAccessStatus, updateSignalStatus, type WorkspaceData } from "./lib/repository";
+import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loadBootstrapStatus, loadWorkspace, recordAssessment, recordAttendance, saveSchoolBrand, saveSchoolSetup, updateAccessStatus, updateSignalStatus, uploadSchoolLogo, type WorkspaceData } from "./lib/repository";
 import { supabase } from "./lib/supabase";
 
 const defaultViewByRole: Record<Role, ViewKey> = {
@@ -86,7 +87,7 @@ function WorkspaceApp() {
       {view === "transport" && <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>}
       {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
-      {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} />}
+      {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
     </Shell>
     <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} onCreated={addSignal} />
   </>;
