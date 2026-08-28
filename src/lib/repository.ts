@@ -676,7 +676,7 @@ export async function loadLearnerOneFile(studentId:string):Promise<LearnerOneFil
     supabase.from("dreem_marks").select("assessment_id,score,comment,created_at").eq("school_id",schoolId).eq("student_id",studentId).order("created_at",{ascending:false}).limit(50),
     supabase.from("dreem_assessments").select("id,title,max_score,assessment_date").eq("school_id",schoolId),
     supabase.from("dreem_interventions").select("title,status,review_on,action_plan").eq("school_id",schoolId).eq("student_id",studentId).order("review_on").limit(50),
-    supabase.from("dreem_student_cases").select("case_number,title,category,priority,status,review_due_on,confidentiality").eq("school_id",schoolId).eq("student_id",studentId).neq("confidentiality","restricted").order("created_at",{ascending:false}).limit(50),
+    supabase.from("dreem_student_cases").select("case_number,title,category,priority,status,review_due_on,confidentiality").eq("school_id",schoolId).eq("student_id",studentId).neq("confidentiality","restricted").order("opened_at",{ascending:false}).limit(50),
     supabase.from("fee_accounts").select("id,amount_due,amount_paid,balance_due,status").eq("school_id",schoolId).eq("student_id",studentId).maybeSingle(),
     supabase.from("dreem_financial_payments").select("receipt_number,amount,method,received_at").eq("school_id",schoolId).eq("student_id",studentId).is("reverses_payment_id",null).order("received_at",{ascending:false}).limit(50),
     supabase.from("dreem_student_credentials").select("status,valid_until,issued_at").eq("school_id",schoolId).eq("student_id",studentId).order("issued_at",{ascending:false}).limit(1).maybeSingle(),
