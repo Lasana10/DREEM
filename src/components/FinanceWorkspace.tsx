@@ -4,8 +4,8 @@ import { FinanceView, Metric } from "./Views";
 
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 
-export default function FinanceWorkspace({finance,learners,operations,role,onRecorded}:{finance:FinanceSummary;learners:LearnerSummary[];operations:{memberships:AccessMembership[]};role:Role;onRecorded:()=>Promise<void>}){
-  const approvedRoles=new Set(operations.memberships.filter(item=>item.status==="approved").map(item=>item.role));
+export default function FinanceWorkspace({finance,learners,operations,role,onRecorded}:{finance:FinanceSummary;learners:LearnerSummary[];operations?:{memberships:AccessMembership[]};role:Role;onRecorded:()=>Promise<void>}){
+  const approvedRoles=new Set((operations?.memberships??[]).filter(item=>item.status==="approved").map(item=>item.role));
   const hasCollector=role==="bursar"||["platform_founder","school_owner","principal","administrator"].includes(role)||approvedRoles.has("bursar");
   const hasReviewer=role==="accountant"||["platform_founder","school_owner","principal","auditor"].includes(role)||approvedRoles.has("accountant");
   const hasFeeAccounts=learners.some(item=>item.feeAccountId);
