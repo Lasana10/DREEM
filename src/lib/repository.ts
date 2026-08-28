@@ -243,6 +243,22 @@ export async function saveSchoolBrand(brand: SchoolBrand): Promise<SchoolBrand> 
   return brand;
 }
 
+export async function uploadSchoolLogo(file: File): Promise<string> {
+  if (!file.type.startsWith("image/")) throw new Error("Choose a PNG, JPG, WebP or SVG logo.");
+  if (file.size > 2 * 1024 * 1024) throw new Error("School logos must be smaller than 2 MB.");
+  if (!isSupabaseConfigured || !supabase) return URL.createObjectURL(file);
+  const { schoolId } = await activeSchool();
+  const extension = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "png";
+  const path = `${schoolId}/logos/${crypto.randomUUID()}.${extension}`;
+  const { error } = await supabase.storage.from("school-brand-assets").upload(path, file, {
+    cacheControl: "3600",
+    contentType: file.type,
+    upsert: false,
+  });
+  if (error) throw error;
+  return supabase.storage.from("school-brand-assets").getPublicUrl(path).data.publicUrl;
+}
+
 export async function inviteStaff(input: { email: string; fullName: string; role: StaffInvitation["role"]; idempotencyKey: string }) {
   if (!input.email.trim()) throw new Error("Staff email is required.");
   if (!input.fullName.trim()) throw new Error("Staff name is required.");
