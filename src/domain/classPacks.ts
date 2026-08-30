@@ -26,3 +26,4 @@ export function buildClassPack(packId: ClassPackId, academicYearName = `${new Da
   const configuredSubjects: SubjectConfig[] = unique.map(([name, code], index) => ({ id: generatedId("subject", index), name, code, subsystem: pack.languages === "English" ? "anglophone" : pack.languages === "French" ? "francophone" : "bilingual", gradingWeight: 100 }));
   return { academicYears: [year], terms, classes, subjects: configuredSubjects };
 }
+
