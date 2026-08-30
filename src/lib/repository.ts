@@ -398,18 +398,21 @@ export async function saveSchoolSetup(setup: SchoolSetup): Promise<SchoolSetup> 
   if (setup.academicYears.length && academicYears.length !== setup.academicYears.length) {
     throw new Error("Complete the academic year name, start date and end date before saving the school structure.");
   }
-  const academicYearIds = new Set(academicYears.map((year) => year.id));
-  const terms = setup.terms.filter((term) => term.name.trim() && term.startsOn && term.endsOn && academicYearIds.has(term.academicYearId));
+  const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const yearIdMap = new Map(academicYears.map((year) => [year.id, isUuid(year.id) ? year.id : crypto.randomUUID()]));
+  const normalizedYears = academicYears.map((year) => ({ ...year, id: yearIdMap.get(year.id)! }));
+  const terms = setup.terms.filter((term) => term.name.trim() && term.startsOn && term.endsOn && yearIdMap.has(term.academicYearId));
+  const normalizedTerms = terms.map((term) => ({ ...term, id: isUuid(term.id) ? term.id : crypto.randomUUID(), academicYearId: yearIdMap.get(term.academicYearId)! }));
   if (setup.terms.length && terms.length !== setup.terms.length) {
     throw new Error("Complete each term name and dates, and link it to a saved academic year before saving.");
   }
   const classes = setup.classes.filter((entry) => entry.name.trim());
   const subjects = setup.subjects.filter((subject) => subject.name.trim() && subject.code.trim() && Number.isFinite(subject.gradingWeight) && subject.gradingWeight > 0);
   const sanitized: SchoolSetup = {
-    academicYears,
-    terms,
-    classes,
-    subjects,
+    academicYears: normalizedYears,
+    terms: normalizedTerms,
+    classes: classes.map((entry) => ({ ...entry, id: isUuid(entry.id) ? entry.id : crypto.randomUUID(), academicYearId: entry.academicYearId ? yearIdMap.get(entry.academicYearId) : undefined })),
+    subjects: subjects.map((subject) => ({ ...subject, id: isUuid(subject.id) ? subject.id : crypto.randomUUID() })),
   };
   const academicYearsPayload = sanitized.academicYears.map((year) => ({
     id: year.id,
@@ -465,6 +468,3 @@ export async function saveSchoolSetup(setup: SchoolSetup): Promise<SchoolSetup> 
   // Return the database's authoritative rows so generated IDs, defaults and
   // any server-side normalization are reflected immediately in the workspace.
   const refreshed = await loadWorkspace();
-  return refreshed.setup;
-}
-
