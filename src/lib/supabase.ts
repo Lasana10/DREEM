@@ -1,7 +1,18 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const publishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+// These are public browser identifiers, not privileged server credentials.
+// Keeping production-safe defaults prevents a Cloudflare environment-scope
+// regression from locking the whole school workspace. Dashboard variables
+// still take priority, so projects can override them without a code change.
+const productionSupabaseUrl = "https://vlukkucwtfmfgpzvjyvd.supabase.co";
+const productionPublishableKey = "sb_publishable_0gJr0-eyvR8RvXv9SmY-5A_cgLZOreU";
+
+const supabaseUrl =
+  import.meta.env.VITE_SUPABASE_URL?.trim() ||
+  (import.meta.env.PROD ? productionSupabaseUrl : undefined);
+const publishableKey =
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim() ||
+  (import.meta.env.PROD ? productionPublishableKey : undefined);
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && publishableKey);
 export const isDemoMode = import.meta.env.VITE_DREEM_DEMO_MODE === "true";
