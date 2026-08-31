@@ -13,16 +13,21 @@ const subjects: Record<"english" | "french", readonly SubjectSeed[]> = {
   english: [["English Language", "ENG"], ["Mathematics", "MATH"], ["Science", "SCI"], ["French", "FRE"], ["ICT", "ICT"], ["Social Studies", "SOC"], ["Religious and Moral Education", "RME"], ["Creative Arts", "ART"], ["Physical Education", "PE"]],
   french: [["Francais", "FRE"], ["Mathematiques", "MATH"], ["Sciences", "SCI"], ["Anglais", "ENG"], ["TIC", "ICT"], ["Histoire-Geographie", "HIST"], ["ECM", "ECM"], ["Arts", "ART"], ["Education Physique et Sportive", "EPS"]],
 } as const;
-function generatedId(prefix: string, index: number) { return `pack-${prefix}-${index + 1}`; }
+function generatedId() { return crypto.randomUUID(); }
 export function buildClassPack(packId: ClassPackId, academicYearName = `${new Date().getFullYear()} / ${new Date().getFullYear() + 1}`): SchoolSetup {
   const pack = classPacks.find(item => item.id === packId);
   if (!pack) throw new Error("Choose a valid class pack.");
-  const year: AcademicYearConfig = { id: generatedId("year", 0), name: academicYearName, startsOn: "", endsOn: "", status: "planning" };
-  const terms: TermConfig[] = ["Term 1", "Term 2", "Term 3"].map((name, index) => ({ id: generatedId("term", index), academicYearId: year.id, name, startsOn: "", endsOn: "", orderIndex: index + 1 }));
-  const classes: ClassConfig[] = pack.levels.map((level, index) => ({ id: generatedId("class", index), academicYearId: year.id, name: level, sectionName: pack.languages, streamName: "", levelName: level }));
+  const startYear = Number(academicYearName.slice(0, 4)) || new Date().getFullYear();
+  const year: AcademicYearConfig = { id: generatedId(), name: academicYearName, startsOn: `${startYear}-09-01`, endsOn: `${startYear + 1}-07-31`, status: "planning" };
+  const terms: TermConfig[] = [
+    ["Term 1", `${startYear}-09-01`, `${startYear}-12-20`],
+    ["Term 2", `${startYear + 1}-01-05`, `${startYear + 1}-03-31`],
+    ["Term 3", `${startYear + 1}-04-12`, `${startYear + 1}-07-31`],
+  ].map(([name, startsOn, endsOn], index) => ({ id: generatedId(), academicYearId: year.id, name, startsOn, endsOn, orderIndex: index + 1 }));
+  const classes: ClassConfig[] = pack.levels.map((level) => ({ id: generatedId(), academicYearId: year.id, name: level, sectionName: pack.languages, streamName: "", levelName: level }));
   const groups = pack.languages === "French" ? ["french"] : pack.languages === "English" ? ["english"] : ["english", "french"];
   const rows = groups.flatMap(group => subjects[group as keyof typeof subjects]);
   const unique = Array.from(new Map(rows.map(row => [row[1], row])).values());
-  const configuredSubjects: SubjectConfig[] = unique.map(([name, code], index) => ({ id: generatedId("subject", index), name, code, subsystem: pack.languages === "English" ? "anglophone" : pack.languages === "French" ? "francophone" : "bilingual", gradingWeight: 100 }));
+  const configuredSubjects: SubjectConfig[] = unique.map(([name, code]) => ({ id: generatedId(), name, code, subsystem: pack.languages === "English" ? "anglophone" : pack.languages === "French" ? "francophone" : "bilingual", gradingWeight: 100 }));
   return { academicYears: [year], terms, classes, subjects: configuredSubjects };
 }
