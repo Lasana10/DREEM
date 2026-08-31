@@ -345,6 +345,13 @@ export async function recordAssessment(command: AssessmentCommand) {
   if (!command.assessmentDate) throw new Error("Assessment date is required.");
   if (!command.marks.length) throw new Error("At least one mark is required.");
   if (command.marks.some((mark) => mark.score < 0 || mark.score > command.maxScore)) throw new Error("Every score must be between zero and the maximum score.");
+  const assessmentEvidence = [
+    command.paperReference?.trim() ? `Paper: ${command.paperReference.trim()}` : "",
+    command.syllabusObjectives?.trim() ? `Objectives: ${command.syllabusObjectives.trim()}` : "",
+    command.questionSummary?.trim() ? `Questions: ${command.questionSummary.trim()}` : "",
+    command.markingGuide?.trim() ? `Guide: ${command.markingGuide.trim()}` : "",
+  ].filter(Boolean).join(" | ");
+  const marksWithEvidence = command.marks.map((mark) => ({ student_id:mark.studentId, score:mark.score, comment:[mark.comment?.trim() || "", assessmentEvidence].filter(Boolean).join(" | ") }));
   if (!isSupabaseConfigured || !supabase) return { assessmentId:crypto.randomUUID(), marksCount:command.marks.length };
   const { data, error } = await supabase.rpc("dreem_record_assessment", {
     p_subject_id: command.subjectId || null,
@@ -352,7 +359,7 @@ export async function recordAssessment(command: AssessmentCommand) {
     p_title: command.title.trim(),
     p_max_score: command.maxScore,
     p_assessment_date: command.assessmentDate,
-    p_marks: command.marks.map((mark) => ({ student_id:mark.studentId, score:mark.score, comment:mark.comment ?? "" })),
+    p_marks: marksWithEvidence,
     p_idempotency_key: command.idempotencyKey,
   });
   if (error) throw error;
@@ -395,15 +402,24 @@ export async function saveSchoolSetup(setup: SchoolSetup): Promise<SchoolSetup> 
   if (!isSupabaseConfigured || !supabase) return setup;
   const { schoolId } = await activeSchool();
   const academicYears = setup.academicYears.filter((year) => year.name.trim() && year.startsOn && year.endsOn);
-  const academicYearIds = new Set(academicYears.map((year) => year.id));
-  const terms = setup.terms.filter((term) => term.name.trim() && term.startsOn && term.endsOn && academicYearIds.has(term.academicYearId));
+  if (setup.academicYears.length && academicYears.length !== setup.academicYears.length) {
+    throw new Error("Complete the academic year name, start date and end date before saving the school structure.");
+  }
+  const isUuid = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  const yearIdMap = new Map(academicYears.map((year) => [year.id, isUuid(year.id) ? year.id : crypto.randomUUID()]));
+  const normalizedYears = academicYears.map((year) => ({ ...year, id: yearIdMap.get(year.id)! }));
+  const terms = setup.terms.filter((term) => term.name.trim() && term.startsOn && term.endsOn && yearIdMap.has(term.academicYearId));
+  const normalizedTerms = terms.map((term) => ({ ...term, id: isUuid(term.id) ? term.id : crypto.randomUUID(), academicYearId: yearIdMap.get(term.academicYearId)! }));
+  if (setup.terms.length && terms.length !== setup.terms.length) {
+    throw new Error("Complete each term name and dates, and link it to a saved academic year before saving.");
+  }
   const classes = setup.classes.filter((entry) => entry.name.trim());
   const subjects = setup.subjects.filter((subject) => subject.name.trim() && subject.code.trim() && Number.isFinite(subject.gradingWeight) && subject.gradingWeight > 0);
   const sanitized: SchoolSetup = {
-    academicYears,
-    terms,
-    classes,
-    subjects,
+    academicYears: normalizedYears,
+    terms: normalizedTerms,
+    classes: classes.map((entry) => ({ ...entry, id: isUuid(entry.id) ? entry.id : crypto.randomUUID(), academicYearId: entry.academicYearId ? yearIdMap.get(entry.academicYearId) : undefined })),
+    subjects: subjects.map((subject) => ({ ...subject, id: isUuid(subject.id) ? subject.id : crypto.randomUUID() })),
   };
   const academicYearsPayload = sanitized.academicYears.map((year) => ({
     id: year.id,
@@ -456,7 +472,10 @@ export async function saveSchoolSetup(setup: SchoolSetup): Promise<SchoolSetup> 
   await deleteRemovedSetupRows("dreem_classes", schoolId, sanitized.classes.map((entry) => entry.id));
   await deleteRemovedSetupRows("dreem_terms", schoolId, sanitized.terms.map((term) => term.id));
   await deleteRemovedSetupRows("dreem_academic_years", schoolId, sanitized.academicYears.map((year) => year.id));
-  return sanitized;
+  // Return the database's authoritative rows so generated IDs, defaults and
+  // any server-side normalization are reflected immediately in the workspace.
+  const refreshed = await loadWorkspace();
+  return refreshed.setup;
 }
 
 export async function openCashierSession(openingFloat: number) {
