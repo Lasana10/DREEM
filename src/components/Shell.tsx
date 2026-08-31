@@ -39,6 +39,7 @@ function roleLabel(role: Role) { return role.replaceAll("_", " ").replace(/\b\w/
 
 export default function Shell({ brand, viewer, view, onView, signalCount, onFeedback, children }:{brand:SchoolBrand;viewer:{name:string;email:string;role:Role};view:ViewKey;onView:(view:ViewKey)=>void;signalCount:number;onFeedback:()=>void;children:ReactNode}) {
   const visibleNav = nav.filter((item) => roleViews[viewer.role].includes(item.id));
+  const canOpenStudio = roleViews[viewer.role].includes("studio");
   const [online,setOnline]=useState(navigator.onLine);
   useEffect(()=>{const connect=()=>setOnline(true);const disconnect=()=>setOnline(false);window.addEventListener("online",connect);window.addEventListener("offline",disconnect);return()=>{window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect)}},[]);
   return <main className="shell" style={{"--brand":brand.primaryColor,"--accent":brand.accentColor} as React.CSSProperties}>
@@ -48,7 +49,7 @@ export default function Shell({ brand, viewer, view, onView, signalCount, onFeed
       <nav><small>OPERATIONS</small>{visibleNav.map(item=><button key={item.id} className={view===item.id?"active":""} onClick={()=>onView(item.id)}><item.icon size={18}/><span>{item.label}</span>{item.id==="signals"&&signalCount>0?<b>{signalCount}</b>:null}</button>)}</nav>
       <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>Protected workspace</strong><small>Audit trail active</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{roleLabel(viewer.role)}</small></span></div></div>
     </aside>
-    <section className="workspace"><header><div><span>DREEM SCHOOL OPERATING SYSTEM</span><h1>{nav.find(item=>item.id===view)?.label}</h1></div><div><span className={`connectivity ${online?"online":"offline"}`}>{online?"Online":"Offline · writes paused"}</span><button className="language">EN / FR</button><button className="feedback" onClick={onFeedback}><MessageSquareMore size={15}/>Give feedback</button></div></header>{children}</section>
+    <section className="workspace"><header><div><span>DREEM SCHOOL OPERATING SYSTEM</span><h1>{nav.find(item=>item.id===view)?.label}</h1></div><div><span className={`connectivity ${online?"online":"offline"}`}>{online?"Online":"Offline · writes paused"}</span><button className="language">EN / FR</button>{canOpenStudio&&view!=="studio"?<button className="feedback" onClick={()=>onView("studio")}><Settings2 size={15}/>School Studio</button>:null}<button className="feedback" onClick={onFeedback}><MessageSquareMore size={15}/>Give feedback</button></div></header>{children}</section>
     <nav className="mobile-nav">{visibleNav.slice(0,5).map(item=><button key={item.id} className={view===item.id?"active":""} onClick={()=>onView(item.id)}><item.icon size={19}/><span>{item.label.split(" ")[0]}</span></button>)}</nav>
   </main>;
 }
