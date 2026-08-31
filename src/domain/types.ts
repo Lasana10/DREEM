@@ -179,6 +179,10 @@ export interface AssessmentCommand {
   subjectId?: string;
   className: string;
   title: string;
+  paperReference?: string;
+  questionSummary?: string;
+  markingGuide?: string;
+  syllabusObjectives?: string;
   maxScore: number;
   assessmentDate: string;
   marks: AssessmentMarkInput[];
