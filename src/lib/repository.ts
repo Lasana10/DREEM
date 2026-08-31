@@ -345,6 +345,13 @@ export async function recordAssessment(command: AssessmentCommand) {
   if (!command.assessmentDate) throw new Error("Assessment date is required.");
   if (!command.marks.length) throw new Error("At least one mark is required.");
   if (command.marks.some((mark) => mark.score < 0 || mark.score > command.maxScore)) throw new Error("Every score must be between zero and the maximum score.");
+  const assessmentEvidence = [
+    command.paperReference?.trim() ? `Paper: ${command.paperReference.trim()}` : "",
+    command.syllabusObjectives?.trim() ? `Objectives: ${command.syllabusObjectives.trim()}` : "",
+    command.questionSummary?.trim() ? `Questions: ${command.questionSummary.trim()}` : "",
+    command.markingGuide?.trim() ? `Guide: ${command.markingGuide.trim()}` : "",
+  ].filter(Boolean).join(" | ");
+  const marksWithEvidence = command.marks.map((mark) => ({ student_id:mark.studentId, score:mark.score, comment:[mark.comment?.trim() || "", assessmentEvidence].filter(Boolean).join(" | ") }));
   if (!isSupabaseConfigured || !supabase) return { assessmentId:crypto.randomUUID(), marksCount:command.marks.length };
   const { data, error } = await supabase.rpc("dreem_record_assessment", {
     p_subject_id: command.subjectId || null,
@@ -352,7 +359,7 @@ export async function recordAssessment(command: AssessmentCommand) {
     p_title: command.title.trim(),
     p_max_score: command.maxScore,
     p_assessment_date: command.assessmentDate,
-    p_marks: command.marks.map((mark) => ({ student_id:mark.studentId, score:mark.score, comment:mark.comment ?? "" })),
+    p_marks: marksWithEvidence,
     p_idempotency_key: command.idempotencyKey,
   });
   if (error) throw error;
