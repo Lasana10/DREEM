@@ -1,4 +1,15 @@
-import type { AcademicOperations, AdmissionSummary, CommunitySignal, FinanceSummary, LearnerSummary, PulseAction, SchoolBrand, StudentCaseSummary, TeacherSummary, TransportOperations } from "./types";
+import type {
+  AcademicOperations,
+  AdmissionSummary,
+  CommunitySignal,
+  FinanceSummary,
+  LearnerSummary,
+  PulseAction,
+  SchoolBrand,
+  StudentCaseSummary,
+  TeacherSummary,
+  TransportOperations,
+} from "./types";
 
 export const demoBrand: SchoolBrand = {
   name: "DREEM Demonstration School",
@@ -16,66 +27,415 @@ export const demoBrand: SchoolBrand = {
 };
 
 export const demoLearners: LearnerSummary[] = [
-  { id:"1",matricule:"DDS-26-1001",name:"Demo Learner A",className:"Form 4A",mastery:82,attendance:94,engagement:88,wellbeing:84,trend:7,nextAction:"Pattern reasoning intervention",interventionOwner:"Demo Teacher A",idStatus:"active" },
-  { id:"2",matricule:"DDS-26-1002",name:"Demo Learner B",className:"3ème B",mastery:61,attendance:89,engagement:66,wellbeing:78,trend:-4,nextAction:"Bilingual mathematics support",interventionOwner:"Demo Teacher B",idStatus:"active" },
-  { id:"3",matricule:"DDS-26-1003",name:"Demo Learner C",className:"Form 4A",mastery:91,attendance:97,engagement:92,wellbeing:91,trend:3,nextAction:"Advanced problem-solving pathway",idStatus:"active" },
-  { id:"4",matricule:"DDS-26-1004",name:"Demo Learner D",className:"Form 3B",mastery:54,attendance:72,engagement:69,wellbeing:71,trend:1,nextAction:"Attendance recovery plan",interventionOwner:"Form teacher",idStatus:"active" },
+  {
+    id: "1",
+    matricule: "DDS-26-1001",
+    name: "Demo Learner A",
+    className: "Form 4A",
+    mastery: 82,
+    attendance: 94,
+    engagement: 88,
+    wellbeing: 84,
+    trend: 7,
+    nextAction: "Pattern reasoning intervention",
+    interventionOwner: "Demo Teacher A",
+    idStatus: "active",
+  },
+  {
+    id: "2",
+    matricule: "DDS-26-1002",
+    name: "Demo Learner B",
+    className: "3ème B",
+    mastery: 61,
+    attendance: 89,
+    engagement: 66,
+    wellbeing: 78,
+    trend: -4,
+    nextAction: "Bilingual mathematics support",
+    interventionOwner: "Demo Teacher B",
+    idStatus: "active",
+  },
+  {
+    id: "3",
+    matricule: "DDS-26-1003",
+    name: "Demo Learner C",
+    className: "Form 4A",
+    mastery: 91,
+    attendance: 97,
+    engagement: 92,
+    wellbeing: 91,
+    trend: 3,
+    nextAction: "Advanced problem-solving pathway",
+    idStatus: "active",
+  },
+  {
+    id: "4",
+    matricule: "DDS-26-1004",
+    name: "Demo Learner D",
+    className: "Form 3B",
+    mastery: 54,
+    attendance: 72,
+    engagement: 69,
+    wellbeing: 71,
+    trend: 1,
+    nextAction: "Attendance recovery plan",
+    interventionOwner: "Form teacher",
+    idStatus: "active",
+  },
 ];
 
 export const demoTeachers: TeacherSummary[] = [
-  {id:"t1",name:"Demo Teacher A",subject:"Mathematics",learnerGrowth:14,coverage:72,mastery:69,workload:"balanced",nextSupport:"Publish visual pattern method"},
-  {id:"t2",name:"Demo Teacher B",subject:"Français",learnerGrowth:9,coverage:68,mastery:73,workload:"balanced",nextSupport:"Share reading intervention"},
-  {id:"t3",name:"Demo Teacher C",subject:"Physics",learnerGrowth:3,coverage:81,mastery:58,workload:"high",nextSupport:"Coaching and load review"},
+  {
+    id: "t1",
+    name: "Demo Teacher A",
+    subject: "Mathematics",
+    learnerGrowth: 14,
+    coverage: 72,
+    mastery: 69,
+    workload: "balanced",
+    nextSupport: "Publish visual pattern method",
+  },
+  {
+    id: "t2",
+    name: "Demo Teacher B",
+    subject: "Français",
+    learnerGrowth: 9,
+    coverage: 68,
+    mastery: 73,
+    workload: "balanced",
+    nextSupport: "Share reading intervention",
+  },
+  {
+    id: "t3",
+    name: "Demo Teacher C",
+    subject: "Physics",
+    learnerGrowth: 3,
+    coverage: 81,
+    mastery: 58,
+    workload: "high",
+    nextSupport: "Coaching and load review",
+  },
 ];
 
-export const demoAcademics:AcademicOperations={
-  assignments:[{id:"assign-1",academicYearId:"ay-1",termId:"term-1",classId:"class-1",className:"Form 4A",subjectId:"sub-1",subjectName:"Mathematics",teacherUserId:"t1",teacherName:"Demo Teacher A",weeklyPeriods:5,status:"active"}],
-  timetable:[{id:"period-1",assignmentId:"assign-1",className:"Form 4A",subjectName:"Mathematics",teacherName:"Demo Teacher A",weekday:1,startsAt:"08:00",endsAt:"08:50",room:"Room 4A",effectiveFrom:"2026-09-01",effectiveTo:"2026-12-18",status:"active"}],
-  assessments:[{id:"assessment-1",title:"Algebra checkpoint",className:"Form 4A",subjectName:"Mathematics",assessmentDate:"2026-09-08",maxScore:20,status:"submitted",createdBy:"t1",creatorName:"Demo Teacher A",marksCount:4,averagePercent:74}],
-  reportCards:[],
+export const demoAcademics: AcademicOperations = {
+  assignments: [
+    {
+      id: "assign-1",
+      academicYearId: "ay-1",
+      termId: "term-1",
+      classId: "class-1",
+      className: "Form 4A",
+      subjectId: "sub-1",
+      subjectName: "Mathematics",
+      teacherUserId: "t1",
+      teacherName: "Demo Teacher A",
+      weeklyPeriods: 5,
+      status: "active",
+    },
+  ],
+  timetable: [
+    {
+      id: "period-1",
+      assignmentId: "assign-1",
+      className: "Form 4A",
+      subjectName: "Mathematics",
+      teacherName: "Demo Teacher A",
+      weekday: 1,
+      startsAt: "08:00",
+      endsAt: "08:50",
+      room: "Room 4A",
+      effectiveFrom: "2026-09-01",
+      effectiveTo: "2026-12-18",
+      status: "active",
+    },
+  ],
+  assessments: [
+    {
+      id: "assessment-1",
+      title: "Algebra checkpoint",
+      className: "Form 4A",
+      subjectName: "Mathematics",
+      assessmentDate: "2026-09-08",
+      maxScore: 20,
+      status: "submitted",
+      createdBy: "t1",
+      creatorName: "Demo Teacher A",
+      marksCount: 4,
+      averagePercent: 74,
+    },
+  ],
+  reportCards: [],
+  documents: [
+    {
+      id: "document-1",
+      title: "Mathematics Sequence 1 syllabus",
+      documentType: "syllabus",
+      language: "bilingual",
+      fileName: "maths-sequence-1.pdf",
+      mimeType: "application/pdf",
+      fileSize: 245000,
+      status: "approved",
+      subjectId: "sub-1",
+      classId: "class-1",
+      createdAt: "2026-09-01T08:00:00.000Z",
+    },
+  ],
 };
-export const demoTransport:TransportOperations={routes:[{id:"route-1",code:"R-NKOL",name:"Nkolbisson school line",direction:"both",status:"active",stops:[{id:"stop-1",routeId:"route-1",order:1,name:"Nkolbisson Junction",pickupTime:"06:30"},{id:"stop-2",routeId:"route-1",order:2,name:"DREEM Demonstration School",pickupTime:"07:20"}]}],vehicles:[{id:"vehicle-1",code:"BUS-01",registrationNumber:"CE 000 AA",vehicleType:"minibus",capacity:18,status:"available",inspectionDueOn:"2027-01-31",insuranceDueOn:"2027-02-28"}],drivers:[{id:"driver-1",userId:"driver-user-1",name:"Demo Driver",licenseReference:"LIC-DEMO-01",licenseExpiresOn:"2027-12-31",status:"active"}],assignments:[],trips:[]};
+export const demoTransport: TransportOperations = {
+  routes: [
+    {
+      id: "route-1",
+      code: "R-NKOL",
+      name: "Nkolbisson school line",
+      direction: "both",
+      status: "active",
+      stops: [
+        {
+          id: "stop-1",
+          routeId: "route-1",
+          order: 1,
+          name: "Nkolbisson Junction",
+          pickupTime: "06:30",
+        },
+        {
+          id: "stop-2",
+          routeId: "route-1",
+          order: 2,
+          name: "DREEM Demonstration School",
+          pickupTime: "07:20",
+        },
+      ],
+    },
+  ],
+  vehicles: [
+    {
+      id: "vehicle-1",
+      code: "BUS-01",
+      registrationNumber: "CE 000 AA",
+      vehicleType: "minibus",
+      capacity: 18,
+      status: "available",
+      inspectionDueOn: "2027-01-31",
+      insuranceDueOn: "2027-02-28",
+    },
+  ],
+  drivers: [
+    {
+      id: "driver-1",
+      userId: "driver-user-1",
+      name: "Demo Driver",
+      licenseReference: "LIC-DEMO-01",
+      licenseExpiresOn: "2027-12-31",
+      status: "active",
+    },
+  ],
+  assignments: [],
+  trips: [],
+};
 
-export const demoFinance: FinanceSummary = { expectedToday:1480000,collectedToday:1310000,reconciledToday:1276000,openExceptions:2,openExceptionValue:25000,nextDeposit:875000,cashCollected:925000,cashAwaitingDeposit:34000,digitalConfirmed:385000,parentConfirmationsPending:3 };
+export const demoFinance: FinanceSummary = {
+  expectedToday: 1480000,
+  collectedToday: 1310000,
+  reconciledToday: 1276000,
+  openExceptions: 2,
+  openExceptionValue: 25000,
+  nextDeposit: 875000,
+  cashCollected: 925000,
+  cashAwaitingDeposit: 34000,
+  digitalConfirmed: 385000,
+  parentConfirmationsPending: 3,
+};
 
 export const demoSignals: CommunitySignal[] = [
-  {id:"s1",sourceRole:"parent",sourceName:"Demo Parent A",subjectType:"student",subjectName:"Demo Learner C",category:"Recognition",message:"The learner now explains mathematics work confidently at home. Please continue the visual exercises.",severity:"normal",status:"new",assignedRole:"academic_head",createdAt:new Date().toISOString()},
-  {id:"s2",sourceRole:"teacher",sourceName:"Demo Teacher A",subjectType:"student",subjectName:"Demo Learner B",category:"Learning support",message:"The learner understands examples orally but struggles when the question is written in English. Bilingual support may unlock progress.",severity:"important",status:"assigned",assignedRole:"academic_head",createdAt:new Date(Date.now()-86400000).toISOString()},
+  {
+    id: "s1",
+    sourceRole: "parent",
+    sourceName: "Demo Parent A",
+    subjectType: "student",
+    subjectName: "Demo Learner C",
+    category: "Recognition",
+    message:
+      "The learner now explains mathematics work confidently at home. Please continue the visual exercises.",
+    severity: "normal",
+    status: "new",
+    assignedRole: "academic_head",
+    createdAt: new Date().toISOString(),
+  },
+  {
+    id: "s2",
+    sourceRole: "teacher",
+    sourceName: "Demo Teacher A",
+    subjectType: "student",
+    subjectName: "Demo Learner B",
+    category: "Learning support",
+    message:
+      "The learner understands examples orally but struggles when the question is written in English. Bilingual support may unlock progress.",
+    severity: "important",
+    status: "assigned",
+    assignedRole: "academic_head",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+  },
 ];
 
 export const demoStudentCases: StudentCaseSummary[] = [
   {
-    id:"case-demo-1",caseNumber:"DCS-DEMO-001",studentId:"2",studentName:"Demo Learner B",
-    category:"learning_support",priority:"important",confidentiality:"standard",status:"assigned",
-    title:"Bilingual mathematics support",summary:"Written English appears to be obstructing otherwise demonstrated mathematical understanding.",
-    openedBy:"Demo Teacher A",assignedTo:"Demo Teacher B",reviewDueOn:"2026-09-18",
-    openedAt:"2026-09-02T08:00:00.000Z",updatedAt:"2026-09-03T10:00:00.000Z",
+    id: "case-demo-1",
+    caseNumber: "DCS-DEMO-001",
+    studentId: "2",
+    studentName: "Demo Learner B",
+    category: "learning_support",
+    priority: "important",
+    confidentiality: "standard",
+    status: "assigned",
+    title: "Bilingual mathematics support",
+    summary:
+      "Written English appears to be obstructing otherwise demonstrated mathematical understanding.",
+    openedBy: "Demo Teacher A",
+    assignedTo: "Demo Teacher B",
+    reviewDueOn: "2026-09-18",
+    openedAt: "2026-09-02T08:00:00.000Z",
+    updatedAt: "2026-09-03T10:00:00.000Z",
   },
 ];
 
-export const demoAdmissions:AdmissionSummary[]=[{id:"admission-demo-1",applicationNumber:"ADM-DEMO-001",learnerName:"Synthetic Applicant A",targetClassName:"Form 1",guardianName:"Synthetic Guardian A",guardianPhone:"+237 600 000 000",status:"under_review",source:"school_desk",assignedTo:"Demo Administrator",submittedAt:"2026-08-20T09:00:00.000Z",updatedAt:"2026-08-21T11:00:00.000Z"}];
+export const demoAdmissions: AdmissionSummary[] = [
+  {
+    id: "admission-demo-1",
+    applicationNumber: "ADM-DEMO-001",
+    learnerName: "Synthetic Applicant A",
+    targetClassName: "Form 1",
+    guardianName: "Synthetic Guardian A",
+    guardianPhone: "+237 600 000 000",
+    status: "under_review",
+    source: "school_desk",
+    assignedTo: "Demo Administrator",
+    submittedAt: "2026-08-20T09:00:00.000Z",
+    updatedAt: "2026-08-21T11:00:00.000Z",
+  },
+];
 
 export const demoPulse: PulseAction[] = [
-  {id:"p1",category:"finance",title:"Cash closure variance · 12,500 FCFA",explanation:"Expected 487,500 · physically counted 475,000 · explanation attached",owner:"Accountant",dueLabel:"Today · 11:00",severity:"warning",evidenceCount:24},
-  {id:"p2",category:"learning",title:"Form 3B is outpacing verified mastery",explanation:"81% curriculum coverage versus 58% mastery across three assessments",owner:"Academic Head",dueLabel:"Review today",severity:"critical",evidenceCount:19},
-  {id:"p3",category:"feedback",title:"Bilingual support could unlock Demo Learner B",explanation:"Teacher evidence links the difficulty to English question wording, not mathematics",owner:"Demo Teacher A",dueLabel:"Plan by Friday",severity:"info",evidenceCount:6},
-  {id:"p4",category:"learning",title:"Demo Learner A's intervention produced +18%",explanation:"Visual pattern method succeeded and can be saved to the learner OneFile and teaching playbook",owner:"Class teacher",dueLabel:"Ready to close",severity:"positive",evidenceCount:4},
+  {
+    id: "p1",
+    category: "finance",
+    title: "Cash closure variance · 12,500 FCFA",
+    explanation:
+      "Expected 487,500 · physically counted 475,000 · explanation attached",
+    owner: "Accountant",
+    dueLabel: "Today · 11:00",
+    severity: "warning",
+    evidenceCount: 24,
+  },
+  {
+    id: "p2",
+    category: "learning",
+    title: "Form 3B is outpacing verified mastery",
+    explanation:
+      "81% curriculum coverage versus 58% mastery across three assessments",
+    owner: "Academic Head",
+    dueLabel: "Review today",
+    severity: "critical",
+    evidenceCount: 19,
+  },
+  {
+    id: "p3",
+    category: "feedback",
+    title: "Bilingual support could unlock Demo Learner B",
+    explanation:
+      "Teacher evidence links the difficulty to English question wording, not mathematics",
+    owner: "Demo Teacher A",
+    dueLabel: "Plan by Friday",
+    severity: "info",
+    evidenceCount: 6,
+  },
+  {
+    id: "p4",
+    category: "learning",
+    title: "Demo Learner A's intervention produced +18%",
+    explanation:
+      "Visual pattern method succeeded and can be saved to the learner OneFile and teaching playbook",
+    owner: "Class teacher",
+    dueLabel: "Ready to close",
+    severity: "positive",
+    evidenceCount: 4,
+  },
 ];
 
 export const demoSetup = {
-  academicYears: [{ id: "ay-1", name: "2026 / 2027", startsOn: "2026-09-01", endsOn: "2027-07-31", status: "active" as const }],
+  academicYears: [
+    {
+      id: "ay-1",
+      name: "2026 / 2027",
+      startsOn: "2026-09-01",
+      endsOn: "2027-07-31",
+      status: "active" as const,
+    },
+  ],
   terms: [
-    { id: "term-1", academicYearId: "ay-1", name: "Term 1", startsOn: "2026-09-01", endsOn: "2026-12-18", orderIndex: 1 },
-    { id: "term-2", academicYearId: "ay-1", name: "Term 2", startsOn: "2027-01-04", endsOn: "2027-03-31", orderIndex: 2 },
-    { id: "term-3", academicYearId: "ay-1", name: "Term 3", startsOn: "2027-04-12", endsOn: "2027-07-31", orderIndex: 3 },
+    {
+      id: "term-1",
+      academicYearId: "ay-1",
+      name: "Term 1",
+      startsOn: "2026-09-01",
+      endsOn: "2026-12-18",
+      orderIndex: 1,
+    },
+    {
+      id: "term-2",
+      academicYearId: "ay-1",
+      name: "Term 2",
+      startsOn: "2027-01-04",
+      endsOn: "2027-03-31",
+      orderIndex: 2,
+    },
+    {
+      id: "term-3",
+      academicYearId: "ay-1",
+      name: "Term 3",
+      startsOn: "2027-04-12",
+      endsOn: "2027-07-31",
+      orderIndex: 3,
+    },
   ],
   classes: [
-    { id: "class-1", academicYearId: "ay-1", name: "Form 4A", sectionName: "Secondary", streamName: "A", levelName: "Form 4" },
-    { id: "class-2", academicYearId: "ay-1", name: "3eme B", sectionName: "Secondaire", streamName: "B", levelName: "3eme" },
+    {
+      id: "class-1",
+      academicYearId: "ay-1",
+      name: "Form 4A",
+      sectionName: "Secondary",
+      streamName: "A",
+      levelName: "Form 4",
+    },
+    {
+      id: "class-2",
+      academicYearId: "ay-1",
+      name: "3eme B",
+      sectionName: "Secondaire",
+      streamName: "B",
+      levelName: "3eme",
+    },
   ],
   subjects: [
-    { id: "sub-1", name: "Mathematics", code: "MATH", subsystem: "bilingual" as const, gradingWeight: 100 },
-    { id: "sub-2", name: "Francais", code: "FR", subsystem: "francophone" as const, gradingWeight: 100 },
-    { id: "sub-3", name: "English Language", code: "ENG", subsystem: "anglophone" as const, gradingWeight: 100 },
+    {
+      id: "sub-1",
+      name: "Mathematics",
+      code: "MATH",
+      subsystem: "bilingual" as const,
+      gradingWeight: 100,
+    },
+    {
+      id: "sub-2",
+      name: "Francais",
+      code: "FR",
+      subsystem: "francophone" as const,
+      gradingWeight: 100,
+    },
+    {
+      id: "sub-3",
+      name: "English Language",
+      code: "ENG",
+      subsystem: "anglophone" as const,
+      gradingWeight: 100,
+    },
   ],
 };

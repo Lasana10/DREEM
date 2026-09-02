@@ -16,7 +16,8 @@ export type Role =
   | "auditor";
 
 export type SignalSeverity = "normal" | "important" | "urgent" | "safeguarding";
-export type SignalStatus = "new" | "triaged" | "assigned" | "in_progress" | "resolved" | "closed";
+export type SignalStatus =
+  "new" | "triaged" | "assigned" | "in_progress" | "resolved" | "closed";
 
 export interface SchoolBrand {
   name: string;
@@ -76,7 +77,8 @@ export interface SchoolSetup {
 }
 
 export interface BootstrapStatus {
-  mode: "ready" | "claimed" | "pending" | "rejected" | "approved" | "restricted";
+  mode:
+    "ready" | "claimed" | "pending" | "rejected" | "approved" | "restricted";
   canBootstrap: boolean;
   schoolId?: string;
   role?: string;
@@ -179,6 +181,17 @@ export interface AssessmentCommand {
   subjectId?: string;
   className: string;
   title: string;
+  assessmentType?:
+    | "quiz"
+    | "assignment"
+    | "test"
+    | "exam"
+    | "mock"
+    | "practical"
+    | "project"
+    | "oral"
+    | "observation";
+  durationMinutes?: number;
   paperReference?: string;
   questionSummary?: string;
   markingGuide?: string;
@@ -189,6 +202,38 @@ export interface AssessmentCommand {
   idempotencyKey: string;
 }
 
+export interface AcademicDocumentSummary {
+  id: string;
+  title: string;
+  documentType:
+    | "syllabus"
+    | "assessment_paper"
+    | "marking_guide"
+    | "past_paper"
+    | "lesson_resource"
+    | "learner_evidence";
+  language: "english" | "french" | "bilingual" | "other";
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  status: "draft" | "submitted" | "approved" | "rejected" | "archived";
+  subjectId?: string;
+  classId?: string;
+  assessmentId?: string;
+  createdAt: string;
+}
+export interface AcademicDocumentUpload {
+  file: File;
+  title: string;
+  documentType: AcademicDocumentSummary["documentType"];
+  language: AcademicDocumentSummary["language"];
+  academicYearId?: string;
+  termId?: string;
+  classId?: string;
+  subjectId?: string;
+  assessmentId?: string;
+}
+
 export interface OperationalSummary {
   invitations: StaffInvitation[];
   memberships: AccessMembership[];
@@ -197,40 +242,166 @@ export interface OperationalSummary {
 }
 
 export interface TeachingAssignmentSummary {
-  id:string;academicYearId:string;termId:string;classId:string;className:string;subjectId:string;subjectName:string;
-  teacherUserId:string;teacherName:string;weeklyPeriods:number;status:"planned"|"active"|"completed"|"cancelled";
+  id: string;
+  academicYearId: string;
+  termId: string;
+  classId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  teacherUserId: string;
+  teacherName: string;
+  weeklyPeriods: number;
+  status: "planned" | "active" | "completed" | "cancelled";
 }
 
 export interface TimetableEntrySummary {
-  id:string;assignmentId:string;className:string;subjectName:string;teacherName:string;weekday:number;startsAt:string;endsAt:string;
-  room?:string;effectiveFrom:string;effectiveTo:string;status:"planned"|"active"|"cancelled";
+  id: string;
+  assignmentId: string;
+  className: string;
+  subjectName: string;
+  teacherName: string;
+  weekday: number;
+  startsAt: string;
+  endsAt: string;
+  room?: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  status: "planned" | "active" | "cancelled";
 }
 
 export interface AssessmentSummary {
-  id:string;title:string;className:string;subjectName:string;assessmentDate:string;maxScore:number;status:"draft"|"submitted"|"approved"|"rejected"|"published"|"cancelled";
-  createdBy:string;creatorName:string;marksCount:number;averagePercent?:number;
+  id: string;
+  title: string;
+  className: string;
+  subjectName: string;
+  assessmentDate: string;
+  maxScore: number;
+  status:
+    "draft" | "submitted" | "approved" | "rejected" | "published" | "cancelled";
+  createdBy: string;
+  creatorName: string;
+  marksCount: number;
+  averagePercent?: number;
 }
 
 export interface ReportCardSummary {
-  id:string;studentId:string;studentName:string;termId:string;termName:string;status:"draft"|"published"|"superseded";
-  revision:number;overallAverage?:number;evidenceCount:number;generatedBy:string;generatedAt:string;publishedAt?:string;
+  id: string;
+  studentId: string;
+  studentName: string;
+  termId: string;
+  termName: string;
+  status: "draft" | "published" | "superseded";
+  revision: number;
+  overallAverage?: number;
+  evidenceCount: number;
+  generatedBy: string;
+  generatedAt: string;
+  publishedAt?: string;
 }
 
 export interface AcademicOperations {
-  assignments:TeachingAssignmentSummary[];timetable:TimetableEntrySummary[];assessments:AssessmentSummary[];reportCards:ReportCardSummary[];
+  assignments: TeachingAssignmentSummary[];
+  timetable: TimetableEntrySummary[];
+  assessments: AssessmentSummary[];
+  reportCards: ReportCardSummary[];
+  documents: AcademicDocumentSummary[];
 }
 
-export interface TransportStopSummary{id:string;routeId:string;order:number;name:string;landmark?:string;pickupTime?:string;dropoffTime?:string;}
-export interface TransportRouteSummary{id:string;code:string;name:string;direction:"inbound"|"outbound"|"both";status:"planning"|"active"|"paused"|"retired";stops:TransportStopSummary[];}
-export interface TransportVehicleSummary{id:string;code:string;registrationNumber:string;vehicleType:string;capacity:number;status:"available"|"assigned"|"maintenance"|"retired";inspectionDueOn?:string;insuranceDueOn?:string;}
-export interface TransportDriverSummary{id:string;userId:string;name:string;licenseReference:string;licenseExpiresOn:string;status:"active"|"suspended"|"expired"|"inactive";}
-export interface TransportAssignmentSummary{id:string;studentId:string;studentName:string;routeId:string;routeName:string;pickupStopId:string;pickupStopName:string;dropoffStopId:string;dropoffStopName:string;status:"active"|"paused"|"ended";}
-export interface TransportTripSummary{id:string;routeId:string;routeName:string;vehicleId:string;vehicleCode:string;driverId:string;driverName:string;serviceDate:string;direction:"inbound"|"outbound";status:"dispatched"|"in_progress"|"delayed"|"completed"|"cancelled";assignedStudents:number;scheduledDeparture?:string;}
-export interface TransportOperations{routes:TransportRouteSummary[];vehicles:TransportVehicleSummary[];drivers:TransportDriverSummary[];assignments:TransportAssignmentSummary[];trips:TransportTripSummary[];}
+export interface TransportStopSummary {
+  id: string;
+  routeId: string;
+  order: number;
+  name: string;
+  landmark?: string;
+  pickupTime?: string;
+  dropoffTime?: string;
+}
+export interface TransportRouteSummary {
+  id: string;
+  code: string;
+  name: string;
+  direction: "inbound" | "outbound" | "both";
+  status: "planning" | "active" | "paused" | "retired";
+  stops: TransportStopSummary[];
+}
+export interface TransportVehicleSummary {
+  id: string;
+  code: string;
+  registrationNumber: string;
+  vehicleType: string;
+  capacity: number;
+  status: "available" | "assigned" | "maintenance" | "retired";
+  inspectionDueOn?: string;
+  insuranceDueOn?: string;
+}
+export interface TransportDriverSummary {
+  id: string;
+  userId: string;
+  name: string;
+  licenseReference: string;
+  licenseExpiresOn: string;
+  status: "active" | "suspended" | "expired" | "inactive";
+}
+export interface TransportAssignmentSummary {
+  id: string;
+  studentId: string;
+  studentName: string;
+  routeId: string;
+  routeName: string;
+  pickupStopId: string;
+  pickupStopName: string;
+  dropoffStopId: string;
+  dropoffStopName: string;
+  status: "active" | "paused" | "ended";
+}
+export interface TransportTripSummary {
+  id: string;
+  routeId: string;
+  routeName: string;
+  vehicleId: string;
+  vehicleCode: string;
+  driverId: string;
+  driverName: string;
+  serviceDate: string;
+  direction: "inbound" | "outbound";
+  status: "dispatched" | "in_progress" | "delayed" | "completed" | "cancelled";
+  assignedStudents: number;
+  scheduledDeparture?: string;
+}
+export interface TransportOperations {
+  routes: TransportRouteSummary[];
+  vehicles: TransportVehicleSummary[];
+  drivers: TransportDriverSummary[];
+  assignments: TransportAssignmentSummary[];
+  trips: TransportTripSummary[];
+}
 
-export interface AssignTeacherCommand {academicYearId:string;termId:string;classId:string;subjectId:string;teacherUserId:string;weeklyPeriods:number;idempotencyKey:string;}
-export interface SchedulePeriodCommand {assignmentId:string;weekday:number;startsAt:string;endsAt:string;room?:string;effectiveFrom:string;effectiveTo:string;idempotencyKey:string;}
-export interface ReviewAssessmentCommand {assessmentId:string;decision:"approved"|"rejected";note:string;idempotencyKey:string;}
+export interface AssignTeacherCommand {
+  academicYearId: string;
+  termId: string;
+  classId: string;
+  subjectId: string;
+  teacherUserId: string;
+  weeklyPeriods: number;
+  idempotencyKey: string;
+}
+export interface SchedulePeriodCommand {
+  assignmentId: string;
+  weekday: number;
+  startsAt: string;
+  endsAt: string;
+  room?: string;
+  effectiveFrom: string;
+  effectiveTo: string;
+  idempotencyKey: string;
+}
+export interface ReviewAssessmentCommand {
+  assessmentId: string;
+  decision: "approved" | "rejected";
+  note: string;
+  idempotencyKey: string;
+}
 
 export type StudentCaseCategory =
   | "learning_support"
@@ -242,7 +413,8 @@ export type StudentCaseCategory =
   | "financial_support"
   | "other";
 
-export type StudentCaseStatus = "open" | "triaged" | "assigned" | "in_progress" | "resolved" | "closed";
+export type StudentCaseStatus =
+  "open" | "triaged" | "assigned" | "in_progress" | "resolved" | "closed";
 
 export interface StudentCaseSummary {
   id: string;
@@ -283,21 +455,63 @@ export interface ProgressStudentCaseCommand {
   idempotencyKey: string;
 }
 
-export type AdmissionStatus="submitted"|"under_review"|"documents_pending"|"interview"|"offered"|"accepted"|"waitlisted"|"rejected"|"withdrawn"|"enrolled";
+export type AdmissionStatus =
+  | "submitted"
+  | "under_review"
+  | "documents_pending"
+  | "interview"
+  | "offered"
+  | "accepted"
+  | "waitlisted"
+  | "rejected"
+  | "withdrawn"
+  | "enrolled";
 
 export interface AdmissionSummary {
-  id:string; applicationNumber:string; learnerName:string; dateOfBirth?:string; sex?:"female"|"male"|"other"; targetClassName:string;
-  guardianName:string; guardianPhone?:string; guardianEmail?:string; status:AdmissionStatus; source:"school_desk"|"referral"|"website"|"campaign"|"transfer"|"other";
-  assignedTo?:string; enrolledStudentId?:string; submittedAt:string; updatedAt:string;
+  id: string;
+  applicationNumber: string;
+  learnerName: string;
+  dateOfBirth?: string;
+  sex?: "female" | "male" | "other";
+  targetClassName: string;
+  guardianName: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  status: AdmissionStatus;
+  source:
+    "school_desk" | "referral" | "website" | "campaign" | "transfer" | "other";
+  assignedTo?: string;
+  enrolledStudentId?: string;
+  submittedAt: string;
+  updatedAt: string;
 }
 
 export interface RecordAdmissionCommand {
-  learnerFullName:string;dateOfBirth?:string;sex?:"female"|"male"|"other";targetClassName:string;previousSchool?:string;supportNotes?:string;
-  guardianFullName:string;guardianPhone?:string;guardianEmail?:string;guardianRelationship:string;source:AdmissionSummary["source"];
-  assignedTo?:string;consentAccuracy:boolean;consentDataProcessing:boolean;idempotencyKey:string;
+  learnerFullName: string;
+  dateOfBirth?: string;
+  sex?: "female" | "male" | "other";
+  targetClassName: string;
+  previousSchool?: string;
+  supportNotes?: string;
+  guardianFullName: string;
+  guardianPhone?: string;
+  guardianEmail?: string;
+  guardianRelationship: string;
+  source: AdmissionSummary["source"];
+  assignedTo?: string;
+  consentAccuracy: boolean;
+  consentDataProcessing: boolean;
+  idempotencyKey: string;
 }
 
-export interface ProgressAdmissionCommand {applicationId:string;targetStatus:Exclude<AdmissionStatus,"submitted">;note:string;assignedTo?:string;openingBalance:number;idempotencyKey:string;}
+export interface ProgressAdmissionCommand {
+  applicationId: string;
+  targetStatus: Exclude<AdmissionStatus, "submitted">;
+  note: string;
+  assignedTo?: string;
+  openingBalance: number;
+  idempotencyKey: string;
+}
 
 export interface TeacherSummary {
   id: string;
@@ -323,13 +537,22 @@ export interface FinanceSummary {
   parentConfirmationsPending: number;
 }
 
-export type PaymentMethod = "cash" | "momo" | "bank_transfer" | "card" | "cheque";
+export type PaymentMethod =
+  "cash" | "momo" | "bank_transfer" | "card" | "cheque";
 
 export interface PaymentCommand {
   paymentIntentId: string;
   cashierSessionId?: string;
   method: PaymentMethod;
-  railCode: "cash" | "wave" | "mtn_momo" | "orange_money" | "bank" | "card" | "cheque" | "other";
+  railCode:
+    | "cash"
+    | "wave"
+    | "mtn_momo"
+    | "orange_money"
+    | "bank"
+    | "card"
+    | "cheque"
+    | "other";
   amount: number;
   externalReference?: string;
   idempotencyKey: string;
@@ -372,7 +595,8 @@ export interface CommunitySignal {
 
 export interface PulseAction {
   id: string;
-  category: "finance" | "learning" | "attendance" | "feedback" | "care" | "operations";
+  category:
+    "finance" | "learning" | "attendance" | "feedback" | "care" | "operations";
   title: string;
   explanation: string;
   owner: string;
