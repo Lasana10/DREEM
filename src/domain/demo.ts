@@ -169,6 +169,10 @@ export const demoAcademics: AcademicOperations = {
   curriculumOutcomes: [
     { id:"outcome-1", academicYearId:"ay-1", classId:"class-1", subjectId:"sub-1", code:"MATH-FRAC-01", titleEn:"Represent and compare equivalent fractions", titleFr:"Représenter et comparer des fractions équivalentes", description:"School-adapted bilingual competency outcome.", source:"school", status:"active" },
   ],
+  assignmentsForLearners: [
+    { id:"homework-1", teachingAssignmentId:"assign-1", termId:"term-1", classId:"class-1", className:"Form 4A", subjectId:"sub-1", subjectName:"Mathematics", title:"Equivalent fractions practice", instructions:"Complete questions 1–10 and explain question 10.", assignedOn:"2026-09-09", dueAt:"2026-09-12T16:00:00.000Z", maxScore:20, submissionMode:"text_or_file", status:"published", createdBy:"t1" },
+  ],
+  assignmentSubmissions: [],
   assessments: [
     {
       id: "assessment-1",

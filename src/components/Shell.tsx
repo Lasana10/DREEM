@@ -2,12 +2,13 @@ import { BarChart3, BookOpenCheck, Building2, BusFront, CircleUserRound, Clipboa
 import { useEffect, useState, type ReactNode } from "react";
 import type { Role, SchoolBrand } from "../domain/types";
 
-export type ViewKey = "command" | "admissions" | "operations" | "academics" | "learners" | "teachers" | "care" | "transport" | "finance" | "signals" | "studio";
+export type ViewKey = "command" | "admissions" | "operations" | "academics" | "learning" | "learners" | "teachers" | "care" | "transport" | "finance" | "signals" | "studio";
 const nav = [
   {id:"command" as const,label:"Command centre",icon:BarChart3},
   {id:"admissions" as const,label:"Admissions",icon:UserPlus},
   {id:"operations" as const,label:"Daily operations",icon:ClipboardCheck},
   {id:"academics" as const,label:"Academic delivery",icon:BookOpenCheck},
+  {id:"learning" as const,label:"Assignments",icon:ClipboardCheck},
   {id:"learners" as const,label:"Learner OneFiles",icon:GraduationCap},
   {id:"teachers" as const,label:"Teacher studio",icon:BookOpenCheck},
   {id:"care" as const,label:"Care & safeguarding",icon:FolderHeart},
@@ -18,20 +19,20 @@ const nav = [
 ];
 
 const roleViews: Record<Role, ViewKey[]> = {
-  platform_founder:["command","admissions","operations","academics","learners","teachers","care","transport","finance","signals","studio"],
-  school_owner:["command","admissions","operations","academics","learners","teachers","care","transport","finance","signals","studio"],
-  principal:["command","admissions","operations","academics","learners","teachers","care","transport","finance","signals","studio"],
-  administrator:["command","admissions","operations","academics","learners","teachers","care","transport","finance","signals","studio"],
-  academic_head:["command","admissions","operations","academics","learners","teachers","care","signals","studio"],
+  platform_founder:["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  school_owner:["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  principal:["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  administrator:["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  academic_head:["command","admissions","operations","academics","learning","learners","teachers","care","signals","studio"],
   bursar:["command","learners","finance"],
   accountant:["command","finance"],
-  teacher:["operations","learners","care","signals"],
-  tutor:["learners","care","signals"],
+  teacher:["operations","learning","learners","care","signals"],
+  tutor:["learning","learners","care","signals"],
   transport_manager:["command","transport","signals"],
   driver:["transport","signals"],
   security_guard:["transport","signals"],
-  parent:["learners","transport","signals"],
-  student:["learners","transport","signals"],
+  parent:["learning","learners","transport","signals"],
+  student:["learning","learners","transport","signals"],
   auditor:["command","learners","finance","signals"],
 };
 

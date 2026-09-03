@@ -336,6 +336,38 @@ export interface CurriculumOutcomeCommand {
   source: CurriculumOutcomeSummary["source"];
 }
 
+export interface AssignmentSummary {
+  id: string;
+  teachingAssignmentId: string;
+  termId: string;
+  classId: string;
+  className: string;
+  subjectId: string;
+  subjectName: string;
+  title: string;
+  instructions: string;
+  assignedOn: string;
+  dueAt: string;
+  maxScore: number;
+  submissionMode: "text" | "file" | "text_or_file" | "offline";
+  status: "draft" | "published" | "closed" | "archived";
+  createdBy: string;
+}
+
+export interface AssignmentSubmissionSummary {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  studentName: string;
+  attempt: number;
+  responseText?: string;
+  fileName?: string;
+  status: "submitted" | "late" | "needs_revision" | "graded";
+  submittedAt: string;
+  score?: number;
+  feedback?: string;
+}
+
 export interface ReportCardSummary {
   id: string;
   studentId: string;
@@ -356,6 +388,8 @@ export interface AcademicOperations {
   timetable: TimetableEntrySummary[];
   lessonPlans: LessonPlanSummary[];
   curriculumOutcomes: CurriculumOutcomeSummary[];
+  assignmentsForLearners: AssignmentSummary[];
+  assignmentSubmissions: AssignmentSubmissionSummary[];
   assessments: AssessmentSummary[];
   reportCards: ReportCardSummary[];
   documents: AcademicDocumentSummary[];
