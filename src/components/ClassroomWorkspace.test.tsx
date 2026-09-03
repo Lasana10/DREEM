@@ -25,6 +25,7 @@ import ClassroomWorkspace from "./ClassroomWorkspace";
 
 const recordAttendance = vi.fn(),
   recordAssessment = vi.fn(),
+  recordLessonPlan = vi.fn(),
   uploadAcademicDocument = vi.fn();
 vi.mock("../lib/repository", async () => {
   const actual =
@@ -35,6 +36,7 @@ vi.mock("../lib/repository", async () => {
     ...actual,
     recordAttendance: (input: unknown) => recordAttendance(input),
     recordAssessment: (input: unknown) => recordAssessment(input),
+    recordLessonPlan: (input: unknown) => recordLessonPlan(input),
     uploadAcademicDocument: (input: unknown) => uploadAcademicDocument(input),
   };
 });
@@ -169,6 +171,23 @@ describe("teacher classroom workspace", () => {
           ]),
         }),
       ),
+    );
+  });
+  it("records lesson objectives, learning activity and evidence for pacing", async () => {
+    recordLessonPlan.mockResolvedValue({ lessonPlanId: "lesson-2", status: "submitted" });
+    render(<ClassroomWorkspace workspace={workspace} onRefresh={async () => undefined} />);
+    fireEvent.change(screen.getByLabelText("Lesson title"), { target: { value: "Fractions as quantities" } });
+    fireEvent.change(screen.getByLabelText("Objectives or competencies"), { target: { value: "Compare equivalent fractions" } });
+    fireEvent.change(screen.getByLabelText("Learner activity and teaching approach"), { target: { value: "Pairs use fraction strips to justify answers." } });
+    fireEvent.change(screen.getByLabelText("Evidence to collect"), { target: { value: "Exit ticket" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record lesson plan" }));
+    await waitFor(() =>
+      expect(recordLessonPlan).toHaveBeenCalledWith(expect.objectContaining({
+        assignmentId: "assign-1",
+        title: "Fractions as quantities",
+        objectives: "Compare equivalent fractions",
+        evidence: "Exit ticket",
+      })),
     );
   });
   it("shows the protected syllabus and exam upload workflow",()=>{render(<ClassroomWorkspace workspace={workspace} onRefresh={async()=>undefined}/>);expect(screen.getByRole("heading",{name:"Upload syllabuses, exam papers and resources"})).toBeInTheDocument();expect(screen.getByLabelText("Choose PDF, Word or scan")).toHaveAttribute("accept",expect.stringContaining(".pdf"));expect(screen.getByRole("button",{name:"Upload protected document"})).toBeEnabled()});
