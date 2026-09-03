@@ -285,6 +285,33 @@ export interface AssessmentSummary {
   averagePercent?: number;
 }
 
+export interface LessonPlanSummary {
+  id: string;
+  assignmentId: string;
+  className: string;
+  subjectName: string;
+  lessonDate: string;
+  title: string;
+  objectives: string;
+  learningActivity: string;
+  evidence: string;
+  followUp?: string;
+  status: "submitted" | "reviewed" | "returned";
+  createdBy: string;
+  reviewerNote?: string;
+}
+
+export interface LessonPlanCommand {
+  assignmentId: string;
+  lessonDate: string;
+  title: string;
+  objectives: string;
+  learningActivity: string;
+  evidence: string;
+  followUp?: string;
+  idempotencyKey: string;
+}
+
 export interface ReportCardSummary {
   id: string;
   studentId: string;
@@ -303,6 +330,7 @@ export interface ReportCardSummary {
 export interface AcademicOperations {
   assignments: TeachingAssignmentSummary[];
   timetable: TimetableEntrySummary[];
+  lessonPlans: LessonPlanSummary[];
   assessments: AssessmentSummary[];
   reportCards: ReportCardSummary[];
   documents: AcademicDocumentSummary[];
