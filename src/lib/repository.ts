@@ -16,6 +16,7 @@ import type {
   EnrollmentResult,
   FinanceSummary,
   LearnerSummary,
+  LessonPlanCommand,
   OpenStudentCaseCommand,
   OperationalSummary,
   PaymentCommand,
@@ -194,6 +195,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     assessmentResult,
     teachingAssignmentResult,
     timetableResult,
+    lessonPlanResult,
     assessmentRowsResult,
     reportCardResult,
   ] = await Promise.all([
@@ -324,6 +326,12 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
       .order("starts_at")
       .limit(300),
     supabase
+      .from("dreem_lesson_plans")
+      .select("*")
+      .eq("school_id", schoolId)
+      .order("lesson_date", { ascending: false })
+      .limit(200),
+    supabase
       .from("dreem_assessments")
       .select("*,dreem_marks(score)")
       .eq("school_id", schoolId)
@@ -354,6 +362,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   if (assessmentResult.error) throw assessmentResult.error;
   if (teachingAssignmentResult.error) throw teachingAssignmentResult.error;
   if (timetableResult.error) throw timetableResult.error;
+  if (lessonPlanResult.error) throw lessonPlanResult.error;
   if (assessmentRowsResult.error) throw assessmentRowsResult.error;
   if (reportCardResult.error) throw reportCardResult.error;
   const { data: membershipRows, error: membershipRowsError } = await supabase
@@ -742,6 +751,31 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
           effectiveFrom: String(row.effective_from),
           effectiveTo: String(row.effective_to),
           status: row.status,
+        };
+      }),
+      lessonPlans: (lessonPlanResult.data ?? []).map((row) => {
+        const assignment = assignmentsById.get(
+          String(row.teaching_assignment_id),
+        );
+        return {
+          id: String(row.id),
+          assignmentId: String(row.teaching_assignment_id),
+          className:
+            classNames.get(String(assignment?.class_id)) ?? "Unknown class",
+          subjectName:
+            subjectNames.get(String(assignment?.subject_id)) ??
+            "Unknown subject",
+          lessonDate: String(row.lesson_date),
+          title: String(row.title),
+          objectives: String(row.objectives),
+          learningActivity: String(row.learning_activity),
+          evidence: String(row.evidence),
+          followUp: row.follow_up ? String(row.follow_up) : undefined,
+          status: row.status,
+          createdBy: String(row.created_by),
+          reviewerNote: row.reviewer_note
+            ? String(row.reviewer_note)
+            : undefined,
         };
       }),
       assessments: (assessmentRowsResult.data ?? []).map((row) => {
@@ -1975,6 +2009,36 @@ export async function scheduleTimetableEntry(command: SchedulePeriodCommand) {
   return {
     entryId: String(result.entry_id),
     status: String(result.entry_status),
+  };
+}
+
+export async function recordLessonPlan(command: LessonPlanCommand) {
+  if (!command.assignmentId) throw new Error("Choose a teaching assignment.");
+  if (!command.lessonDate) throw new Error("Lesson date is required.");
+  if (!command.title.trim()) throw new Error("Lesson title is required.");
+  if (command.objectives.trim().length < 5)
+    throw new Error("Record the learning objectives for this lesson.");
+  if (command.learningActivity.trim().length < 5)
+    throw new Error("Record the learner activity or teaching approach.");
+  if (command.evidence.trim().length < 3)
+    throw new Error("Record the learner evidence you will collect.");
+  if (!isSupabaseConfigured || !supabase)
+    return { lessonPlanId: crypto.randomUUID(), status: "submitted" };
+  const { data, error } = await supabase.rpc("dreem_record_lesson_plan", {
+    p_assignment_id: command.assignmentId,
+    p_lesson_date: command.lessonDate,
+    p_title: command.title.trim(),
+    p_objectives: command.objectives.trim(),
+    p_learning_activity: command.learningActivity.trim(),
+    p_evidence: command.evidence.trim(),
+    p_follow_up: command.followUp?.trim() || null,
+    p_idempotency_key: command.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    lessonPlanId: String(result.lesson_plan_id),
+    status: String(result.lesson_plan_status),
   };
 }
 
