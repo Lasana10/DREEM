@@ -312,6 +312,30 @@ export interface LessonPlanCommand {
   idempotencyKey: string;
 }
 
+export interface CurriculumOutcomeSummary {
+  id: string;
+  academicYearId: string;
+  classId: string;
+  subjectId: string;
+  code: string;
+  titleEn: string;
+  titleFr?: string;
+  description?: string;
+  source: "national" | "school" | "imported";
+  status: "draft" | "active" | "retired";
+}
+
+export interface CurriculumOutcomeCommand {
+  academicYearId: string;
+  classId: string;
+  subjectId: string;
+  code: string;
+  titleEn: string;
+  titleFr?: string;
+  description?: string;
+  source: CurriculumOutcomeSummary["source"];
+}
+
 export interface ReportCardSummary {
   id: string;
   studentId: string;
@@ -331,6 +355,7 @@ export interface AcademicOperations {
   assignments: TeachingAssignmentSummary[];
   timetable: TimetableEntrySummary[];
   lessonPlans: LessonPlanSummary[];
+  curriculumOutcomes: CurriculumOutcomeSummary[];
   assessments: AssessmentSummary[];
   reportCards: ReportCardSummary[];
   documents: AcademicDocumentSummary[];

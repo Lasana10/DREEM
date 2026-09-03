@@ -12,6 +12,7 @@ import type {
   ClassConfig,
   CommunitySignal,
   CredentialIssueResult,
+  CurriculumOutcomeCommand,
   EnrollmentPayload,
   EnrollmentResult,
   FinanceSummary,
@@ -198,6 +199,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     lessonPlanResult,
     assessmentRowsResult,
     reportCardResult,
+    curriculumOutcomeResult,
   ] = await Promise.all([
     supabase
       .from("students")
@@ -343,6 +345,12 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
       .eq("school_id", schoolId)
       .order("generated_at", { ascending: false })
       .limit(200),
+    supabase
+      .from("dreem_curriculum_outcomes")
+      .select("*")
+      .eq("school_id", schoolId)
+      .order("code")
+      .limit(1000),
   ]);
   if (studentResult.error) throw studentResult.error;
   if (growthResult.error) throw growthResult.error;
@@ -365,6 +373,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
   if (lessonPlanResult.error) throw lessonPlanResult.error;
   if (assessmentRowsResult.error) throw assessmentRowsResult.error;
   if (reportCardResult.error) throw reportCardResult.error;
+  if (curriculumOutcomeResult.error) throw curriculumOutcomeResult.error;
   const { data: membershipRows, error: membershipRowsError } = await supabase
     .from("dreem_school_memberships")
     .select("id,profile_id,role,status")
@@ -778,6 +787,18 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
             : undefined,
         };
       }),
+      curriculumOutcomes: (curriculumOutcomeResult.data ?? []).map((row) => ({
+        id: String(row.id),
+        academicYearId: String(row.academic_year_id),
+        classId: String(row.class_id),
+        subjectId: String(row.subject_id),
+        code: String(row.code),
+        titleEn: String(row.title_en),
+        titleFr: row.title_fr ? String(row.title_fr) : undefined,
+        description: row.description ? String(row.description) : undefined,
+        source: row.source,
+        status: row.status,
+      })),
       assessments: (assessmentRowsResult.data ?? []).map((row) => {
         const marks = (row.dreem_marks ?? []) as { score: number }[];
         return {
@@ -2040,6 +2061,47 @@ export async function recordLessonPlan(command: LessonPlanCommand) {
     lessonPlanId: String(result.lesson_plan_id),
     status: String(result.lesson_plan_status),
   };
+}
+
+export async function saveCurriculumOutcome(command: CurriculumOutcomeCommand) {
+  if (!command.academicYearId || !command.classId || !command.subjectId)
+    throw new Error("Choose an academic year, class and subject.");
+  if (!command.code.trim() || command.titleEn.trim().length < 3)
+    throw new Error("Outcome code and English title are required.");
+  if (!isSupabaseConfigured || !supabase) return crypto.randomUUID();
+  const { data, error } = await supabase.rpc("dreem_save_curriculum_outcome", {
+    p_academic_year_id: command.academicYearId,
+    p_class_id: command.classId,
+    p_subject_id: command.subjectId,
+    p_code: command.code.trim(),
+    p_title_en: command.titleEn.trim(),
+    p_title_fr: command.titleFr?.trim() || null,
+    p_description: command.description?.trim() || null,
+    p_source: command.source,
+  });
+  if (error) throw error;
+  return String(data);
+}
+
+export async function reviewLessonPlan(input: {
+  lessonPlanId: string;
+  decision: "reviewed" | "returned";
+  note: string;
+  idempotencyKey: string;
+}) {
+  if (!input.lessonPlanId || input.note.trim().length < 5)
+    throw new Error("Choose a lesson plan and add an evidence-based review note.");
+  if (!isSupabaseConfigured || !supabase)
+    return { lessonPlanId: input.lessonPlanId, status: input.decision };
+  const { data, error } = await supabase.rpc("dreem_review_lesson_plan", {
+    p_lesson_plan_id: input.lessonPlanId,
+    p_decision: input.decision,
+    p_note: input.note.trim(),
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return { lessonPlanId: String(result.lesson_plan_id), status: String(result.lesson_plan_status) };
 }
 
 export async function reviewAssessment(command: ReviewAssessmentCommand) {
