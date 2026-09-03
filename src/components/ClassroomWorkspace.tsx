@@ -10,6 +10,7 @@ import { createIdempotencyKey } from "../domain/rules";
 import {
   recordAssessment,
   recordAttendance,
+  recordLessonPlan,
   uploadAcademicDocument,
   type WorkspaceData,
 } from "../lib/repository";
@@ -131,6 +132,24 @@ export default function ClassroomWorkspace({
       `${marks.length} marks submitted with paper and objective evidence.`,
     );
   }
+  async function submitLessonPlan(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const f = new FormData(event.currentTarget);
+    await run(
+      () =>
+        recordLessonPlan({
+          assignmentId: String(f.get("assignmentId")),
+          lessonDate: String(f.get("lessonDate")),
+          title: String(f.get("lessonTitle")),
+          objectives: String(f.get("objectives")),
+          learningActivity: String(f.get("learningActivity")),
+          evidence: String(f.get("lessonEvidence")),
+          followUp: String(f.get("followUp") || ""),
+          idempotencyKey: createIdempotencyKey("teacher-lesson-plan"),
+        }),
+      "Lesson plan recorded for pacing and academic review.",
+    );
+  }
   return (
     <div className="content">
       <section className="page-intro">
@@ -166,10 +185,10 @@ export default function ClassroomWorkspace({
           periods.map((period) => (
             <article key={period.id}>
               <strong>
-                {period.startsAt}–{period.endsAt}
+                {period.startsAt}â{period.endsAt}
               </strong>
               <span>
-                {period.className} · {period.subjectName}
+                {period.className} Â· {period.subjectName}
               </span>
               <small>{period.room || "Room not assigned"}</small>
             </article>
@@ -196,6 +215,57 @@ export default function ClassroomWorkspace({
       </label>
       {className && (
         <div className="transport-grid">
+          <section className="panel">
+            <div className="panel-title">
+              <CalendarClock />
+              <div>
+                <span>LESSON PACING</span>
+                <h3>Plan objectives and evidence</h3>
+              </div>
+            </div>
+            <form className="settings-form" onSubmit={submitLessonPlan}>
+              <div className="form-grid">
+                <label>
+                  Teaching assignment
+                  <select name="assignmentId" defaultValue={subjects[0]?.id ?? ""} required>
+                    <option value="">Choose assigned subject</option>
+                    {subjects.map((subject) => (
+                      <option key={subject.id} value={subject.id}>
+                        {subject.subjectName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Lesson date
+                  <input name="lessonDate" type="date" defaultValue={new Date().toISOString().slice(0, 10)} required />
+                </label>
+                <label>
+                  Lesson title
+                  <input name="lessonTitle" placeholder="Topic or sequence" required />
+                </label>
+                <label>
+                  Objectives or competencies
+                  <input name="objectives" placeholder="What learners should know or do" required />
+                </label>
+              </div>
+              <label>
+                Learner activity and teaching approach
+                <textarea name="learningActivity" rows={3} placeholder="Investigation, practice, group work, demonstration..." required />
+              </label>
+              <label>
+                Evidence to collect
+                <input name="lessonEvidence" placeholder="Exit ticket, exercise, observation, workbook scan..." required />
+              </label>
+              <label>
+                Follow-up or differentiation
+                <input name="followUp" placeholder="Support, extension or next lesson adjustment" />
+              </label>
+              <button className="primary" disabled={busy || !subjects.length}>
+                Record lesson plan
+              </button>
+            </form>
+          </section>
           <section className="panel">
             <div className="panel-title">
               <ClipboardCheck />
@@ -331,7 +401,7 @@ export default function ClassroomWorkspace({
 }
 function AcademicLibrary({workspace,subjects,busy,run}:{workspace:WorkspaceData;subjects:WorkspaceData["academics"]["assignments"];busy:boolean;run:(action:()=>Promise<unknown>,success:string)=>Promise<void>}){
   async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();const form=new FormData(event.currentTarget),file=form.get("file");if(!(file instanceof File)||!file.size)throw new Error("Choose a document to upload.");await run(()=>uploadAcademicDocument({file,title:String(form.get("documentTitle")),documentType:String(form.get("documentType")) as "syllabus"|"assessment_paper"|"marking_guide"|"past_paper"|"lesson_resource",language:String(form.get("language")) as "english"|"french"|"bilingual"|"other",subjectId:String(form.get("documentSubjectId"))}),"Academic document uploaded to the protected school library.")}
-  return <section className="panel"><div className="panel-title"><BookOpenCheck/><div><span>PROTECTED ACADEMIC LIBRARY</span><h3>Upload syllabuses, exam papers and resources</h3></div></div><p>PDF, Word and scans remain private to authorized staff. Maximum 15 MB.</p><form className="settings-form" onSubmit={submit}><div className="form-grid"><label>Document title<input name="documentTitle" required/></label><label>Document type<select name="documentType"><option value="syllabus">Syllabus</option><option value="assessment_paper">Assessment paper</option><option value="marking_guide">Marking guide</option><option value="past_paper">Past paper</option><option value="lesson_resource">Lesson resource</option></select></label><label>Language<select name="language"><option value="bilingual">Bilingual</option><option value="english">English</option><option value="french">French</option><option value="other">Other</option></select></label><label>Subject<select name="documentSubjectId" required><option value="">Choose assigned subject</option>{subjects.map(subject=><option key={subject.id} value={subject.subjectId}>{subject.subjectName}</option>)}</select></label><label>Choose PDF, Word or scan<input aria-label="Choose academic file" name="file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" required/></label></div><button className="primary" disabled={busy||!subjects.length}>Upload protected document</button></form>{workspace.academics.documents.slice(0,8).map(document=><article className="document-row" key={document.id}><strong>{document.title}</strong><span>{document.documentType.replaceAll("_"," ")} · {document.language} · {Math.ceil(document.fileSize/1024)} KB</span><small>{document.status}</small></article>)}</section>
+  return <section className="panel"><div className="panel-title"><BookOpenCheck/><div><span>PROTECTED ACADEMIC LIBRARY</span><h3>Upload syllabuses, exam papers and resources</h3></div></div><p>PDF, Word and scans remain private to authorized staff. Maximum 15 MB.</p><form className="settings-form" onSubmit={submit}><div className="form-grid"><label>Document title<input name="documentTitle" required/></label><label>Document type<select name="documentType"><option value="syllabus">Syllabus</option><option value="assessment_paper">Assessment paper</option><option value="marking_guide">Marking guide</option><option value="past_paper">Past paper</option><option value="lesson_resource">Lesson resource</option></select></label><label>Language<select name="language"><option value="bilingual">Bilingual</option><option value="english">English</option><option value="french">French</option><option value="other">Other</option></select></label><label>Subject<select name="documentSubjectId" required><option value="">Choose assigned subject</option>{subjects.map(subject=><option key={subject.id} value={subject.subjectId}>{subject.subjectName}</option>)}</select></label><label>Choose PDF, Word or scan<input aria-label="Choose academic file" name="file" type="file" accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp" required/></label></div><button className="primary" disabled={busy||!subjects.length}>Upload protected document</button></form>{workspace.academics.documents.slice(0,8).map(document=><article className="document-row" key={document.id}><strong>{document.title}</strong><span>{document.documentType.replaceAll("_"," ")} Â· {document.language} Â· {Math.ceil(document.fileSize/1024)} KB</span><small>{document.status}</small></article>)}</section>
 }
 function Rows({
   learners,
