@@ -1998,3 +1998,952 @@ export async function progressAdmissionApplication(
 export async function assignTeacher(command: AssignTeacherCommand) {
   if (
     !command.academicYearId ||
+    !command.termId ||
+    !command.classId ||
+    !command.subjectId ||
+    !command.teacherUserId
+  )
+    throw new Error("Choose the year, term, class, subject and teacher.");
+  if (
+    !Number.isInteger(command.weeklyPeriods) ||
+    command.weeklyPeriods < 1 ||
+    command.weeklyPeriods > 30
+  )
+    throw new Error("Weekly periods must be between 1 and 30.");
+  if (!isSupabaseConfigured || !supabase)
+    return { assignmentId: crypto.randomUUID(), status: "active" };
+  const { data, error } = await supabase.rpc("dreem_assign_teacher", {
+    p_academic_year_id: command.academicYearId,
+    p_term_id: command.termId,
+    p_class_id: command.classId,
+    p_subject_id: command.subjectId,
+    p_teacher_user_id: command.teacherUserId,
+    p_weekly_periods: command.weeklyPeriods,
+    p_idempotency_key: command.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    assignmentId: String(result.assignment_id),
+    status: String(result.assignment_status),
+  };
+}
+
+export async function scheduleTimetableEntry(command: SchedulePeriodCommand) {
+  if (!command.assignmentId) throw new Error("Choose a teaching assignment.");
+  if (
+    command.weekday < 1 ||
+    command.weekday > 7 ||
+    !command.startsAt ||
+    !command.endsAt ||
+    command.startsAt >= command.endsAt
+  )
+    throw new Error("Enter a valid weekday and time range.");
+  if (
+    !command.effectiveFrom ||
+    !command.effectiveTo ||
+    command.effectiveFrom > command.effectiveTo
+  )
+    throw new Error("Enter a valid effective date range.");
+  if (!isSupabaseConfigured || !supabase)
+    return { entryId: crypto.randomUUID(), status: "active" };
+  const { data, error } = await supabase.rpc("dreem_schedule_timetable_entry", {
+    p_assignment_id: command.assignmentId,
+    p_weekday: command.weekday,
+    p_starts_at: command.startsAt,
+    p_ends_at: command.endsAt,
+    p_room: command.room?.trim() || null,
+    p_effective_from: command.effectiveFrom,
+    p_effective_to: command.effectiveTo,
+    p_idempotency_key: command.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    entryId: String(result.entry_id),
+    status: String(result.entry_status),
+  };
+}
+
+export async function recordLessonPlan(command: LessonPlanCommand) {
+  if (!command.assignmentId) throw new Error("Choose a teaching assignment.");
+  if (!command.lessonDate) throw new Error("Lesson date is required.");
+  if (!command.title.trim()) throw new Error("Lesson title is required.");
+  if (command.objectives.trim().length < 5)
+    throw new Error("Record the learning objectives for this lesson.");
+  if (command.learningActivity.trim().length < 5)
+    throw new Error("Record the learner activity or teaching approach.");
+  if (command.evidence.trim().length < 3)
+    throw new Error("Record the learner evidence you will collect.");
+  if (!isSupabaseConfigured || !supabase)
+    return { lessonPlanId: crypto.randomUUID(), status: "submitted" };
+  const { data, error } = await supabase.rpc("dreem_record_lesson_plan", {
+    p_assignment_id: command.assignmentId,
+    p_lesson_date: command.lessonDate,
+    p_title: command.title.trim(),
+    p_objectives: command.objectives.trim(),
+    p_learning_activity: command.learningActivity.trim(),
+    p_evidence: command.evidence.trim(),
+    p_follow_up: command.followUp?.trim() || null,
+    p_idempotency_key: command.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    lessonPlanId: String(result.lesson_plan_id),
+    status: String(result.lesson_plan_status),
+  };
+}
+
+export async function saveCurriculumOutcome(command: CurriculumOutcomeCommand) {
+  if (!command.academicYearId || !command.classId || !command.subjectId)
+    throw new Error("Choose an academic year, class and subject.");
+  if (!command.code.trim() || command.titleEn.trim().length < 3)
+    throw new Error("Outcome code and English title are required.");
+  if (!isSupabaseConfigured || !supabase) return crypto.randomUUID();
+  const { data, error } = await supabase.rpc("dreem_save_curriculum_outcome", {
+    p_academic_year_id: command.academicYearId,
+    p_class_id: command.classId,
+    p_subject_id: command.subjectId,
+    p_code: command.code.trim(),
+    p_title_en: command.titleEn.trim(),
+    p_title_fr: command.titleFr?.trim() || null,
+    p_description: command.description?.trim() || null,
+    p_source: command.source,
+  });
+  if (error) throw error;
+  return String(data);
+}
+
+export async function reviewLessonPlan(input: {
+  lessonPlanId: string;
+  decision: "reviewed" | "returned";
+  note: string;
+  idempotencyKey: string;
+}) {
+  if (!input.lessonPlanId || input.note.trim().length < 5)
+    throw new Error("Choose a lesson plan and add an evidence-based review note.");
+  if (!isSupabaseConfigured || !supabase)
+    return { lessonPlanId: input.lessonPlanId, status: input.decision };
+  const { data, error } = await supabase.rpc("dreem_review_lesson_plan", {
+    p_lesson_plan_id: input.lessonPlanId,
+    p_decision: input.decision,
+    p_note: input.note.trim(),
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return { lessonPlanId: String(result.lesson_plan_id), status: String(result.lesson_plan_status) };
+}
+
+export async function createAssignment(input: {
+  teachingAssignmentId: string; title: string; instructions: string; assignedOn: string;
+  dueAt: string; maxScore: number; submissionMode: "text"|"file"|"text_or_file"|"offline";
+  outcomeIds: string[]; idempotencyKey: string;
+}) {
+  if (!input.teachingAssignmentId || input.title.trim().length < 3 || input.instructions.trim().length < 5)
+    throw new Error("Choose a teaching assignment and complete the work instructions.");
+  if (!input.assignedOn || !input.dueAt || new Date(input.dueAt) <= new Date(input.assignedOn))
+    throw new Error("The due date must be after the assigned date.");
+  if (input.maxScore <= 0) throw new Error("Maximum score must be positive.");
+  if (!isSupabaseConfigured || !supabase) return crypto.randomUUID();
+  const { data, error } = await supabase.rpc("dreem_create_assignment", {
+    p_teaching_assignment_id: input.teachingAssignmentId, p_title: input.title.trim(),
+    p_instructions: input.instructions.trim(), p_assigned_on: input.assignedOn,
+    p_due_at: input.dueAt, p_max_score: input.maxScore, p_submission_mode: input.submissionMode,
+    p_outcome_ids: input.outcomeIds, p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  return String(data);
+}
+
+export async function publishAssignment(assignmentId: string, idempotencyKey: string) {
+  if (!assignmentId) throw new Error("Choose a draft assignment.");
+  if (!isSupabaseConfigured || !supabase) return "published";
+  const { data, error } = await supabase.rpc("dreem_publish_assignment", { p_assignment_id: assignmentId, p_idempotency_key: idempotencyKey });
+  if (error) throw error;
+  return String(data);
+}
+
+export async function submitAssignment(input: { assignmentId: string; studentId: string; responseText?: string; file?: File }) {
+  if (!input.assignmentId || !input.studentId) throw new Error("Choose an assignment and learner.");
+  if (!input.responseText?.trim() && !input.file) throw new Error("Enter a response or attach evidence.");
+  const allowed = ["application/pdf","application/msword","application/vnd.openxmlformats-officedocument.wordprocessingml.document","image/png","image/jpeg","image/webp","text/plain"];
+  if (input.file && (!allowed.includes(input.file.type) || input.file.size > 20*1024*1024))
+    throw new Error("Use a PDF, Word, text or image file no larger than 20 MB.");
+  if (!isSupabaseConfigured || !supabase) return { submissionId: crypto.randomUUID(), status:"submitted", attempt:1 };
+  const { schoolId } = await activeSchool(); let path: string | null = null;
+  if (input.file) {
+    const ext=input.file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g,"")||"bin";
+    path=`${schoolId}/${input.studentId}/${input.assignmentId}/${crypto.randomUUID()}.${ext}`;
+    const {error}=await supabase.storage.from("dreem-assignment-submissions").upload(path,input.file,{contentType:input.file.type,upsert:false});
+    if(error) throw error;
+  }
+  const {data,error}=await supabase.rpc("dreem_submit_assignment",{p_assignment_id:input.assignmentId,p_student_id:input.studentId,p_response_text:input.responseText?.trim()||null,p_storage_path:path,p_file_name:input.file?.name||null,p_mime_type:input.file?.type||null,p_file_size:input.file?.size||null});
+  if(error) throw error; const row=Array.isArray(data)?data[0]:data;
+  return {submissionId:String(row.submission_id),status:String(row.submission_status),attempt:Number(row.attempt_number)};
+}
+
+export async function gradeAssignmentSubmission(input:{submissionId:string;score?:number;feedback:string;decision:"graded"|"needs_revision";idempotencyKey:string}){
+  if(!input.submissionId||input.feedback.trim().length<3)throw new Error("Choose a submission and add feedback.");
+  if(input.decision==="graded"&&(input.score===undefined||input.score<0))throw new Error("Enter a valid score.");
+  if(!isSupabaseConfigured||!supabase)return input.decision;
+  const{data,error}=await supabase.rpc("dreem_grade_assignment_submission",{p_submission_id:input.submissionId,p_score:input.score??null,p_feedback:input.feedback.trim(),p_decision:input.decision,p_idempotency_key:input.idempotencyKey});
+  if(error)throw error;return String(data);
+}
+
+export async function reviewAssessment(command: ReviewAssessmentCommand) {
+  if (!command.assessmentId) throw new Error("Choose a submitted assessment.");
+  if (command.note.trim().length < 5)
+    throw new Error("Add an evidence-based review note.");
+  if (!isSupabaseConfigured || !supabase)
+    return { assessmentId: command.assessmentId, status: command.decision };
+  const { data, error } = await supabase.rpc("dreem_review_assessment", {
+    p_assessment_id: command.assessmentId,
+    p_decision: command.decision,
+    p_note: command.note.trim(),
+    p_idempotency_key: command.idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    assessmentId: String(result.assessment_id),
+    status: String(result.assessment_status),
+  };
+}
+
+export async function publishAssessment(
+  assessmentId: string,
+  idempotencyKey: string,
+) {
+  if (!assessmentId) throw new Error("Choose an approved assessment.");
+  if (!isSupabaseConfigured || !supabase)
+    return { assessmentId, status: "published" };
+  const { data, error } = await supabase.rpc("dreem_publish_assessment", {
+    p_assessment_id: assessmentId,
+    p_idempotency_key: idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    assessmentId: String(result.assessment_id),
+    status: String(result.assessment_status),
+  };
+}
+
+export async function generateReportCard(
+  studentId: string,
+  termId: string,
+  teacherComment: string,
+  idempotencyKey: string,
+) {
+  if (!studentId || !termId) throw new Error("Choose a learner and term.");
+  if (!isSupabaseConfigured || !supabase)
+    return {
+      reportCardId: crypto.randomUUID(),
+      status: "draft",
+      evidenceCount: 1,
+      overallAverage: 75,
+    };
+  const { data, error } = await supabase.rpc("dreem_generate_report_card", {
+    p_student_id: studentId,
+    p_term_id: termId,
+    p_teacher_comment: teacherComment.trim() || null,
+    p_idempotency_key: idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    reportCardId: String(result.report_card_id),
+    status: String(result.report_status),
+    evidenceCount: Number(result.evidence_count),
+    overallAverage: Number(result.overall_average),
+  };
+}
+
+export async function publishReportCard(
+  reportCardId: string,
+  idempotencyKey: string,
+) {
+  if (!reportCardId) throw new Error("Choose a draft report card.");
+  if (!isSupabaseConfigured || !supabase)
+    return { reportCardId, status: "published" };
+  const { data, error } = await supabase.rpc("dreem_publish_report_card", {
+    p_report_card_id: reportCardId,
+    p_idempotency_key: idempotencyKey,
+  });
+  if (error) throw error;
+  const result = Array.isArray(data) ? data[0] : data;
+  return {
+    reportCardId: String(result.report_card_id),
+    status: String(result.report_status),
+  };
+}
+
+export async function configureTransportRoute(input: {
+  code: string;
+  name: string;
+  direction: "inbound" | "outbound" | "both";
+  stops: {
+    name: string;
+    landmark?: string;
+    pickupTime?: string;
+    dropoffTime?: string;
+  }[];
+  idempotencyKey: string;
+}) {
+  if (
+    !input.code.trim() ||
+    !input.name.trim() ||
+    !input.stops.some((stop) => stop.name.trim())
+  )
+    throw new Error("Route code, name and at least one stop are required.");
+  if (!isSupabaseConfigured || !supabase)
+    return {
+      routeId: crypto.randomUUID(),
+      stopsCount: input.stops.length,
+      status: "active",
+    };
+  const { data, error } = await supabase.rpc(
+    "dreem_configure_transport_route",
+    {
+      p_route_code: input.code,
+      p_name: input.name,
+      p_direction: input.direction,
+      p_stops: input.stops.map((stop) => ({
+        name: stop.name,
+        landmark: stop.landmark ?? "",
+        pickup_time: stop.pickupTime ?? "",
+        dropoff_time: stop.dropoffTime ?? "",
+      })),
+      p_idempotency_key: input.idempotencyKey,
+    },
+  );
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    routeId: String(row.route_id),
+    stopsCount: Number(row.stops_count),
+    status: String(row.route_status),
+  };
+}
+export async function registerTransportVehicle(input: {
+  code: string;
+  registrationNumber: string;
+  vehicleType: string;
+  capacity: number;
+  inspectionDueOn?: string;
+  insuranceDueOn?: string;
+  idempotencyKey: string;
+}) {
+  if (
+    !input.code.trim() ||
+    !input.registrationNumber.trim() ||
+    input.capacity < 1
+  )
+    throw new Error("Vehicle identity and a positive capacity are required.");
+  if (!isSupabaseConfigured || !supabase)
+    return { vehicleId: crypto.randomUUID(), status: "available" };
+  const { data, error } = await supabase.rpc(
+    "dreem_register_transport_vehicle",
+    {
+      p_vehicle_code: input.code,
+      p_registration_number: input.registrationNumber,
+      p_vehicle_type: input.vehicleType,
+      p_capacity: input.capacity,
+      p_inspection_due_on: input.inspectionDueOn || null,
+      p_insurance_due_on: input.insuranceDueOn || null,
+      p_idempotency_key: input.idempotencyKey,
+    },
+  );
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    vehicleId: String(row.vehicle_id),
+    status: String(row.vehicle_status),
+  };
+}
+export async function registerTransportDriver(input: {
+  userId: string;
+  licenseReference: string;
+  licenseExpiresOn: string;
+  phone?: string;
+  idempotencyKey: string;
+}) {
+  if (
+    !input.userId ||
+    !input.licenseReference.trim() ||
+    !input.licenseExpiresOn
+  )
+    throw new Error("Approved driver, licence and expiry are required.");
+  if (!isSupabaseConfigured || !supabase)
+    return { driverId: crypto.randomUUID(), status: "active" };
+  const { data, error } = await supabase.rpc(
+    "dreem_register_transport_driver",
+    {
+      p_user_id: input.userId,
+      p_license_reference: input.licenseReference,
+      p_license_expires_on: input.licenseExpiresOn,
+      p_phone: input.phone || null,
+      p_idempotency_key: input.idempotencyKey,
+    },
+  );
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return { driverId: String(row.driver_id), status: String(row.driver_status) };
+}
+export async function recordTransportConsent(input: {
+  studentId: string;
+  decision: "granted" | "revoked";
+  guardianName: string;
+  termsVersion: string;
+  captureMethod: string;
+  evidenceNote: string;
+  idempotencyKey: string;
+}) {
+  if (
+    !input.studentId ||
+    input.guardianName.trim().length < 3 ||
+    !input.termsVersion.trim()
+  )
+    throw new Error(
+      "Learner, guardian identity and consent terms are required.",
+    );
+  if (!isSupabaseConfigured || !supabase)
+    return { consentId: crypto.randomUUID(), decision: input.decision };
+  const { data, error } = await supabase.rpc("dreem_record_transport_consent", {
+    p_student_id: input.studentId,
+    p_guardian_id: null,
+    p_decision: input.decision,
+    p_guardian_name: input.guardianName,
+    p_terms_version: input.termsVersion,
+    p_capture_method: input.captureMethod,
+    p_evidence: { note: input.evidenceNote },
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    consentId: String(row.consent_id),
+    decision: String(row.consent_decision),
+  };
+}
+export async function assignStudentTransport(input: {
+  studentId: string;
+  routeId: string;
+  pickupStopId: string;
+  dropoffStopId: string;
+  effectiveFrom: string;
+  effectiveTo?: string;
+  idempotencyKey: string;
+}) {
+  if (
+    !input.studentId ||
+    !input.routeId ||
+    !input.pickupStopId ||
+    !input.dropoffStopId ||
+    !input.effectiveFrom
+  )
+    throw new Error("Learner, route, stops and start date are required.");
+  if (!isSupabaseConfigured || !supabase)
+    return { assignmentId: crypto.randomUUID(), status: "active" };
+  const { data, error } = await supabase.rpc("dreem_assign_student_transport", {
+    p_student_id: input.studentId,
+    p_route_id: input.routeId,
+    p_pickup_stop_id: input.pickupStopId,
+    p_dropoff_stop_id: input.dropoffStopId,
+    p_effective_from: input.effectiveFrom,
+    p_effective_to: input.effectiveTo || null,
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    assignmentId: String(row.assignment_id),
+    status: String(row.assignment_status),
+  };
+}
+export async function dispatchTransportTrip(input: {
+  routeId: string;
+  vehicleId: string;
+  driverId: string;
+  serviceDate: string;
+  direction: "inbound" | "outbound";
+  scheduledDeparture: string;
+  idempotencyKey: string;
+}) {
+  if (
+    !input.routeId ||
+    !input.vehicleId ||
+    !input.driverId ||
+    !input.serviceDate ||
+    !input.scheduledDeparture
+  )
+    throw new Error("Route, vehicle, driver, date and departure are required.");
+  if (!isSupabaseConfigured || !supabase)
+    return {
+      tripId: crypto.randomUUID(),
+      status: "dispatched",
+      assignedStudents: 0,
+    };
+  const { data, error } = await supabase.rpc("dreem_dispatch_transport_trip", {
+    p_route_id: input.routeId,
+    p_vehicle_id: input.vehicleId,
+    p_driver_id: input.driverId,
+    p_service_date: input.serviceDate,
+    p_direction: input.direction,
+    p_scheduled_departure: input.scheduledDeparture,
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    tripId: String(row.trip_id),
+    status: String(row.trip_status),
+    assignedStudents: Number(row.assigned_students),
+  };
+}
+export async function progressTransportTrip(input: {
+  tripId: string;
+  eventType: string;
+  stopId?: string;
+  studentId?: string;
+  note?: string;
+  idempotencyKey: string;
+}) {
+  if (!input.tripId || !input.eventType)
+    throw new Error("Trip and event are required.");
+  if (!isSupabaseConfigured || !supabase)
+    return {
+      tripId: input.tripId,
+      status: input.eventType === "completed" ? "completed" : "in_progress",
+    };
+  const { data, error } = await supabase.rpc("dreem_progress_transport_trip", {
+    p_trip_id: input.tripId,
+    p_event_type: input.eventType,
+    p_stop_id: input.stopId || null,
+    p_student_id: input.studentId || null,
+    p_note: input.note || null,
+    p_evidence: { source: "workspace" },
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return { tripId: String(row.trip_id), status: String(row.trip_status) };
+}
+
+export async function authorizeLearnerCollector(input: {
+  studentId: string;
+  guardianId?: string;
+  fullName: string;
+  relationship: string;
+  phoneLast4?: string;
+  photoUrl?: string;
+  validFrom?: string;
+  validUntil?: string;
+  evidenceNote: string;
+  idempotencyKey: string;
+}) {
+  if (
+    !input.studentId ||
+    input.fullName.trim().length < 3 ||
+    !input.relationship.trim() ||
+    !input.evidenceNote.trim()
+  )
+    throw new Error(
+      "Learner, collector identity, relationship and authorization evidence are required.",
+    );
+  if (input.phoneLast4 && !/^\d{4}$/.test(input.phoneLast4))
+    throw new Error("Enter only the final four phone digits.");
+  if (!isSupabaseConfigured || !supabase)
+    return {
+      collectorId: crypto.randomUUID(),
+      status: "active",
+      collectorToken: `demo-collector-${crypto.randomUUID()}`,
+    };
+  const { data, error } = await supabase.rpc("dreem_authorize_collector", {
+    p_student_id: input.studentId,
+    p_guardian_id: input.guardianId || null,
+    p_full_name: input.fullName.trim(),
+    p_relationship: input.relationship.trim(),
+    p_phone_last4: input.phoneLast4 || null,
+    p_photo_url: input.photoUrl?.trim() || null,
+    p_valid_from: input.validFrom || null,
+    p_valid_until: input.validUntil || null,
+    p_evidence: { note: input.evidenceNote.trim() },
+    p_idempotency_key: input.idempotencyKey,
+  });
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    collectorId: String(row.collector_id),
+    status: String(row.collector_status),
+    collectorToken: String(row.collector_token),
+  };
+}
+
+export async function verifyLearnerRelease(input: {
+  credentialToken: string;
+  collectorToken: string;
+  decision: "released" | "denied";
+  reason: string;
+  idempotencyKey: string;
+}) {
+  if (!input.credentialToken.trim())
+    throw new Error("Scan or enter the learner credential.");
+  if (input.decision === "released" && !input.collectorToken.trim())
+    throw new Error("Scan or enter the collector authorization.");
+  if (!input.reason.trim())
+    throw new Error("Record the reason for this gate decision.");
+  if (!isSupabaseConfigured || !supabase)
+    return {
+      eventId: crypto.randomUUID(),
+      decision: input.decision,
+      studentId: "demo",
+      studentName: "Demo learner",
+      matricule: "DEMO-001",
+      collectorName: input.collectorToken
+        ? "Demo authorized collector"
+        : "Unrecognized collector",
+      collectorPhotoUrl: "",
+    };
+  const { data, error } = await supabase.rpc(
+    "dreem_verify_and_record_learner_release",
+    {
+      p_credential_token: input.credentialToken.trim(),
+      p_collector_token: input.collectorToken.trim(),
+      p_decision: input.decision,
+      p_reason: input.reason.trim(),
+      p_evidence: { capture: "gate_scanner" },
+      p_idempotency_key: input.idempotencyKey,
+    },
+  );
+  if (error) throw error;
+  const row = Array.isArray(data) ? data[0] : data;
+  return {
+    eventId: String(row.event_id),
+    decision: String(row.release_decision),
+    studentId: String(row.student_id),
+    studentName: String(row.student_display_name),
+    matricule: String(row.matricule),
+    collectorName: String(row.collector_display_name),
+    collectorPhotoUrl: row.collector_photo_url
+      ? String(row.collector_photo_url)
+      : "",
+  };
+}
+
+export interface LearnerOneFileData {
+  identity: {
+    id: string;
+    matricule: string;
+    name: string;
+    className: string;
+    dateOfBirth?: string;
+    sex?: string;
+    attendanceRate: number;
+    riskLevel: string;
+  };
+  guardians: {
+    name: string;
+    relationship: string;
+    phone?: string;
+    email?: string;
+    isPrimary: boolean;
+    canCollect: boolean;
+  }[];
+  attendance: { status: string; note?: string; recordedAt: string }[];
+  assessments: {
+    title: string;
+    score: number;
+    maxScore: number;
+    date: string;
+    comment?: string;
+  }[];
+  interventions: {
+    title: string;
+    status: string;
+    reviewOn: string;
+    actionPlan: string;
+  }[];
+  cases: {
+    number: string;
+    title: string;
+    category: string;
+    priority: string;
+    status: string;
+    reviewDueOn?: string;
+  }[];
+  finance: {
+    amountDue: number;
+    amountPaid: number;
+    balanceDue: number;
+    status: string;
+    receipts: {
+      number: string;
+      amount: number;
+      method: string;
+      receivedAt: string;
+    }[];
+  };
+  credential?: { status: string; validUntil: string; issuedAt: string };
+  transport?: {
+    routeName: string;
+    pickupStop: string;
+    dropoffStop: string;
+    status: string;
+  };
+}
+
+export async function loadLearnerOneFile(
+  studentId: string,
+): Promise<LearnerOneFileData> {
+  if (!studentId) throw new Error("Choose a learner OneFile.");
+  if (!isSupabaseConfigured || !supabase) {
+    const learner =
+      demoLearners.find((item) => item.id === studentId) ?? demoLearners[0];
+    return {
+      identity: {
+        id: learner.id,
+        matricule: learner.matricule,
+        name: learner.name,
+        className: learner.className,
+        attendanceRate: learner.attendance,
+        riskLevel: "monitored",
+      },
+      guardians: [],
+      attendance: [],
+      assessments: [],
+      interventions: [],
+      cases: [],
+      finance: {
+        amountDue: learner.feeBalance ?? 0,
+        amountPaid: 0,
+        balanceDue: learner.feeBalance ?? 0,
+        status: "open",
+        receipts: [],
+      },
+      credential: { status: learner.idStatus, validUntil: "", issuedAt: "" },
+    };
+  }
+  const { schoolId } = await activeSchool();
+  const [
+    student,
+    links,
+    guardians,
+    attendance,
+    marks,
+    assessments,
+    interventions,
+    cases,
+    account,
+    payments,
+    credential,
+    assignment,
+    routes,
+    stops,
+  ] = await Promise.all([
+    supabase
+      .from("students")
+      .select(
+        "id,matricule,full_name,class_name,date_of_birth,sex,attendance_rate,risk_level",
+      )
+      .eq("school_id", schoolId)
+      .eq("id", studentId)
+      .single(),
+    supabase
+      .from("dreem_student_guardians")
+      .select("guardian_id,relationship,is_primary,can_collect")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId),
+    supabase
+      .from("dreem_guardians")
+      .select("id,full_name,phone,email")
+      .eq("school_id", schoolId),
+    supabase
+      .from("dreem_attendance_marks")
+      .select("status,note,created_at")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("dreem_marks")
+      .select("assessment_id,score,comment,created_at")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("dreem_assessments")
+      .select("id,title,max_score,assessment_date")
+      .eq("school_id", schoolId),
+    supabase
+      .from("dreem_interventions")
+      .select("title,status,review_on,action_plan")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .order("review_on")
+      .limit(50),
+    supabase
+      .from("dreem_student_cases")
+      .select(
+        "case_number,title,category,priority,status,review_due_on,confidentiality",
+      )
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .neq("confidentiality", "restricted")
+      .order("opened_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("fee_accounts")
+      .select("id,amount_due,amount_paid,balance_due,status")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .maybeSingle(),
+    supabase
+      .from("dreem_financial_payments")
+      .select("receipt_number,amount,method,received_at")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .is("reverses_payment_id", null)
+      .order("received_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("dreem_student_credentials")
+      .select("status,valid_until,issued_at")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .order("issued_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("dreem_transport_assignments")
+      .select("route_id,pickup_stop_id,dropoff_stop_id,status")
+      .eq("school_id", schoolId)
+      .eq("student_id", studentId)
+      .eq("status", "active")
+      .maybeSingle(),
+    supabase
+      .from("dreem_transport_routes")
+      .select("id,name")
+      .eq("school_id", schoolId),
+    supabase
+      .from("dreem_transport_stops")
+      .select("id,name")
+      .eq("school_id", schoolId),
+  ]);
+  for (const result of [
+    student,
+    links,
+    guardians,
+    attendance,
+    marks,
+    assessments,
+    interventions,
+    cases,
+    account,
+    payments,
+    credential,
+    assignment,
+    routes,
+    stops,
+  ])
+    if (result.error) throw result.error;
+  if (!student.data)
+    throw new Error("Learner OneFile was not found in this school.");
+  const guardianMap = new Map(
+      (guardians.data ?? []).map((row) => [String(row.id), row]),
+    ),
+    assessmentMap = new Map(
+      (assessments.data ?? []).map((row) => [String(row.id), row]),
+    ),
+    routeMap = new Map(
+      (routes.data ?? []).map((row) => [String(row.id), String(row.name)]),
+    ),
+    stopMap = new Map(
+      (stops.data ?? []).map((row) => [String(row.id), String(row.name)]),
+    );
+  const s = student.data,
+    a = account.data,
+    transport = assignment.data;
+  return {
+    identity: {
+      id: String(s.id),
+      matricule: String(s.matricule),
+      name: String(s.full_name),
+      className: String(s.class_name ?? "Unassigned"),
+      dateOfBirth: s.date_of_birth ? String(s.date_of_birth) : undefined,
+      sex: s.sex ? String(s.sex) : undefined,
+      attendanceRate: Number(s.attendance_rate ?? 0),
+      riskLevel: String(s.risk_level ?? "unknown"),
+    },
+    guardians: (links.data ?? []).map((link) => {
+      const g = guardianMap.get(String(link.guardian_id));
+      return {
+        name: String(g?.full_name ?? "Guardian"),
+        relationship: String(link.relationship),
+        phone: g?.phone ? String(g.phone) : undefined,
+        email: g?.email ? String(g.email) : undefined,
+        isPrimary: Boolean(link.is_primary),
+        canCollect: Boolean(link.can_collect),
+      };
+    }),
+    attendance: (attendance.data ?? []).map((row) => ({
+      status: String(row.status),
+      note: row.note ? String(row.note) : undefined,
+      recordedAt: String(row.created_at),
+    })),
+    assessments: (marks.data ?? []).map((mark) => {
+      const assessment = assessmentMap.get(String(mark.assessment_id));
+      return {
+        title: String(assessment?.title ?? "Assessment"),
+        score: Number(mark.score),
+        maxScore: Number(assessment?.max_score ?? 0),
+        date: String(assessment?.assessment_date ?? mark.created_at),
+        comment: mark.comment ? String(mark.comment) : undefined,
+      };
+    }),
+    interventions: (interventions.data ?? []).map((row) => ({
+      title: String(row.title),
+      status: String(row.status),
+      reviewOn: String(row.review_on),
+      actionPlan: String(row.action_plan),
+    })),
+    cases: (cases.data ?? []).map((row) => ({
+      number: String(row.case_number),
+      title: String(row.title),
+      category: String(row.category),
+      priority: String(row.priority),
+      status: String(row.status),
+      reviewDueOn: row.review_due_on ? String(row.review_due_on) : undefined,
+    })),
+    finance: {
+      amountDue: Number(a?.amount_due ?? 0),
+      amountPaid: Number(a?.amount_paid ?? 0),
+      balanceDue: Number(a?.balance_due ?? 0),
+      status: String(a?.status ?? "none"),
+      receipts: (payments.data ?? []).map((row) => ({
+        number: String(row.receipt_number),
+        amount: Number(row.amount),
+        method: String(row.method),
+        receivedAt: String(row.received_at),
+      })),
+    },
+    credential: credential.data
+      ? {
+          status: String(credential.data.status),
+          validUntil: String(credential.data.valid_until),
+          issuedAt: String(credential.data.issued_at),
+        }
+      : undefined,
+    transport: transport
+      ? {
+          routeName: routeMap.get(String(transport.route_id)) ?? "Route",
+          pickupStop: stopMap.get(String(transport.pickup_stop_id)) ?? "Stop",
+          dropoffStop: stopMap.get(String(transport.dropoff_stop_id)) ?? "Stop",
+          status: String(transport.status),
+        }
+      : undefined,
+  };
+}
