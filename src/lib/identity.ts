@@ -1,5 +1,8 @@
 import { supabase } from "./supabase";
 
+const IDENTITY_BUCKET = "dreem-identity-media";
+const SIGNED_URL_TTL_SECONDS = 60 * 60;
+
 export interface LearnerIdentityProfile {
   id: string;
   schoolId: string;
@@ -34,6 +37,21 @@ export interface LearnerIdentityProfile {
 function requireClient() {
   if (!supabase) throw new Error("DREEM is not connected to Supabase.");
   return supabase;
+}
+
+async function resolveIdentityMedia(reference: unknown): Promise<string | undefined> {
+  if (!reference) return undefined;
+  const value = String(reference).trim();
+  if (!value) return undefined;
+  // Preserve legacy or explicitly external URLs. New DREEM identity media stores only
+  // the private storage path so browser URLs are short-lived and never persisted.
+  if (/^https?:\/\//i.test(value)) return value;
+  const client = requireClient();
+  const { data, error } = await client.storage
+    .from(IDENTITY_BUCKET)
+    .createSignedUrl(value, SIGNED_URL_TTL_SECONDS);
+  if (error) throw error;
+  return data.signedUrl;
 }
 
 export async function loadLearnerIdentity(studentId: string): Promise<LearnerIdentityProfile> {
@@ -75,6 +93,25 @@ export async function loadLearnerIdentity(studentId: string): Promise<LearnerIde
   }
   const guardianById = new Map(guardians.map((row) => [String(row.id), row]));
   const credential = credentialResult.data;
+  const learnerPhotoUrl = await resolveIdentityMedia(student.photo_url);
+  const guardianRows = await Promise.all(
+    links.map(async (link) => {
+      const guardian = guardianById.get(String(link.guardian_id));
+      return {
+        guardianId: String(link.guardian_id),
+        name: String(guardian?.full_name ?? "Guardian"),
+        relationship: String(link.relationship ?? "guardian"),
+        isPrimary: Boolean(link.is_primary),
+        canCollect: Boolean(link.can_collect),
+        phone: guardian?.phone ? String(guardian.phone) : undefined,
+        email: guardian?.email ? String(guardian.email) : undefined,
+        photoUrl: await resolveIdentityMedia(guardian?.photo_url),
+        collectorLabel: link.collector_label ? String(link.collector_label) : undefined,
+        collectorPhotoUrl: await resolveIdentityMedia(link.collector_photo_url),
+        collectionNotes: link.collection_notes ? String(link.collection_notes) : undefined,
+      };
+    }),
+  );
 
   return {
     id: String(student.id),
@@ -82,7 +119,7 @@ export async function loadLearnerIdentity(studentId: string): Promise<LearnerIde
     matricule: String(student.matricule),
     name: String(student.full_name),
     className: String(student.class_name ?? "Unassigned"),
-    photoUrl: student.photo_url ? String(student.photo_url) : undefined,
+    photoUrl: learnerPhotoUrl,
     dateOfBirth: student.date_of_birth ? String(student.date_of_birth) : undefined,
     sex: student.sex ? String(student.sex) : undefined,
     credential: credential
@@ -94,39 +131,28 @@ export async function loadLearnerIdentity(studentId: string): Promise<LearnerIde
           issuedAt: credential.issued_at ? String(credential.issued_at) : undefined,
         }
       : undefined,
-    guardians: links.map((link) => {
-      const guardian = guardianById.get(String(link.guardian_id));
-      return {
-        guardianId: String(link.guardian_id),
-        name: String(guardian?.full_name ?? "Guardian"),
-        relationship: String(link.relationship ?? "guardian"),
-        isPrimary: Boolean(link.is_primary),
-        canCollect: Boolean(link.can_collect),
-        phone: guardian?.phone ? String(guardian.phone) : undefined,
-        email: guardian?.email ? String(guardian.email) : undefined,
-        photoUrl: guardian?.photo_url ? String(guardian.photo_url) : undefined,
-        collectorLabel: link.collector_label ? String(link.collector_label) : undefined,
-        collectorPhotoUrl: link.collector_photo_url ? String(link.collector_photo_url) : undefined,
-        collectionNotes: link.collection_notes ? String(link.collection_notes) : undefined,
-      };
-    }),
+    guardians: guardianRows,
   };
 }
 
 export async function uploadLearnerPhoto(studentId: string, file: File): Promise<string> {
   const client = requireClient();
-  if (!file.type.startsWith("image/")) throw new Error("Choose a JPG, PNG or WebP image.");
+  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type))
+    throw new Error("Choose a JPG, PNG or WebP image.");
   if (file.size > 5 * 1024 * 1024) throw new Error("Identity photos must be 5 MB or smaller.");
   const identity = await loadLearnerIdentity(studentId);
   const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
   const path = `${identity.schoolId}/${studentId}/learner-${crypto.randomUUID()}.${extension}`;
-  const upload = await client.storage.from("dreem-identity-media").upload(path, file, { upsert: false, contentType: file.type });
+  const upload = await client.storage.from(IDENTITY_BUCKET).upload(path, file, { upsert: false, contentType: file.type });
   if (upload.error) throw upload.error;
-  const { data: signed, error: signedError } = await client.storage.from("dreem-identity-media").createSignedUrl(path, 60 * 60 * 24 * 365);
-  if (signedError) throw signedError;
-  const update = await client.from("students").update({ photo_url: signed.signedUrl, updated_at: new Date().toISOString() }).eq("id", studentId);
-  if (update.error) throw update.error;
-  return signed.signedUrl;
+  const update = await client.from("students").update({ photo_url: path, updated_at: new Date().toISOString() }).eq("id", studentId);
+  if (update.error) {
+    await client.storage.from(IDENTITY_BUCKET).remove([path]);
+    throw update.error;
+  }
+  const signedUrl = await resolveIdentityMedia(path);
+  if (!signedUrl) throw new Error("Learner photograph was stored but could not be displayed.");
+  return signedUrl;
 }
 
 export async function updateGuardianIdentity(input: {
