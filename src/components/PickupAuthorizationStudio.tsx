@@ -86,6 +86,14 @@ export default function PickupAuthorizationStudio({ workspace }: { workspace: Wo
     } finally { setBusy(false); }
   }
 
+  function printCollectorPass() {
+    document.documentElement.classList.add("print-collector");
+    const cleanup = () => document.documentElement.classList.remove("print-collector");
+    window.addEventListener("afterprint", cleanup, { once: true });
+    window.print();
+    window.setTimeout(cleanup, 1000);
+  }
+
   const learner = workspace.learners.find((item) => item.id === studentId);
   return <section className="panel pickup-authorization credential-card-controls">
     <div className="panel-title"><UserCheck/><div><span>SAFE PICKUP AUTHORITY</span><h3>Authorize a collector with photograph + QR</h3><p>The gate must match the person to this record before releasing the learner.</p></div></div>
@@ -110,7 +118,7 @@ export default function PickupAuthorizationStudio({ workspace }: { workspace: Wo
       <div>{preview && <img src={preview} alt={`${authorizedName} collector`} />}</div>
       <div><small>AUTHORIZED PICKUP / RETRAIT AUTORISÉ</small><h3>{authorizedName}</h3><p>{authorizedRelationship} · {learner?.name}</p><strong>Valid until {validUntil}</strong></div>
       <CollectorQr value={token} />
-      <footer><small>Scan with the DREEM Secure Gate. This authorization can be rejected at the gate if the person does not match the photograph.</small><button type="button" onClick={() => window.print()}><Printer/>Print collector pass</button></footer>
+      <footer><small>Scan with the DREEM Secure Gate. This authorization can be rejected at the gate if the person does not match the photograph.</small><button type="button" onClick={printCollectorPass}><Printer/>Print collector pass</button></footer>
     </article>}
   </section>;
 }
