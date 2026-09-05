@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Camera, ScanLine, ShieldCheck, UserCheck, XCircle } from "lucide-react";
+import { resolveIdentityMedia } from "../lib/identity";
 import { verifyLearnerRelease } from "../lib/repository";
 import "./SecurityGateView.css";
 
@@ -106,7 +107,8 @@ export default function SecurityGateView({ onRefresh }: { onRefresh: () => Promi
         reason: reason.trim(),
         idempotencyKey: `learner-release:${crypto.randomUUID()}`,
       });
-      setResult(saved);
+      const collectorPhotoUrl = saved.collectorPhotoUrl ? await resolveIdentityMedia(saved.collectorPhotoUrl) : undefined;
+      setResult({ ...saved, collectorPhotoUrl: collectorPhotoUrl ?? "" });
       setMessage(saved.decision === "released" ? "Release verified and written to the safeguarding audit trail." : "Release denied and written to the safeguarding audit trail.");
       await onRefresh();
       if (saved.decision === "released") { setLearnerToken(""); setCollectorToken(""); }
