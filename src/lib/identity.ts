@@ -2,6 +2,8 @@ import { supabase } from "./supabase";
 
 const IDENTITY_BUCKET = "dreem-identity-media";
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
 
 export interface LearnerIdentityProfile {
   id: string;
@@ -39,7 +41,16 @@ function requireClient() {
   return supabase;
 }
 
-async function resolveIdentityMedia(reference: unknown): Promise<string | undefined> {
+function validateIdentityImage(file: File) {
+  if (!IMAGE_TYPES.includes(file.type)) throw new Error("Choose a JPG, PNG or WebP image.");
+  if (file.size > MAX_IMAGE_BYTES) throw new Error("Identity photos must be 5 MB or smaller.");
+}
+
+function imageExtension(file: File) {
+  return file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
+}
+
+export async function resolveIdentityMedia(reference: unknown): Promise<string | undefined> {
   if (!reference) return undefined;
   const value = String(reference).trim();
   if (!value) return undefined;
@@ -111,15 +122,19 @@ export async function loadLearnerIdentity(studentId: string): Promise<LearnerIde
   };
 }
 
-export async function uploadLearnerPhoto(studentId: string, file: File): Promise<string> {
+async function uploadPrivateIdentityImage(studentId: string, file: File, prefix: string) {
   const client = requireClient();
-  if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) throw new Error("Choose a JPG, PNG or WebP image.");
-  if (file.size > 5 * 1024 * 1024) throw new Error("Identity photos must be 5 MB or smaller.");
+  validateIdentityImage(file);
   const identity = await loadLearnerIdentity(studentId);
-  const extension = file.type === "image/png" ? "png" : file.type === "image/webp" ? "webp" : "jpg";
-  const path = `${identity.schoolId}/${studentId}/learner-${crypto.randomUUID()}.${extension}`;
+  const path = `${identity.schoolId}/${studentId}/${prefix}-${crypto.randomUUID()}.${imageExtension(file)}`;
   const upload = await client.storage.from(IDENTITY_BUCKET).upload(path, file, { upsert: false, contentType: file.type });
   if (upload.error) throw upload.error;
+  return path;
+}
+
+export async function uploadLearnerPhoto(studentId: string, file: File): Promise<string> {
+  const client = requireClient();
+  const path = await uploadPrivateIdentityImage(studentId, file, "learner");
   const update = await client.from("students").update({ photo_url: path, updated_at: new Date().toISOString() }).eq("id", studentId);
   if (update.error) {
     await client.storage.from(IDENTITY_BUCKET).remove([path]);
@@ -128,6 +143,20 @@ export async function uploadLearnerPhoto(studentId: string, file: File): Promise
   const signedUrl = await resolveIdentityMedia(path);
   if (!signedUrl) throw new Error("Learner photograph was stored but could not be displayed.");
   return signedUrl;
+}
+
+export async function uploadCollectorPhoto(studentId: string, file: File) {
+  const path = await uploadPrivateIdentityImage(studentId, file, "collector");
+  const previewUrl = await resolveIdentityMedia(path);
+  if (!previewUrl) throw new Error("Collector photograph was stored but could not be displayed.");
+  return { path, previewUrl };
+}
+
+export async function removeIdentityMedia(path: string) {
+  const client = requireClient();
+  if (!path || /^https?:\/\//i.test(path)) return;
+  const { error } = await client.storage.from(IDENTITY_BUCKET).remove([path]);
+  if (error) throw error;
 }
 
 export async function updateGuardianIdentity(input: { studentId: string; guardianId: string; collectorLabel?: string; collectionNotes?: string; canCollect?: boolean }) {
