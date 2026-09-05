@@ -3,6 +3,7 @@ import AuthGate from "./components/AuthGate";
 import AdmissionsView from "./components/AdmissionsView";
 import AcademicOperationsView from "./components/AcademicOperationsView";
 import TransportView from "./components/TransportView";
+import SecurityGateView from "./components/SecurityGateView";
 import BootstrapView from "./components/BootstrapView";
 import CareView from "./components/CareView";
 import CredentialCardStudio from "./components/CredentialCardStudio";
@@ -79,7 +80,7 @@ function WorkspaceApp() {
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeachersView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
-      {view === "transport" && <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>} 
+      {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
