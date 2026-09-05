@@ -3,8 +3,10 @@ import AuthGate from "./components/AuthGate";
 import AdmissionsView from "./components/AdmissionsView";
 import AcademicOperationsView from "./components/AcademicOperationsView";
 import TransportView from "./components/TransportView";
+import SecurityGateView from "./components/SecurityGateView";
 import BootstrapView from "./components/BootstrapView";
 import CareView from "./components/CareView";
+import CredentialCardStudio from "./components/CredentialCardStudio";
 import FeedbackDialog from "./components/FeedbackDialog";
 import OperationalWorkflowsView from "./components/OperationalWorkflows";
 import Shell, { type ViewKey } from "./components/Shell";
@@ -61,19 +63,10 @@ function WorkspaceApp() {
   if (!workspace) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><p>Preparing the school operating picture…</p></div></div>;
 
   const addSignal = (signal: CommunitySignal) => setWorkspace((current) => current ? { ...current, signals: [signal, ...current.signals] } : current);
-  const saveBrand = async (brand: WorkspaceData["brand"]) => {
-    const saved = await saveSchoolBrand(brand);
-    setWorkspace((current) => current ? { ...current, brand:saved } : current);
-  };
-  const saveSetup = async (setup: WorkspaceData["setup"]) => {
-    const saved = await saveSchoolSetup(setup);
-    setWorkspace((current) => current ? { ...current, setup:saved } : current);
-  };
+  const saveBrand = async (brand: WorkspaceData["brand"]) => { const saved = await saveSchoolBrand(brand); setWorkspace((current) => current ? { ...current, brand:saved } : current); };
+  const saveSetup = async (setup: WorkspaceData["setup"]) => { const saved = await saveSchoolSetup(setup); setWorkspace((current) => current ? { ...current, setup:saved } : current); };
   const refreshWorkspace = async () => setWorkspace(await loadWorkspace());
-  const moveSignal = async (signalId: string, status: CommunitySignal["status"]) => {
-    await updateSignalStatus(signalId,status);
-    setWorkspace((current) => current ? { ...current, signals:current.signals.map(item=>item.id===signalId?{...item,status}:item) } : current);
-  };
+  const moveSignal = async (signalId: string, status: CommunitySignal["status"]) => { await updateSignalStatus(signalId,status); setWorkspace((current) => current ? { ...current, signals:current.signals.map(item=>item.id===signalId?{...item,status}:item) } : current); };
   const openFeedback = () => setFeedbackOpen(true);
 
   return <>
@@ -81,16 +74,13 @@ function WorkspaceApp() {
       {view === "command" && <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<ClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
-      {view === "academics" && (
-        <AcademicOperationsView workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>
-      )}
-      {view === "learning" && (
-        <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>
-      )}
+      {view === "academics" && <AcademicOperationsView workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
+      {view === "learning" && <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>} 
       {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} />}
+      {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeachersView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
-      {view === "transport" && <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>}
+      {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
