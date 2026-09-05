@@ -35,11 +35,7 @@ export type ViewKey =
 const nav = [
   { id: "command" as const, label: "Command centre", icon: BarChart3 },
   { id: "admissions" as const, label: "Admissions", icon: UserPlus },
-  {
-    id: "operations" as const,
-    label: "Daily operations",
-    icon: ClipboardCheck,
-  },
+  { id: "operations" as const, label: "Daily operations", icon: ClipboardCheck },
   { id: "academics" as const, label: "Academic delivery", icon: BookOpenCheck },
   { id: "learning" as const, label: "Assignments", icon: ClipboardCheck },
   { id: "learners" as const, label: "Learner OneFiles", icon: GraduationCap },
@@ -51,91 +47,29 @@ const nav = [
   { id: "studio" as const, label: "School studio", icon: Settings2 },
 ];
 
+// Navigation is deliberately narrower than the shared data model. Each role should
+// feel like its own application; server-side RLS/RPC authorization remains the
+// authoritative boundary if a user attempts to call a hidden command directly.
 const roleViews: Record<Role, ViewKey[]> = {
-  platform_founder: [
-    "command",
-    "admissions",
-    "operations",
-    "academics",
-    "learning",
-    "learners",
-    "teachers",
-    "care",
-    "transport",
-    "finance",
-    "signals",
-    "studio",
-  ],
-  school_owner: [
-    "command",
-    "admissions",
-    "operations",
-    "academics",
-    "learning",
-    "learners",
-    "teachers",
-    "care",
-    "transport",
-    "finance",
-    "signals",
-    "studio",
-  ],
-  principal: [
-    "command",
-    "admissions",
-    "operations",
-    "academics",
-    "learning",
-    "learners",
-    "teachers",
-    "care",
-    "transport",
-    "finance",
-    "signals",
-    "studio",
-  ],
-  administrator: [
-    "command",
-    "admissions",
-    "operations",
-    "academics",
-    "learning",
-    "learners",
-    "teachers",
-    "care",
-    "transport",
-    "finance",
-    "signals",
-    "studio",
-  ],
-  academic_head: [
-    "command",
-    "admissions",
-    "operations",
-    "academics",
-    "learning",
-    "learners",
-    "teachers",
-    "care",
-    "signals",
-    "studio",
-  ],
-  bursar: ["command", "learners", "finance"],
-  accountant: ["command", "finance"],
-  teacher: ["operations", "learning", "learners", "care", "signals"],
-  tutor: ["learning", "learners", "care", "signals"],
-  transport_manager: ["command", "transport", "signals"],
-  driver: ["transport", "signals"],
-  security_guard: ["transport", "signals"],
-  parent: ["learning", "learners", "transport", "signals"],
-  student: ["learning", "learners", "transport", "signals"],
-  auditor: ["command", "learners", "finance", "signals"],
+  platform_founder: ["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  school_owner: ["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  principal: ["command","admissions","operations","academics","learning","learners","teachers","care","transport","finance","signals","studio"],
+  administrator: ["command","admissions","operations","learners","teachers","signals","studio"],
+  academic_head: ["command","academics","learning","learners","teachers","care","signals","studio"],
+  bursar: ["finance","learners"],
+  accountant: ["command","finance"],
+  teacher: ["operations","learning","learners","care","signals"],
+  tutor: ["learning","learners","care","signals"],
+  transport_manager: ["command","transport","signals"],
+  driver: ["transport"],
+  security_guard: ["transport"],
+  parent: ["learning","learners","transport","signals"],
+  student: ["learning","learners","transport","signals"],
+  auditor: ["command","learners","finance"],
 };
 
 function roleLabel(role: Role) {
-  return role
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return role.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default function Shell({
@@ -155,9 +89,7 @@ export default function Shell({
   onFeedback: () => void;
   children: ReactNode;
 }) {
-  const visibleNav = nav.filter((item) =>
-    roleViews[viewer.role].includes(item.id),
-  );
+  const visibleNav = nav.filter((item) => roleViews[viewer.role].includes(item.id));
   const canOpenStudio = roleViews[viewer.role].includes("studio");
   const [online, setOnline] = useState(navigator.onLine);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -172,69 +104,37 @@ export default function Shell({
     };
   }, []);
   return (
-    <main
-      className="shell"
-      style={
-        {
-          "--brand": brand.primaryColor,
-          "--accent": brand.accentColor,
-        } as React.CSSProperties
-      }
-    >
+    <main className="shell" style={{ "--brand": brand.primaryColor, "--accent": brand.accentColor } as React.CSSProperties}>
       <aside className="sidebar">
         <div className="brand">
           <span>D</span>
-          <div>
-            <strong>DREEM</strong>
-            <small>Proof to Progress</small>
-          </div>
+          <div><strong>DREEM</strong><small>Proof to Progress</small></div>
         </div>
         <div className="school">
-          <span>
-            {brand.logoUrl ? (
-              <img src={brand.logoUrl} alt="" />
-            ) : (
-              brand.shortName
-            )}
-          </span>
+          <span>{brand.logoUrl ? <img src={brand.logoUrl} alt="" /> : brand.shortName}</span>
           <div>
             <strong>{brand.name}</strong>
-            <small>
-              <Building2 size={11} />
-              {brand.city} · {brand.subsystem}
-            </small>
+            <small><Building2 size={11} />{brand.city} · {brand.subsystem}</small>
           </div>
         </div>
         <nav>
           <small>OPERATIONS</small>
           {visibleNav.map((item) => (
-            <button
-              key={item.id}
-              className={view === item.id ? "active" : ""}
-              onClick={() => onView(item.id)}
-            >
+            <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onView(item.id)}>
               <item.icon size={18} />
               <span>{item.label}</span>
-              {item.id === "signals" && signalCount > 0 ? (
-                <b>{signalCount}</b>
-              ) : null}
+              {item.id === "signals" && signalCount > 0 ? <b>{signalCount}</b> : null}
             </button>
           ))}
         </nav>
         <div className="sidebar-bottom">
           <div className="secure">
             <ShieldCheck size={17} />
-            <span>
-              <strong>Protected workspace</strong>
-              <small>Audit trail active</small>
-            </span>
+            <span><strong>Protected workspace</strong><small>Audit trail active</small></span>
           </div>
           <div className="account">
             <CircleUserRound />
-            <span>
-              <strong>{viewer.name}</strong>
-              <small>{roleLabel(viewer.role)}</small>
-            </span>
+            <span><strong>{viewer.name}</strong><small>{roleLabel(viewer.role)}</small></span>
           </div>
         </div>
       </aside>
@@ -250,49 +150,23 @@ export default function Shell({
             </span>
             <button className="language">EN / FR</button>
             {canOpenStudio && view !== "studio" ? (
-              <button className="feedback" onClick={() => onView("studio")}>
-                <Settings2 size={15} />
-                School Studio
-              </button>
+              <button className="feedback" onClick={() => onView("studio")}><Settings2 size={15} />School Studio</button>
             ) : null}
-            <button className="feedback" onClick={onFeedback}>
-              <MessageSquareMore size={15} />
-              Give feedback
-            </button>
+            <button className="feedback" onClick={onFeedback}><MessageSquareMore size={15} />Give feedback</button>
           </div>
         </header>
         {children}
       </section>
       {mobileMenuOpen ? (
-        <div
-          className="mobile-more-backdrop"
-          onClick={() => setMobileMenuOpen(false)}
-        >
-          <section
-            className="mobile-more-menu"
-            aria-label="All DREEM workspaces"
-            onClick={(event) => event.stopPropagation()}
-          >
+        <div className="mobile-more-backdrop" onClick={() => setMobileMenuOpen(false)}>
+          <section className="mobile-more-menu" aria-label="All DREEM workspaces" onClick={(event) => event.stopPropagation()}>
             <header>
               <strong>All workspaces</strong>
-              <button
-                aria-label="Close workspace menu"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                <X />
-              </button>
+              <button aria-label="Close workspace menu" onClick={() => setMobileMenuOpen(false)}><X /></button>
             </header>
             {visibleNav.map((item) => (
-              <button
-                key={item.id}
-                className={view === item.id ? "active" : ""}
-                onClick={() => {
-                  onView(item.id);
-                  setMobileMenuOpen(false);
-                }}
-              >
-                <item.icon size={19} />
-                <span>{item.label}</span>
+              <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => { onView(item.id); setMobileMenuOpen(false); }}>
+                <item.icon size={19} /><span>{item.label}</span>
               </button>
             ))}
           </section>
@@ -300,23 +174,12 @@ export default function Shell({
       ) : null}
       <nav className="mobile-nav">
         {visibleNav.slice(0, 4).map((item) => (
-          <button
-            key={item.id}
-            className={view === item.id ? "active" : ""}
-            onClick={() => onView(item.id)}
-          >
-            <item.icon size={19} />
-            <span>{item.label.split(" ")[0]}</span>
+          <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onView(item.id)}>
+            <item.icon size={19} /><span>{item.label.split(" ")[0]}</span>
           </button>
         ))}
-        <button
-          className={
-            visibleNav.slice(4).some((item) => item.id === view) ? "active" : ""
-          }
-          onClick={() => setMobileMenuOpen(true)}
-        >
-          <Menu size={19} />
-          <span>More</span>
+        <button className={visibleNav.slice(4).some((item) => item.id === view) ? "active" : ""} onClick={() => setMobileMenuOpen(true)}>
+          <Menu size={19} /><span>More</span>
         </button>
       </nav>
     </main>
@@ -324,11 +187,5 @@ export default function Shell({
 }
 
 export function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="empty">
-      <UsersRound />
-      <strong>{title}</strong>
-      <p>{body}</p>
-    </div>
-  );
+  return <div className="empty"><UsersRound /><strong>{title}</strong><p>{body}</p></div>;
 }
