@@ -4,6 +4,7 @@ import { createIdempotencyKey } from "../domain/rules";
 import { loadLearnerIdentity, revokeLearnerCredential, type LearnerIdentityProfile } from "../lib/identity";
 import { issueStudentCredential, type WorkspaceData } from "../lib/repository";
 import { makeQrMatrix } from "../lib/qr";
+import PickupAuthorizationStudio from "./PickupAuthorizationStudio";
 import "./CredentialCardStudio.css";
 
 function nextYear() {
@@ -50,13 +51,14 @@ export default function CredentialCardStudio({ workspace, onRefresh }: { workspa
 
   async function issue() {
     if (!studentId) return;
+    const hadCredential = identity?.credential?.status === "active";
     setBusy(true); setError(""); setMessage("");
     try {
       const result = await issueStudentCredential(studentId, validUntil, createIdempotencyKey("credential-card"));
       setVerificationToken(result.verificationToken);
       await load();
       await onRefresh();
-      setMessage(identity?.credential ? "Previous card revoked and a new card version issued." : "Learner card issued.");
+      setMessage(hadCredential ? "Previous card revoked and a new card version issued." : "Learner card issued.");
     } catch (reason) { setError(readableError(reason)); }
     finally { setBusy(false); }
   }
@@ -114,5 +116,6 @@ export default function CredentialCardStudio({ workspace, onRefresh }: { workspa
         <button type="button" disabled={!verificationToken} onClick={() => verificationToken && void navigator.clipboard?.writeText(verificationToken)}><Copy />Copy verification token</button>
       </div>
     </section>}
+    <PickupAuthorizationStudio workspace={workspace} />
   </div>;
 }
