@@ -1,10 +1,11 @@
-import { BookOpenCheck, FileCheck2, GraduationCap, ShieldCheck } from "lucide-react";
+import { BookOpenCheck, BusFront, FileCheck2, GraduationCap, IdCard, ReceiptText, ShieldCheck } from "lucide-react";
 import { useMemo, useState, type FormEvent } from "react";
 import { submitAssignment, type WorkspaceData } from "../lib/repository";
 
 function messageFrom(reason: unknown) {
   return reason instanceof Error ? reason.message : "The learning action could not be completed.";
 }
+const money = (value: number) => new Intl.NumberFormat("fr-FR").format(value) + " FCFA";
 
 export default function FamilyLearningWorkspace({ workspace, onRefresh }: { workspace: WorkspaceData; onRefresh: () => Promise<void> }) {
   const guardian = workspace.viewer.role === "parent";
@@ -22,6 +23,8 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
   );
   const submissions = workspace.academics.assignmentSubmissions.filter((item) => item.studentId === learnerId);
   const reportCards = workspace.academics.reportCards.filter((item) => item.studentId === learnerId && item.status === "published");
+  const transportAssignment = workspace.transport.assignments.find((item) => item.studentId === learnerId && item.status === "active");
+  const transportTrips = transportAssignment ? workspace.transport.trips.filter((item) => item.routeId === transportAssignment.routeId && !["cancelled"].includes(item.status)).slice(0, 3) : [];
   const submittedAssignmentIds = new Set(submissions.filter((item) => item.status !== "needs_revision").map((item) => item.assignmentId));
   const due = assignments.filter((item) => !submittedAssignmentIds.has(item.id));
 
@@ -59,8 +62,8 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
       <section className="page-intro">
         <div>
           <span>{guardian ? "GUARDIAN APP" : "STUDENT APP"}</span>
-          <h2>{guardian ? "Follow learning without entering the teacher workspace." : "Your work, feedback and published results in one place."}</h2>
-          <p>{guardian ? "Only linked children and their authorised learning records appear here." : "Only assignments and results released to your learner record appear here."}</p>
+          <h2>{guardian ? "Your child’s school picture without entering staff workspaces." : "Your school day, work, feedback and official results in one place."}</h2>
+          <p>{guardian ? "Only linked children and records the school is authorised to share appear here." : "Only records released to your learner account appear here."}</p>
         </div>
         <div className="care-assurance"><ShieldCheck /><span><strong>Private learner view</strong><small>School administration and other learners remain outside this workspace.</small></span></div>
       </section>
@@ -70,11 +73,22 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
       {message ? <div className="form-status success" role="status">{message}</div> : null}
 
       <section className="metrics">
-        <article className="metric"><span>Due work</span><strong>{due.length}</strong><small>{learner.name}</small></article>
-        <article className="metric blue"><span>Submitted</span><strong>{submissions.filter((item) => ["submitted","late"].includes(item.status)).length}</strong><small>Awaiting teacher action</small></article>
-        <article className="metric amber"><span>Feedback</span><strong>{submissions.filter((item) => ["graded","needs_revision"].includes(item.status)).length}</strong><small>Returned or graded</small></article>
+        <article className="metric"><span>Attendance</span><strong>{Math.round(learner.attendance)}%</strong><small>{learner.className}</small></article>
+        <article className="metric blue"><span>Due work</span><strong>{due.length}</strong><small>{submissions.length} submission(s) recorded</small></article>
+        <article className="metric amber"><span>Fee balance</span><strong>{money(learner.feeBalance ?? 0)}</strong><small>{learner.feeAccountId ? "Verified learner account" : "Fee account not yet created"}</small></article>
         <article className="metric"><span>Published reports</span><strong>{reportCards.length}</strong><small>Official school results</small></article>
       </section>
+
+      <div className="academic-grid">
+        <section className="panel">
+          <div className="panel-title"><IdCard /><div><span>LEARNER STATUS</span><h3>Identity and school standing</h3></div></div>
+          <article className="document-row"><strong>{learner.name}</strong><span>{learner.matricule} · {learner.className}</span><small>ID credential: {learner.idStatus.replaceAll("_", " ")}</small></article>
+        </section>
+        <section className="panel">
+          <div className="panel-title"><BusFront /><div><span>MY TRANSPORT</span><h3>Current route and recent trips</h3></div></div>
+          {transportAssignment ? <><article className="document-row"><strong>{transportAssignment.routeName}</strong><span>{transportAssignment.pickupStopName} → {transportAssignment.dropoffStopName}</span><small>Active school transport assignment</small></article>{transportTrips.map((trip) => <article className="document-row" key={trip.id}><strong>{trip.serviceDate} · {trip.direction}</strong><span>{trip.status.replaceAll("_", " ")}{trip.scheduledDeparture ? ` · ${trip.scheduledDeparture}` : ""}</span></article>)}</> : <p>No active school transport assignment is linked to this learner.</p>}
+        </section>
+      </div>
 
       <div className="academic-grid">
         <section className="panel">
@@ -101,7 +115,7 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
           {!submissions.length ? <p>No assignment submissions have been recorded yet.</p> : null}
         </section>
         <section className="panel">
-          <div className="panel-title"><FileCheck2 /><div><span>OFFICIAL RESULTS</span><h3>Published report cards</h3></div></div>
+          <div className="panel-title"><ReceiptText /><div><span>OFFICIAL RESULTS</span><h3>Published report cards</h3></div></div>
           {reportCards.map((item) => <article className="document-row" key={item.id}><strong>{item.termName}</strong><span>{typeof item.overallAverage === "number" ? `Average ${item.overallAverage}` : "Average pending"} · revision {item.revision}</span><small>{item.evidenceCount} published assessment evidence item(s)</small></article>)}
           {!reportCards.length ? <p>No published report card is available yet.</p> : null}
         </section>
