@@ -58,7 +58,7 @@ const roleViews: Record<Role, ViewKey[]> = {
   academic_head: ["command","academics","learning","learners","teachers","care","signals","studio"],
   bursar: ["finance","learners"],
   accountant: ["command","finance"],
-  teacher: ["operations","learning","learners","care","signals"],
+  teacher: ["command","operations","learning","learners","care","signals"],
   tutor: ["learning","learners","care","signals"],
   transport_manager: ["command","transport","signals"],
   driver: ["transport"],
@@ -77,6 +77,7 @@ export default function Shell({ brand,viewer,view,onView,signalCount,onFeedback,
   const canOpenStudio = roleViews[viewer.role].includes("studio");
   const [online, setOnline] = useState(navigator.onLine);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const navLabel = (id: ViewKey, label: string) => viewer.role === "teacher" && id === "command" ? "Today" : label;
   useEffect(() => {
     const connect = () => setOnline(true); const disconnect = () => setOnline(false);
     window.addEventListener("online", connect); window.addEventListener("offline", disconnect);
@@ -87,15 +88,15 @@ export default function Shell({ brand,viewer,view,onView,signalCount,onFeedback,
       <aside className="sidebar">
         <div className="brand"><span>D</span><div><strong>DREEM</strong><small>Proof to Progress</small></div></div>
         <div className="school"><span>{brand.logoUrl ? <img src={brand.logoUrl} alt="" /> : brand.shortName}</span><div><strong>{brand.name}</strong><small><Building2 size={11} />{brand.city} · {brand.subsystem}</small></div></div>
-        <nav><small>OPERATIONS</small>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onView(item.id)}><item.icon size={18} /><span>{item.label}</span>{item.id === "signals" && signalCount > 0 ? <b>{signalCount}</b> : null}</button>)}</nav>
+        <nav><small>OPERATIONS</small>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onView(item.id)}><item.icon size={18} /><span>{navLabel(item.id, item.label)}</span>{item.id === "signals" && signalCount > 0 ? <b>{signalCount}</b> : null}</button>)}</nav>
         <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17} /><span><strong>Protected workspace</strong><small>Audit trail active</small></span></div><div className="account"><CircleUserRound /><span><strong>{viewer.name}</strong><small>{roleLabel(viewer.role)}</small></span></div></div>
       </aside>
       <section className="workspace">
-        <header><div><span>DREEM SCHOOL OPERATING SYSTEM</span><h1>{nav.find((item) => item.id === view)?.label}</h1></div><div><span className={`connectivity ${online ? "online" : "offline"}`}>{online ? "Online" : "Offline · writes paused"}</span><button className="language">EN / FR</button>{canOpenStudio && view !== "studio" ? <button className="feedback" onClick={() => onView("studio")}><Settings2 size={15} />School Studio</button> : null}<button className="feedback" onClick={onFeedback}><MessageSquareMore size={15} />Give feedback</button></div></header>
+        <header><div><span>DREEM SCHOOL OPERATING SYSTEM</span><h1>{navLabel(view, nav.find((item) => item.id === view)?.label ?? "Workspace")}</h1></div><div><span className={`connectivity ${online ? "online" : "offline"}`}>{online ? "Online" : "Offline · writes paused"}</span><button className="language">EN / FR</button>{canOpenStudio && view !== "studio" ? <button className="feedback" onClick={() => onView("studio")}><Settings2 size={15} />School Studio</button> : null}<button className="feedback" onClick={onFeedback}><MessageSquareMore size={15} />Give feedback</button></div></header>
         {children}
       </section>
-      {mobileMenuOpen ? <div className="mobile-more-backdrop" onClick={() => setMobileMenuOpen(false)}><section className="mobile-more-menu" aria-label="All DREEM workspaces" onClick={(event) => event.stopPropagation()}><header><strong>All workspaces</strong><button aria-label="Close workspace menu" onClick={() => setMobileMenuOpen(false)}><X /></button></header>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => { onView(item.id); setMobileMenuOpen(false); }}><item.icon size={19} /><span>{item.label}</span></button>)}</section></div> : null}
-      <nav className="mobile-nav">{visibleNav.slice(0, 4).map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onView(item.id)}><item.icon size={19} /><span>{item.label.split(" ")[0]}</span></button>)}<button className={visibleNav.slice(4).some((item) => item.id === view) ? "active" : ""} onClick={() => setMobileMenuOpen(true)}><Menu size={19} /><span>More</span></button></nav>
+      {mobileMenuOpen ? <div className="mobile-more-backdrop" onClick={() => setMobileMenuOpen(false)}><section className="mobile-more-menu" aria-label="All DREEM workspaces" onClick={(event) => event.stopPropagation()}><header><strong>All workspaces</strong><button aria-label="Close workspace menu" onClick={() => setMobileMenuOpen(false)}><X /></button></header>{visibleNav.map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => { onView(item.id); setMobileMenuOpen(false); }}><item.icon size={19} /><span>{navLabel(item.id, item.label)}</span></button>)}</section></div> : null}
+      <nav className="mobile-nav">{visibleNav.slice(0, 4).map((item) => <button key={item.id} className={view === item.id ? "active" : ""} onClick={() => onView(item.id)}><item.icon size={19} /><span>{navLabel(item.id, item.label).split(" ")[0]}</span></button>)}<button className={visibleNav.slice(4).some((item) => item.id === view) ? "active" : ""} onClick={() => setMobileMenuOpen(true)}><Menu size={19} /><span>More</span></button></nav>
     </main>
   );
 }
