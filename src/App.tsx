@@ -16,6 +16,7 @@ import FinanceWorkspace from "./components/FinanceWorkspace";
 import LearnersWorkspace from "./components/LearnersWorkspace";
 import ClassroomWorkspace from "./components/ClassroomWorkspace";
 import LearningWorkspace from "./components/LearningWorkspace";
+import FamilyLearningWorkspace from "./components/FamilyLearningWorkspace";
 import type { BootstrapStatus, CommunitySignal, Role } from "./domain/types";
 import { buildOperationalPulse } from "./domain/rules";
 import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loadBootstrapStatus, loadWorkspace, recordAssessment, recordAttendance, saveSchoolBrand, saveSchoolSetup, updateAccessStatus, updateSignalStatus, uploadSchoolLogo, type WorkspaceData } from "./lib/repository";
@@ -68,6 +69,7 @@ function WorkspaceApp() {
   const refreshWorkspace = async () => setWorkspace(await loadWorkspace());
   const moveSignal = async (signalId: string, status: CommunitySignal["status"]) => { await updateSignalStatus(signalId,status); setWorkspace((current) => current ? { ...current, signals:current.signals.map(item=>item.id===signalId?{...item,status}:item) } : current); };
   const openFeedback = () => setFeedbackOpen(true);
+  const familyLearning = workspace.viewer.role === "student" || workspace.viewer.role === "parent";
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
@@ -75,13 +77,13 @@ function WorkspaceApp() {
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<ClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicOperationsView workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
-      {view === "learning" && <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>} 
+      {view === "learning" && (familyLearning ? <FamilyLearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)} 
       {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} />}
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeachersView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
-      {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
+      {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} setup={workspace.setup} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
     </Shell>
