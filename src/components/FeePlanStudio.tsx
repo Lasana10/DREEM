@@ -1,5 +1,5 @@
 import { BadgeCheck, CircleDollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Role, SchoolSetup } from "../domain/types";
 import { activateFeePlan, createFeePlan, loadFeePlans, type FeePlanItem, type FeePlanSummary } from "../lib/feePlans";
 
@@ -18,11 +18,11 @@ export default function FeePlanStudio({ setup, role, onChanged }: { setup: Schoo
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const classIds = useMemo(() => setup.classes.map((item) => item.id), [setup.classes]);
-
-  async function refresh() {
+  const refresh = useCallback(async () => {
     setPlans(await loadFeePlans(classIds));
-  }
-  useEffect(() => { void refresh().catch((reason) => setError(errorText(reason))); }, [classIds.join("|")]);
+  }, [classIds]);
+
+  useEffect(() => { void refresh().catch((reason) => setError(errorText(reason))); }, [refresh]);
 
   function updateItem(index: number, patch: Partial<FeePlanItem>) {
     setItems((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
