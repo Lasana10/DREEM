@@ -23,5 +23,10 @@ export function applyRoleAppIdentity(role: Role) {
   document.title = `${app.name} · School Operating System`;
   document.documentElement.dataset.dreemApp = app.key;
   const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  if (theme) theme.content = getComputedStyle(document.documentElement).getPropertyValue("--brand").trim() || "#123b2c";
+  if (theme) {
+    const computed = typeof globalThis.getComputedStyle === "function"
+      ? globalThis.getComputedStyle(document.documentElement).getPropertyValue("--brand").trim()
+      : "";
+    theme.content = computed || "#123b2c";
+  }
 }
