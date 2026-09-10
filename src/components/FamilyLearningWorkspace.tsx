@@ -1,11 +1,14 @@
-import { BookOpenCheck, BusFront, FileCheck2, GraduationCap, IdCard, ReceiptText, ShieldCheck } from "lucide-react";
-import { useMemo, useState, type FormEvent } from "react";
+import { BookOpenCheck, BusFront, FileCheck2, GraduationCap, IdCard, ReceiptText, ShieldCheck, UsersRound, WalletCards } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { submitAssignment, type WorkspaceData } from "../lib/repository";
+import { loadLearnerFeeStatement, type LearnerFeeStatementRow } from "../lib/familyFinance";
+import { loadPickupCircle, type PickupCircleMember } from "../lib/pickupCircle";
 
 function messageFrom(reason: unknown) {
   return reason instanceof Error ? reason.message : "The learning action could not be completed.";
 }
 const money = (value: number) => new Intl.NumberFormat("fr-FR").format(value) + " FCFA";
+const dateText = (value: string) => value ? new Date(value).toLocaleDateString() : "—";
 
 export default function FamilyLearningWorkspace({ workspace, onRefresh }: { workspace: WorkspaceData; onRefresh: () => Promise<void> }) {
   const guardian = workspace.viewer.role === "parent";
@@ -13,6 +16,10 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [statement, setStatement] = useState<LearnerFeeStatementRow[]>([]);
+  const [pickupCircle, setPickupCircle] = useState<PickupCircleMember[]>([]);
+  const [familyLoading, setFamilyLoading] = useState(false);
+  const [familyError, setFamilyError] = useState("");
 
   const learner = workspace.learners.find((item) => item.id === selectedStudentId) ?? workspace.learners[0];
   const learnerId = learner?.id ?? "";
@@ -27,6 +34,30 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
   const transportTrips = transportAssignment ? workspace.transport.trips.filter((item) => item.routeId === transportAssignment.routeId && !["cancelled"].includes(item.status)).slice(0, 3) : [];
   const submittedAssignmentIds = new Set(submissions.filter((item) => item.status !== "needs_revision").map((item) => item.assignmentId));
   const due = assignments.filter((item) => !submittedAssignmentIds.has(item.id));
+  const charges = statement.filter((item) => item.entryType === "charge");
+  const payments = statement.filter((item) => item.entryType === "payment");
+  const adjustments = statement.filter((item) => item.entryType === "adjustment");
+  const overdue = charges.filter((item) => item.dueOn && new Date(item.dueOn).getTime() < Date.now() && !["paid", "waived"].includes(item.status));
+
+  useEffect(() => {
+    let cancelled = false;
+    if (!learnerId) return;
+    setFamilyLoading(true);
+    setFamilyError("");
+    Promise.all([
+      loadLearnerFeeStatement(learnerId),
+      guardian ? loadPickupCircle(learnerId) : Promise.resolve([]),
+    ]).then(([nextStatement, nextPickup]) => {
+      if (cancelled) return;
+      setStatement(nextStatement);
+      setPickupCircle(nextPickup);
+    }).catch((reason) => {
+      if (!cancelled) setFamilyError(messageFrom(reason));
+    }).finally(() => {
+      if (!cancelled) setFamilyLoading(false);
+    });
+    return () => { cancelled = true; };
+  }, [learnerId, guardian]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -61,21 +92,22 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
     <div className="content">
       <section className="page-intro">
         <div>
-          <span>{guardian ? "GUARDIAN APP" : "STUDENT APP"}</span>
-          <h2>{guardian ? "Your child’s school picture without entering staff workspaces." : "Your school day, work, feedback and official results in one place."}</h2>
-          <p>{guardian ? "Only linked children and records the school is authorised to share appear here." : "Only records released to your learner account appear here."}</p>
+          <span>{guardian ? "DREEM FAMILY" : "DREEM STUDENT"}</span>
+          <h2>{guardian ? "One trusted view of your child’s school life." : "Your school day, work, feedback and official results in one place."}</h2>
+          <p>{guardian ? "Learning, fees, transport and safe pickup stay connected without exposing staff or unrelated learner records." : "Only records released to your learner account appear here."}</p>
         </div>
-        <div className="care-assurance"><ShieldCheck /><span><strong>Private learner view</strong><small>School administration and other learners remain outside this workspace.</small></span></div>
+        <div className="care-assurance"><ShieldCheck /><span><strong>Private learner view</strong><small>Server permissions remain authoritative for every record shown here.</small></span></div>
       </section>
 
       {guardian && workspace.learners.length > 1 ? <label>Child<select value={learnerId} onChange={(event) => setSelectedStudentId(event.target.value)}>{workspace.learners.map((item) => <option key={item.id} value={item.id}>{item.name} · {item.className}</option>)}</select></label> : null}
       {error ? <div className="form-status error" role="alert">{error}</div> : null}
+      {familyError ? <div className="form-status error" role="alert">Some family records could not be refreshed: {familyError}</div> : null}
       {message ? <div className="form-status success" role="status">{message}</div> : null}
 
       <section className="metrics">
         <article className="metric"><span>Attendance</span><strong>{Math.round(learner.attendance)}%</strong><small>{learner.className}</small></article>
         <article className="metric blue"><span>Due work</span><strong>{due.length}</strong><small>{submissions.length} submission(s) recorded</small></article>
-        <article className="metric amber"><span>Fee balance</span><strong>{money(learner.feeBalance ?? 0)}</strong><small>{learner.feeAccountId ? "Verified learner account" : "Fee account not yet created"}</small></article>
+        <article className="metric amber"><span>Fee balance</span><strong>{money(learner.feeBalance ?? 0)}</strong><small>{overdue.length ? `${overdue.length} overdue installment(s)` : learner.feeAccountId ? "Verified learner account" : "Fee account not yet created"}</small></article>
         <article className="metric"><span>Published reports</span><strong>{reportCards.length}</strong><small>Official school results</small></article>
       </section>
 
@@ -89,6 +121,28 @@ export default function FamilyLearningWorkspace({ workspace, onRefresh }: { work
           {transportAssignment ? <><article className="document-row"><strong>{transportAssignment.routeName}</strong><span>{transportAssignment.pickupStopName} → {transportAssignment.dropoffStopName}</span><small>Active school transport assignment</small></article>{transportTrips.map((trip) => <article className="document-row" key={trip.id}><strong>{trip.serviceDate} · {trip.direction}</strong><span>{trip.status.replaceAll("_", " ")}{trip.scheduledDeparture ? ` · ${trip.scheduledDeparture}` : ""}</span></article>)}</> : <p>No active school transport assignment is linked to this learner.</p>}
         </section>
       </div>
+
+      {guardian ? <div className="academic-grid">
+        <section className="panel">
+          <div className="panel-title"><WalletCards /><div><span>FEES & INSTALLMENTS</span><h3>Charges, due dates and remaining balance</h3></div></div>
+          {familyLoading ? <p>Refreshing the protected learner statement…</p> : null}
+          {charges.map((item) => <article className="document-row" key={item.entryId}><strong>{item.label}</strong><span>{money(Math.abs(item.amount))} · due {dateText(item.dueOn)} · {item.status.replaceAll("_", " ")}</span>{item.note ? <small>{item.note}</small> : null}</article>)}
+          {!familyLoading && !charges.length ? <p>No fee installments have been released for this learner yet.</p> : null}
+          {adjustments.map((item) => <article className="document-row" key={item.entryId}><strong>{item.label}</strong><span>{money(item.amount)} · {item.status.replaceAll("_", " ")}</span>{item.note ? <small>{item.note}</small> : null}</article>)}
+        </section>
+        <section className="panel">
+          <div className="panel-title"><ReceiptText /><div><span>PAYMENTS & RECEIPTS</span><h3>Verified payment history</h3></div></div>
+          {payments.map((item) => <article className="document-row" key={item.entryId}><strong>{item.receiptNumber || item.label}</strong><span>{money(Math.abs(item.amount))} · {dateText(item.occurredOn)}</span><small>{item.status.replaceAll("_", " ")}</small></article>)}
+          {!familyLoading && !payments.length ? <p>No verified payments are visible for this learner yet.</p> : null}
+        </section>
+      </div> : null}
+
+      {guardian ? <section className="panel">
+        <div className="panel-title"><UsersRound /><div><span>PICKUP CIRCLE</span><h3>People the school currently recognises for pickup</h3></div></div>
+        <p className="panel-copy">This is a protected family read model. Gate staff verify pickup through the purpose-specific release flow rather than browsing the family’s full records.</p>
+        {pickupCircle.map((member) => <article className="document-row" key={member.collectorId}><strong>{member.fullName} · {member.relationship}</strong><span>•••• {member.phoneLast4} · {member.status} · valid to {dateText(member.validUntil)}</span><small>{member.lastReleaseAt ? `Last gate outcome: ${member.lastDecision || "recorded"} · ${dateText(member.lastReleaseAt)}` : "No recorded release yet"}</small></article>)}
+        {!familyLoading && !pickupCircle.length ? <p>No authorised pickup person is currently visible for this learner.</p> : null}
+      </section> : null}
 
       <div className="academic-grid">
         <section className="panel">
