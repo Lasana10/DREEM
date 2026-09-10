@@ -36,14 +36,14 @@ describe("Family learning app", () => {
 
   it("shows students a learner-only experience without teacher authoring", () => {
     render(<FamilyLearningWorkspace workspace={base} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
-    expect(screen.getByText("STUDENT APP")).toBeInTheDocument();
+    expect(screen.getByText("DREEM STUDENT")).toBeInTheDocument();
     expect(screen.queryByText("TEACHER AUTHORING")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Submit work" })).toBeEnabled();
   });
 
   it("shows guardians a child-scoped experience", () => {
     render(<FamilyLearningWorkspace workspace={{ ...base, viewer: { id: "parent-1", name: "Guardian", email: "guardian@example.test", role: "parent" } }} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
-    expect(screen.getByText("GUARDIAN APP")).toBeInTheDocument();
+    expect(screen.getByText("DREEM FAMILY")).toBeInTheDocument();
     expect(screen.getByText(/Only linked children/i)).toBeInTheDocument();
   });
 
