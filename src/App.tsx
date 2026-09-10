@@ -89,8 +89,8 @@ function WorkspaceApp() {
       {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
     </Shell>
-    {feedbackOpen ? <FeedbackDialog role={workspace.viewer.role} onClose={()=>setFeedbackOpen(false)} onCreated={(signal)=>{addSignal(signal);setFeedbackOpen(false);}} /> : null}
+    <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} onCreated={addSignal} />
   </>;
 }
 
-export default function App(){ return <AuthGate><WorkspaceApp/></AuthGate>; }
+export default function App() { return <AuthGate><WorkspaceApp /></AuthGate>; }
