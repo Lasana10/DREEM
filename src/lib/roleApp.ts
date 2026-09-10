@@ -22,6 +22,8 @@ export function applyRoleAppIdentity(role: Role) {
   const app = roleAppIdentity(role);
   document.title = `${app.name} · School Operating System`;
   document.documentElement.dataset.dreemApp = app.key;
+  const manifest = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+  if (manifest) manifest.href = `/manifests/${app.key}.webmanifest`;
   const theme = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (theme) {
     const computed = typeof globalThis.getComputedStyle === "function"
