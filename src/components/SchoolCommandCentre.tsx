@@ -21,18 +21,19 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const cashAwaiting=workspace.finance.cashAwaitingDeposit;
  const can=(view:ViewKey)=>{
    if(["platform_founder","school_owner","principal"].includes(role))return true;
-   if(role==="administrator")return ["admissions","operations","learners","signals","studio"].includes(view);
-   if(role==="academic_head")return ["academics","learning","learners","teachers","care","signals","studio"].includes(view);
+   if(role==="administrator")return (["admissions","operations","learners","signals","studio"] as ViewKey[]).includes(view);
+   if(role==="academic_head")return (["academics","learning","learners","teachers","care","signals","studio"] as ViewKey[]).includes(view);
    return false;
  };
- const candidates:QueueItem[]=[
+ const allCandidates:QueueItem[]=[
   {id:"admissions",view:"admissions",title:"Admissions waiting",detail:"Applications still need review, decision, acceptance or enrolment.",count:admissionPending,tone:admissionPending?"attention":"normal",owner:"Admissions",icon:<UserPlus/>},
   {id:"academic",view:"academics",title:"Academic review queue",detail:`${lessonReview} lesson plan(s) + ${assessmentReview} assessment(s) submitted for review.`,count:lessonReview+assessmentReview,tone:lessonReview+assessmentReview?"attention":"normal",owner:"Academic leadership",icon:<BookOpenCheck/>},
   {id:"care",view:"care",title:"Learner support & safeguarding",detail:urgentCare?`${urgentCare} urgent/critical protected case(s) require attention.`:"Open protected cases requiring owned follow-up.",count:careOpen,tone:urgentCare?"urgent":careOpen?"attention":"normal",owner:"Care / safeguarding",icon:<FolderHeart/>},
   {id:"finance",view:"finance",title:"Finance control exceptions",detail:cashAwaiting?`${cashAwaiting.toLocaleString("fr-FR")} FCFA cash remains in custody / awaiting settlement.`:"Review exceptions and settlement evidence.",count:financeExceptions,tone:financeExceptions?"urgent":cashAwaiting?"attention":"normal",owner:"Finance",icon:<CircleDollarSign/>},
   {id:"transport",view:"transport",title:"Transport operating now",detail:delayedTrips?`${delayedTrips} delayed journey(s) need transport follow-up.`:"Open school journeys and dispatch state.",count:openTrips,tone:delayedTrips?"urgent":openTrips?"attention":"normal",owner:"Transport",icon:<BusFront/>},
   {id:"signals",view:"signals",title:"Messages & feedback",detail:urgentSignals?`${urgentSignals} urgent/safeguarding signal(s) require routing.`:"Community feedback still awaiting resolution.",count:openSignals,tone:urgentSignals?"urgent":openSignals?"attention":"normal",owner:"School follow-up",icon:<MessageSquareMore/>},
- ].filter(item=>can(item.view));
+ ];
+ const candidates=allCandidates.filter(item=>can(item.view));
  const active=candidates.filter(item=>item.count>0||item.id==="finance"&&cashAwaiting>0);
  const clear=candidates.length-active.length;
  if(!leadershipRoles.includes(role))return null;
