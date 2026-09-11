@@ -20,7 +20,7 @@ import WorkspaceJourneyGuide from "./components/WorkspaceJourneyGuide";
 import { SchoolStudioView } from "./components/SchoolStudioView";
 import FinanceWorkspace from "./components/FinanceWorkspace";
 import LearnersWorkspace from "./components/LearnersWorkspace";
-import ClassroomWorkspace from "./components/ClassroomWorkspace";
+import TeacherClassroomWorkspace from "./components/TeacherClassroomWorkspace";
 import TeacherHome from "./components/TeacherHome";
 import LearningWorkspace from "./components/LearningWorkspace";
 import FamilyLearningWorkspace from "./components/FamilyLearningWorkspace";
@@ -91,7 +91,7 @@ function WorkspaceApp() {
       {journey}
       {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : isSchoolLeadership ? <SchoolCommandCentre workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
-      {view === "operations" && (workspace.viewer.role==="teacher"?<ClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
+      {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
       {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} />}
