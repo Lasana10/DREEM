@@ -85,7 +85,7 @@ function WorkspaceApp() {
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<ClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicOperationsView workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
-      {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
+      {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} />}
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeacherDevelopmentView teachers={workspace.teachers} />}
