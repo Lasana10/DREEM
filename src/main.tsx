@@ -5,6 +5,7 @@ import App from "./App";
 import "./styles.css";
 import "./roleWorkspaces.css";
 import "./components/TransportManagerWorkspace.css";
+import "./components/TeacherClassroomWorkspace.css";
 import "./connectivity.css";
 
 createRoot(document.getElementById("root")!).render(
