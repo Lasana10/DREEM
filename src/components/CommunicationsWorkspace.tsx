@@ -7,7 +7,7 @@ import { SignalsView } from "./Views";
 const publisherRoles:Role[]=["platform_founder","school_owner","principal","administrator","academic_head"];
 function errorText(reason:unknown){return reason instanceof Error?reason.message:reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"?reason.message:"The notice operation could not be completed.";}
 
-export default function CommunicationsWorkspace({role,signals,onFeedback,onStatus}:{role:Role;signals:CommunitySignal[];onFeedback:()=>void;onStatus:(id:string,status:CommunitySignal["status"])=>void|Promise<void>}){
+export default function CommunicationsWorkspace({role,signals,onFeedback,onStatus}:{role:Role;signals:CommunitySignal[];onFeedback:()=>void;onStatus:(id:string,status:CommunitySignal["status"])=>Promise<void>}){
   const [announcements,setAnnouncements]=useState<SchoolAnnouncement[]|null>(null);
   const [announcementError,setAnnouncementError]=useState("");
   const [busy,setBusy]=useState(false);
