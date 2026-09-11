@@ -19,14 +19,14 @@ export async function loadLearnerFeeStatement(studentId: string): Promise<Learne
   });
   if (error) throw error;
   return (data ?? []).map((row: Record<string, unknown>) => ({
-    entryType: String(row.entry_type) as LearnerFeeStatementRow["entryType"],
-    entryId: String(row.entry_id),
+    entryType: String(row.row_kind) as LearnerFeeStatementRow["entryType"],
+    entryId: String(row.row_id),
     label: String(row.label ?? "School fee entry"),
     occurredOn: String(row.occurred_on ?? ""),
     dueOn: String(row.due_on ?? ""),
     amount: Number(row.amount ?? 0),
     status: String(row.status ?? ""),
-    receiptNumber: String(row.receipt_number ?? ""),
-    note: String(row.note ?? ""),
+    receiptNumber: row.row_kind === "payment" ? String(row.reference ?? "") : "",
+    note: row.row_kind === "adjustment" ? String(row.reference ?? "") : "",
   }));
 }
