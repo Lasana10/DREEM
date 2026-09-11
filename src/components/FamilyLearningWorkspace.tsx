@@ -4,7 +4,7 @@ import { submitAssignment, type WorkspaceData } from "../lib/repository";
 import { loadLearnerFeeStatement, type LearnerFeeStatementRow } from "../lib/familyFinance";
 import { loadPickupCircle, type PickupCircleMember } from "../lib/pickupCircle";
 
-function messageFrom(reason: unknown) { return reason instanceof Error ? reason.message : "The learning action could not be completed."; }
+function messageFrom(reason: unknown) { return reason instanceof Error ? reason.message : reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string" ? reason.message : "The learning action could not be completed."; }
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 const dateText=(value:string)=>value?new Date(value).toLocaleDateString():"—";
 
@@ -12,14 +12,16 @@ export default function FamilyLearningWorkspace({workspace,onRefresh}:{workspace
  const guardian=workspace.viewer.role==="parent";
  const [selectedStudentId,setSelectedStudentId]=useState(workspace.learners[0]?.id??"");
  const [busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
- const [statement,setStatement]=useState<LearnerFeeStatementRow[]>([]),[pickupCircle,setPickupCircle]=useState<PickupCircleMember[]>([]),[familyLoading,setFamilyLoading]=useState(false),[familyError,setFamilyError]=useState("");
+ const [familyRecords,setFamilyRecords]=useState<{key:string;statement:LearnerFeeStatementRow[];pickupCircle:PickupCircleMember[]}>({key:"",statement:[],pickupCircle:[]}),[familyLoading,setFamilyLoading]=useState(false),[familyError,setFamilyError]=useState("");
  const learner=workspace.learners.find(item=>item.id===selectedStudentId)??workspace.learners[0],learnerId=learner?.id??"",learnerClass=learner?.className??"";
+ const familyKey=JSON.stringify([workspace.viewer.id,guardian,learnerId]);
+ const statement=familyRecords.key===familyKey?familyRecords.statement:[],pickupCircle=familyRecords.key===familyKey?familyRecords.pickupCircle:[];
  const assignments=useMemo(()=>workspace.academics.assignmentsForLearners.filter(item=>item.status==="published"&&(!learnerClass||item.className===learnerClass)),[workspace.academics.assignmentsForLearners,learnerClass]);
  const submissions=workspace.academics.assignmentSubmissions.filter(item=>item.studentId===learnerId),reportCards=workspace.academics.reportCards.filter(item=>item.studentId===learnerId&&item.status==="published");
  const transportAssignment=workspace.transport.assignments.find(item=>item.studentId===learnerId&&item.status==="active"),transportTrips=transportAssignment?workspace.transport.trips.filter(item=>item.routeId===transportAssignment.routeId&&item.status!=="cancelled").slice(0,3):[];
  const submittedAssignmentIds=new Set(submissions.filter(item=>item.status!=="needs_revision").map(item=>item.assignmentId)),due=assignments.filter(item=>!submittedAssignmentIds.has(item.id));
  const charges=statement.filter(item=>item.entryType==="charge"),payments=statement.filter(item=>item.entryType==="payment"),adjustments=statement.filter(item=>item.entryType==="adjustment"),overdue=charges.filter(item=>item.dueOn&&new Date(item.dueOn).getTime()<Date.now()&&!["paid","waived"].includes(item.status));
- useEffect(()=>{let cancelled=false;if(!learnerId)return;setFamilyLoading(true);setFamilyError("");Promise.all([loadLearnerFeeStatement(learnerId),guardian?loadPickupCircle(learnerId):Promise.resolve([] as PickupCircleMember[])]).then(([nextStatement,nextPickup])=>{if(cancelled)return;setStatement(nextStatement);setPickupCircle(nextPickup);}).catch(reason=>{if(!cancelled)setFamilyError(messageFrom(reason));}).finally(()=>{if(!cancelled)setFamilyLoading(false);});return()=>{cancelled=true;};},[learnerId,guardian]);
+ useEffect(()=>{let cancelled=false;if(!learnerId)return;setFamilyLoading(true);setFamilyError("");Promise.all([loadLearnerFeeStatement(learnerId),guardian?loadPickupCircle(learnerId):Promise.resolve([] as PickupCircleMember[])]).then(([nextStatement,nextPickup])=>{if(cancelled)return;setFamilyRecords({key:familyKey,statement:nextStatement,pickupCircle:nextPickup});}).catch(reason=>{if(!cancelled){setFamilyRecords({key:familyKey,statement:[],pickupCircle:[]});setFamilyError(messageFrom(reason));}}).finally(()=>{if(!cancelled)setFamilyLoading(false);});return()=>{cancelled=true;};},[learnerId,guardian,familyKey]);
  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();const form=event.currentTarget,data=new FormData(form),file=data.get("file");setBusy(true);setMessage("");setError("");try{await submitAssignment({assignmentId:String(data.get("assignmentId")),studentId:learnerId,responseText:String(data.get("responseText")||""),file:file instanceof File&&file.size?file:undefined});form.reset();await onRefresh();setMessage("Work submitted and timestamped in the learner record.");}catch(reason){setError(messageFrom(reason));}finally{setBusy(false);}}
  if(!learner)return <div className="content"><section className="panel"><h2>No linked learner</h2><p>This account does not currently have a learner record it is authorised to view.</p></section></div>;
  return <div className="content">
