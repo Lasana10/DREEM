@@ -3,6 +3,7 @@ import AuthGate from "./components/AuthGate";
 import AdmissionsView from "./components/AdmissionsView";
 import AcademicOperationsView from "./components/AcademicOperationsView";
 import TransportView from "./components/TransportView";
+import DriverWorkspace from "./components/DriverWorkspace";
 import SecurityGateView from "./components/SecurityGateView";
 import BootstrapView from "./components/BootstrapView";
 import CareView from "./components/CareView";
@@ -77,7 +78,9 @@ function WorkspaceApp() {
   const openFeedback = () => setFeedbackOpen(true);
   const familyLearning = workspace.viewer.role === "student" || workspace.viewer.role === "parent";
   const journeyViews:ViewKey[]=["admissions","academics","finance","transport","care"];
-  const journey = journeyViews.includes(view) ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
+  const roleOwnsCompactTransportCycle=workspace.viewer.role==="driver"||workspace.viewer.role==="security_guard";
+  const showJourney=journeyViews.includes(view)&&!(view==="transport"&&roleOwnsCompactTransportCycle);
+  const journey = showJourney ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
@@ -91,7 +94,7 @@ function WorkspaceApp() {
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeacherDevelopmentView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
-      {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
+      {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView onRefresh={refreshWorkspace}/> : workspace.viewer.role === "driver" ? <DriverWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} setup={workspace.setup} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
       {view === "signals" && <CommunicationsWorkspace role={workspace.viewer.role} signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
