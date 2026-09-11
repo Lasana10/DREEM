@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
 import AdmissionsView from "./components/AdmissionsView";
-import AcademicOperationsView from "./components/AcademicOperationsView";
+import AcademicJourneyWorkspace from "./components/AcademicJourneyWorkspace";
 import TransportView from "./components/TransportView";
 import DriverWorkspace from "./components/DriverWorkspace";
 import SecurityGateView from "./components/SecurityGateView";
@@ -77,7 +77,7 @@ function WorkspaceApp() {
   const moveSignal = async (signalId: string, status: CommunitySignal["status"]) => { await updateSignalStatus(signalId,status); setWorkspace((current) => current ? { ...current, signals:current.signals.map(item=>item.id===signalId?{...item,status}:item) } : current); };
   const openFeedback = () => setFeedbackOpen(true);
   const familyLearning = workspace.viewer.role === "student" || workspace.viewer.role === "parent";
-  const journeyViews:ViewKey[]=["admissions","academics","finance","transport","care"];
+  const journeyViews:ViewKey[]=["admissions","finance","transport","care"];
   const roleOwnsCompactTransportCycle=workspace.viewer.role==="driver"||workspace.viewer.role==="security_guard";
   const showJourney=journeyViews.includes(view)&&!(view==="transport"&&roleOwnsCompactTransportCycle);
   const journey = showJourney ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
@@ -88,7 +88,7 @@ function WorkspaceApp() {
       {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<ClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
-      {view === "academics" && <AcademicOperationsView workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
+      {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
       {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} />}
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
