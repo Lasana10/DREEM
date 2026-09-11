@@ -11,6 +11,7 @@ import CredentialCardStudio from "./components/CredentialCardStudio";
 import FeedbackDialog from "./components/FeedbackDialog";
 import CommunicationsWorkspace from "./components/CommunicationsWorkspace";
 import OperationalWorkflowsView from "./components/OperationalWorkflows";
+import SchoolCommandCentre from "./components/SchoolCommandCentre";
 import Shell, { type ViewKey } from "./components/Shell";
 import { CommandView } from "./components/Views";
 import TeacherDevelopmentView from "./components/TeacherDevelopmentView";
@@ -33,6 +34,7 @@ const defaultViewByRole: Record<Role, ViewKey> = {
   platform_founder:"command",school_owner:"command",principal:"command",administrator:"command",academic_head:"command",
   bursar:"finance",accountant:"finance",teacher:"command",tutor:"learning",transport_manager:"transport",driver:"transport",security_guard:"transport",parent:"learning",student:"learning",auditor:"command",
 };
+const schoolLeadershipRoles:Role[]=["platform_founder","school_owner","principal","administrator","academic_head"];
 
 function WorkspaceApp() {
   const [view, setView] = useState<ViewKey>("command");
@@ -81,11 +83,12 @@ function WorkspaceApp() {
   const roleOwnsCompactTransportCycle=workspace.viewer.role==="driver"||workspace.viewer.role==="security_guard";
   const showJourney=journeyViews.includes(view)&&!(view==="transport"&&roleOwnsCompactTransportCycle);
   const journey = showJourney ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
+  const isSchoolLeadership=schoolLeadershipRoles.includes(workspace.viewer.role);
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
       {journey}
-      {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
+      {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : isSchoolLeadership ? <SchoolCommandCentre workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<ClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
