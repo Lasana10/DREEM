@@ -8,9 +8,10 @@ import BootstrapView from "./components/BootstrapView";
 import CareView from "./components/CareView";
 import CredentialCardStudio from "./components/CredentialCardStudio";
 import FeedbackDialog from "./components/FeedbackDialog";
+import CommunicationsWorkspace from "./components/CommunicationsWorkspace";
 import OperationalWorkflowsView from "./components/OperationalWorkflows";
 import Shell, { type ViewKey } from "./components/Shell";
-import { CommandView, SignalsView } from "./components/Views";
+import { CommandView } from "./components/Views";
 import TeacherDevelopmentView from "./components/TeacherDevelopmentView";
 import WorkspaceJourneyGuide from "./components/WorkspaceJourneyGuide";
 import { SchoolStudioView } from "./components/SchoolStudioView";
@@ -92,7 +93,7 @@ function WorkspaceApp() {
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} setup={workspace.setup} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
-      {view === "signals" && <SignalsView signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
+      {view === "signals" && <CommunicationsWorkspace role={workspace.viewer.role} signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
     </Shell>
     <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} onCreated={addSignal} />
