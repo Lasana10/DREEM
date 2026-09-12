@@ -1,4 +1,4 @@
-import { BusFront, Clock3, MapPinned, ShieldCheck, UsersRound, Wifi, WifiOff } from "lucide-react";
+import { BusFront, Clock3, MapPinned, UsersRound, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { type WorkspaceData } from "../lib/repository";
 import { prepareDriverOfflineContext, progressTransportTripResilient, replayDriverOffline } from "../lib/driverOffline";
