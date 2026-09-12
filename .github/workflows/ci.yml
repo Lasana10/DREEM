@@ -22,5 +22,7 @@ jobs:
           cache: npm
       - name: Install pinned dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Lint, test, typecheck and build
         run: npm run check
