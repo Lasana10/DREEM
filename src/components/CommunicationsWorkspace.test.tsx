@@ -5,10 +5,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { CommunitySignal } from "../domain/types";
 
 const loadAnnouncements=vi.fn();
+const loadAnnouncementReviewQueue=vi.fn();
 const publishAnnouncement=vi.fn();
+const reviewAnnouncement=vi.fn();
 vi.mock("../lib/announcements",()=>({
   loadAnnouncements:(...args:unknown[])=>loadAnnouncements(...args),
+  loadAnnouncementReviewQueue:(...args:unknown[])=>loadAnnouncementReviewQueue(...args),
   publishAnnouncement:(...args:unknown[])=>publishAnnouncement(...args),
+  reviewAnnouncement:(...args:unknown[])=>reviewAnnouncement(...args),
 }));
 
 import CommunicationsWorkspace from "./CommunicationsWorkspace";
@@ -16,7 +20,12 @@ import CommunicationsWorkspace from "./CommunicationsWorkspace";
 const signals:CommunitySignal[]=[];
 
 describe("school communications",()=>{
-  beforeEach(()=>{loadAnnouncements.mockResolvedValue([{id:"n1",title:"Parent meeting",body:"Friday at 15:00",audience:"families",priority:"important",publishedAt:"2026-09-11T10:00:00Z"}]);publishAnnouncement.mockResolvedValue("n2");});
+  beforeEach(()=>{
+    loadAnnouncements.mockResolvedValue([{id:"n1",title:"Parent meeting",body:"Friday at 15:00",audience:"families",priority:"important",category:"event",publicationStatus:"published",publishedAt:"2026-09-11T10:00:00Z"}]);
+    loadAnnouncementReviewQueue.mockResolvedValue([]);
+    publishAnnouncement.mockResolvedValue({id:"n2",status:"published"});
+    reviewAnnouncement.mockResolvedValue("published");
+  });
   afterEach(()=>{cleanup();vi.clearAllMocks();});
 
   it("loads persisted notices for ordinary members without exposing publishing",async()=>{
