@@ -20,6 +20,10 @@ export type AnnouncementReviewItem={
   id:string; title:string; body:string; audience:AnnouncementAudience; priority:AnnouncementPriority;
   category:AnnouncementCategory; requestedAt:string; createdBy:string;
 };
+type AnnouncementReviewRow={
+  id:unknown; title:unknown; body:unknown; audience:unknown; priority:unknown;
+  category:unknown; requested_at:unknown; created_by:unknown;
+};
 
 export async function loadAnnouncements():Promise<SchoolAnnouncement[]> {
   if(!isSupabaseConfigured || !supabase) return [];
@@ -67,7 +71,8 @@ export async function loadAnnouncementReviewQueue():Promise<AnnouncementReviewIt
   const context=await resolveActiveSchoolContext();
   const {data,error}=await supabase.rpc("dreem_get_announcement_review_queue",{p_school_id:context.schoolId});
   if(error) throw error;
-  return (data??[]).map((row:any)=>({
+  const rows=(data??[]) as AnnouncementReviewRow[];
+  return rows.map(row=>({
     id:String(row.id),title:String(row.title),body:String(row.body),
     audience:row.audience as AnnouncementAudience,priority:row.priority as AnnouncementPriority,
     category:row.category as AnnouncementCategory,requestedAt:String(row.requested_at),createdBy:String(row.created_by),
