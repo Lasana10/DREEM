@@ -1,0 +1,29 @@
+name: DREEM lockfile refresh
+
+on:
+  push:
+    branches: [dreem/operational-depth-3]
+
+permissions:
+  contents: read
+
+jobs:
+  lockfile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Use Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Refresh lockfile only
+        run: npm install --package-lock-only --ignore-scripts
+      - name: Upload patched lockfile
+        uses: actions/upload-artifact@v4
+        with:
+          name: patched-package-lock
+          path: package-lock.json
+          if-no-files-found: error
