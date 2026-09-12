@@ -1,5 +1,6 @@
-const CACHE = "dreem-shell-v1";
-const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/dreem-icon.svg"];
+const CACHE = "dreem-shell-v3";
+const ROLE_MANIFESTS = ["school", "teacher", "family", "student", "finance", "driver", "gate"].map((app) => `/manifests/${app}.webmanifest`);
+const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/dreem-icon.svg", ...ROLE_MANIFESTS];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(SHELL)));
@@ -15,9 +16,28 @@ self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
   const url = new URL(event.request.url);
   if (url.origin !== self.location.origin) return;
+
   if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).catch(() => caches.match("/offline.html")));
+    event.respondWith((async () => {
+      try {
+        const response = await fetch(event.request);
+        const cache = await caches.open(CACHE);
+        cache.put("/", response.clone());
+        return response;
+      } catch {
+        return (await caches.match("/")) || (await caches.match("/offline.html"));
+      }
+    })());
     return;
   }
-  event.respondWith(caches.match(event.request).then((cached) => cached || fetch(event.request)));
+
+  if (url.pathname.startsWith("/manifests/") || ["script", "style", "font", "image"].includes(event.request.destination)) {
+    event.respondWith((async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      const response = await fetch(event.request);
+      if (response.ok) (await caches.open(CACHE)).put(event.request, response.clone());
+      return response;
+    })());
+  }
 });

@@ -22,5 +22,21 @@ jobs:
           cache: npm
       - name: Install pinned dependencies
         run: npm ci
+      - name: Audit production dependencies
+        run: npm audit --omit=dev --audit-level=high
       - name: Lint, test, typecheck and build
         run: npm run check
+      - name: Smoke built application
+        run: |
+          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/dreem-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill $preview_pid 2>/dev/null || true' EXIT
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent --show-error http://127.0.0.1:4173/ > /tmp/dreem-index.html; then
+              break
+            fi
+            sleep 1
+          done
+          test -s /tmp/dreem-index.html
+          grep -q 'id="root"' /tmp/dreem-index.html
+          test -f dist/assets/$(find dist/assets -maxdepth 1 -type f -name 'index-*.js' -printf '%f\n' | head -n1)

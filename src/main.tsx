@@ -3,6 +3,9 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles.css";
+import "./roleWorkspaces.css";
+import "./components/TransportManagerWorkspace.css";
+import "./components/TeacherClassroomWorkspace.css";
 import "./connectivity.css";
 
 createRoot(document.getElementById("root")!).render(

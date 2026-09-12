@@ -1,0 +1,1 @@
+{"name":"DREEM Gate","short_name":"Gate","description":"Credential checks and safe learner release.","start_url":"/?app=gate","scope":"/","display":"standalone","background_color":"#f7f4ec","theme_color":"#123b2c","icons":[{"src":"/dreem-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]}

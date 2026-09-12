@@ -1,0 +1,30 @@
+create or replace function public.dreem_apply_fee_adjustment(p_fee_charge_id uuid,p_adjustment_type text,p_amount numeric,p_reason text,p_idempotency_key text)
+returns table(adjustment_id uuid, charge_status text, remaining_balance numeric) language plpgsql security definer set search_path='' as $$
+declare v_actor uuid:=(select auth.uid()); v_charge public.dreem_student_fee_charges%rowtype; v_id uuid; v_alloc numeric; v_adjust numeric; v_open numeric; v_due numeric; v_paid numeric;
+begin
+ if v_actor is null then raise exception 'Authentication is required.'; end if;
+ select * into v_charge from public.dreem_student_fee_charges where id=p_fee_charge_id for update;
+ if not found then raise exception 'Fee charge was not found.'; end if;
+ if not private.dreem_has_role(v_charge.school_id,array['leadership','bursar','accountant']) then raise exception 'Finance authorization is required.'; end if;
+ if p_adjustment_type not in ('scholarship','sibling_discount','concession','waiver','credit') or p_amount<=0 or nullif(trim(p_reason),'') is null then raise exception 'A valid adjustment amount, type and reason are required.'; end if;
+ select coalesce(sum(amount),0) into v_alloc from public.dreem_payment_allocations where fee_charge_id=v_charge.id;
+ select coalesce(sum(amount),0) into v_adjust from public.dreem_fee_adjustments where fee_charge_id=v_charge.id and status='approved';
+ v_open:=greatest(0,v_charge.amount-v_alloc-v_adjust); if p_amount>v_open then raise exception 'Adjustment exceeds the open charge balance.'; end if;
+ insert into public.dreem_fee_adjustments(school_id,student_id,fee_charge_id,adjustment_type,amount,reason,created_by,idempotency_key) values(v_charge.school_id,v_charge.student_id,v_charge.id,p_adjustment_type,p_amount,trim(p_reason),v_actor,p_idempotency_key) on conflict(school_id,idempotency_key) do update set idempotency_key=excluded.idempotency_key returning id into v_id;
+ select coalesce(sum(amount),0) into v_adjust from public.dreem_fee_adjustments where fee_charge_id=v_charge.id and status='approved'; v_open:=greatest(0,v_charge.amount-v_alloc-v_adjust);
+ update public.dreem_student_fee_charges set waived_amount=v_adjust,status=case when v_open=0 and v_alloc>0 then 'paid' when v_open=0 then 'waived' when v_alloc>0 or v_adjust>0 then 'partially_paid' else 'due' end,updated_at=now() where id=v_charge.id;
+ select coalesce(sum(c.amount-c.waived_amount),0) into v_due from public.dreem_student_fee_charges c where c.fee_account_id=v_charge.fee_account_id;
+ select coalesce(sum(p.amount),0) into v_paid from public.dreem_financial_payments p where p.fee_account_id=v_charge.fee_account_id and p.reverses_payment_id is null and not exists(select 1 from public.dreem_financial_payments r where r.reverses_payment_id=p.id);
+ update public.fee_accounts a set amount_due=v_due,amount_paid=v_paid,balance_due=greatest(0,v_due-v_paid),status=case when greatest(0,v_due-v_paid)=0 then 'paid' else 'open' end,updated_at=now() where a.id=v_charge.fee_account_id;
+ perform private.dreem_write_event(v_charge.school_id,'student',v_charge.student_id,'finance.fee_adjusted',concat('finance.adjustment:',p_idempotency_key),jsonb_build_object('adjustment_id',v_id,'charge_id',v_charge.id,'type',p_adjustment_type,'amount',p_amount,'reason',trim(p_reason)));
+ adjustment_id:=v_id;charge_status:=case when v_open=0 and v_alloc>0 then 'paid' when v_open=0 then 'waived' else 'partially_paid' end;remaining_balance:=v_open;return next;
+end;$$;
+revoke all on function public.dreem_apply_fee_adjustment(uuid,text,numeric,text,text) from public; grant execute on function public.dreem_apply_fee_adjustment(uuid,text,numeric,text,text) to authenticated;
+create or replace function private.dreem_reverse_payment_allocations() returns trigger language plpgsql security definer set search_path='' as $$
+declare v_original uuid; v_account uuid; v_total numeric; v_due numeric;
+begin if new.reverses_payment_id is null then return new; end if; v_original:=new.reverses_payment_id; select fee_account_id into v_account from public.dreem_financial_payments where id=v_original and school_id=new.school_id; if v_account is null then raise exception 'Original payment was not found for reversal.'; end if;
+ delete from public.dreem_payment_allocations where payment_id=v_original;
+ update public.dreem_student_fee_charges c set status=case when greatest(0,c.amount-c.waived_amount-coalesce((select sum(pa.amount) from public.dreem_payment_allocations pa where pa.fee_charge_id=c.id),0))=0 and coalesce((select sum(pa.amount) from public.dreem_payment_allocations pa where pa.fee_charge_id=c.id),0)>0 then 'paid' when greatest(0,c.amount-c.waived_amount)=0 then 'waived' when coalesce((select sum(pa.amount) from public.dreem_payment_allocations pa where pa.fee_charge_id=c.id),0)>0 or c.waived_amount>0 then 'partially_paid' else 'due' end,updated_at=now() where c.fee_account_id=v_account;
+ select coalesce(sum(p.amount),0) into v_total from public.dreem_financial_payments p where p.fee_account_id=v_account and p.reverses_payment_id is null and not exists(select 1 from public.dreem_financial_payments r where r.reverses_payment_id=p.id); select coalesce(sum(c.amount-c.waived_amount),0) into v_due from public.dreem_student_fee_charges c where c.fee_account_id=v_account;
+ update public.fee_accounts a set amount_due=v_due,amount_paid=v_total,balance_due=greatest(0,v_due-v_total),status=case when greatest(0,v_due-v_total)=0 then 'paid' else 'open' end,updated_at=now() where a.id=v_account; return new; end;$$;
+drop trigger if exists dreem_reverse_payment_allocations_after_insert on public.dreem_financial_payments; create trigger dreem_reverse_payment_allocations_after_insert after insert on public.dreem_financial_payments for each row when (new.reverses_payment_id is not null) execute function private.dreem_reverse_payment_allocations();
