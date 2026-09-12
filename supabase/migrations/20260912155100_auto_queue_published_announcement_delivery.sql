@@ -1,0 +1,24 @@
+create or replace function public.dreem_publish_announcement_v2(p_school_id uuid,p_title text,p_body text,p_audience text default 'all',p_priority text default 'normal',p_category text default 'general',p_expires_at timestamptz default null)
+returns table(announcement_id uuid,publication_status text) language plpgsql security definer set search_path='' as $$
+declare v_role text;v_status text;v_id uuid;
+begin
+ select m.role into v_role from public.dreem_school_memberships m where m.school_id=p_school_id and m.profile_id=(select auth.uid()) and m.status='approved' limit 1;
+ if v_role is null then raise exception 'No approved membership for this school';end if;
+ if p_audience not in ('all','staff','families','students') then raise exception 'Invalid audience';end if;
+ if p_priority not in ('normal','important','urgent') then raise exception 'Invalid priority';end if;
+ if p_category not in ('general','administrative','academic','event','transport','finance','emergency') then raise exception 'Invalid category';end if;
+ if v_role in ('platform_founder','school_owner','principal') then v_status:='published';
+ elsif v_role='administrator' then if p_category not in ('general','administrative','event','transport') then raise exception 'Administrator cannot publish this category';end if;v_status:=case when p_priority='urgent' then 'pending_approval' else 'published' end;
+ elsif v_role='academic_head' then if p_category not in ('general','academic','event') then raise exception 'Academic Head cannot publish this category';end if;v_status:=case when p_priority='urgent' then 'pending_approval' else 'published' end;
+ elsif v_role='transport_manager' then if p_category<>'transport' then raise exception 'Transport Manager can publish transport notices only';end if;if p_audience='all' then raise exception 'Transport Manager cannot publish to the whole school';end if;v_status:=case when p_priority='urgent' then 'pending_approval' else 'published' end;
+ else raise exception 'This role cannot publish official notices';end if;
+ insert into public.dreem_announcements(school_id,title,body,audience,priority,category,publication_status,published_at,expires_at,created_by,requested_at) values(p_school_id,trim(p_title),trim(p_body),p_audience,p_priority,p_category,v_status,case when v_status='published' then now() else null end,p_expires_at,(select auth.uid()),now()) returning id into v_id;
+ insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail) values(p_school_id,(select auth.uid()),case when v_status='published' then 'announcement.published' else 'announcement.requested' end,'announcement',v_id,jsonb_build_object('audience',p_audience,'priority',p_priority,'category',p_category,'status',v_status));
+ if v_status='published' then perform public.dreem_queue_announcement_delivery(v_id);end if;return query select v_id,v_status;
+end;$$;
+revoke all on function public.dreem_publish_announcement_v2(uuid,text,text,text,text,text,timestamptz) from public;grant execute on function public.dreem_publish_announcement_v2(uuid,text,text,text,text,text,timestamptz) to authenticated;
+
+create or replace function public.dreem_review_announcement(p_announcement_id uuid,p_decision text) returns text language plpgsql security definer set search_path='' as $$
+declare a public.dreem_announcements%rowtype;v_status text;
+begin if p_decision not in ('approve','reject') then raise exception 'Invalid decision';end if;select * into a from public.dreem_announcements where id=p_announcement_id;if not found then raise exception 'Announcement not found';end if;if not private.dreem_has_role(a.school_id,array['leadership']) then raise exception 'Leadership approval required';end if;if a.publication_status<>'pending_approval' then raise exception 'Announcement is not awaiting approval';end if;v_status:=case when p_decision='approve' then 'published' else 'rejected' end;update public.dreem_announcements set publication_status=v_status,approved_by=(select auth.uid()),approved_at=now(),published_at=case when p_decision='approve' then now() else published_at end,updated_at=now() where id=p_announcement_id;insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail) values(a.school_id,(select auth.uid()),case when p_decision='approve' then 'announcement.approved' else 'announcement.rejected' end,'announcement',a.id,jsonb_build_object('decision',p_decision));if p_decision='approve' then perform public.dreem_queue_announcement_delivery(a.id);end if;return v_status;end;$$;
+revoke all on function public.dreem_review_announcement(uuid,text) from public;grant execute on function public.dreem_review_announcement(uuid,text) to authenticated;
