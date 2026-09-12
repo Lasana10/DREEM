@@ -13,6 +13,7 @@ import FeedbackDialog from "./components/FeedbackDialog";
 import CommunicationsWorkspace from "./components/CommunicationsWorkspace";
 import OperationalWorkflowsView from "./components/OperationalWorkflows";
 import SchoolCommandCentre from "./components/SchoolCommandCentre";
+import SchoolContextPicker from "./components/SchoolContextPicker";
 import Shell, { type ViewKey } from "./components/Shell";
 import { CommandView } from "./components/Views";
 import TeacherDevelopmentView from "./components/TeacherDevelopmentView";
@@ -28,6 +29,7 @@ import StudentWorkspace from "./components/StudentWorkspace";
 import type { BootstrapStatus, CommunitySignal, Role } from "./domain/types";
 import { buildOperationalPulse } from "./domain/rules";
 import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loadBootstrapStatus, loadWorkspace, recordAssessment, recordAttendance, saveSchoolBrand, saveSchoolSetup, updateAccessStatus, updateSignalStatus, uploadSchoolLogo, type WorkspaceData } from "./lib/repository";
+import { listApprovedSchoolContexts, selectActiveSchoolContext, type SchoolMembershipContext } from "./lib/schoolContext";
 import { supabase } from "./lib/supabase";
 import { applyRoleAppIdentity } from "./lib/roleApp";
 
@@ -43,6 +45,11 @@ function WorkspaceApp() {
   const [error, setError] = useState("");
   const [bootstrap, setBootstrap] = useState<BootstrapStatus | null>(null);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const [schoolChoices,setSchoolChoices]=useState<SchoolMembershipContext[]|null>(null);
+
+  async function enterWorkspace(){
+    const data=await loadWorkspace();applyRoleAppIdentity(data.viewer.role);setWorkspace(data);setView(defaultViewByRole[data.viewer.role]);setBootstrap(null);setSchoolChoices(null);setError("");
+  }
 
   useEffect(() => {
     let active = true;
@@ -52,6 +59,9 @@ function WorkspaceApp() {
         if (active) { applyRoleAppIdentity(data.viewer.role); setWorkspace(data); setView(defaultViewByRole[data.viewer.role]); setBootstrap(null); setError(""); }
       }catch(reason){
         const message = reason instanceof Error ? reason.message : (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string" ? reason.message : "The school workspace could not be loaded.");
+        if(message==="DREEM_SCHOOL_SELECTION_REQUIRED"){
+          try{const contexts=await listApprovedSchoolContexts();if(active){setSchoolChoices(contexts.memberships);setError("");}}catch(inner){if(active)setError(inner instanceof Error?inner.message:"School choices could not be loaded.");}return;
+        }
         if (/active school membership|attached to an active school/i.test(message)) {
           try{
             const bootstrapState = await loadBootstrapStatus();
@@ -69,8 +79,9 @@ function WorkspaceApp() {
     return () => { active = false; };
   }, []);
 
+  if(schoolChoices)return <SchoolContextPicker memberships={schoolChoices} onChoose={async schoolId=>{selectActiveSchoolContext(schoolId,schoolChoices);await enterWorkspace();}} onSignOut={async()=>{await supabase?.auth.signOut();}}/>;
   if (error) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><h1>Workspace unavailable</h1><p>{error}</p><button onClick={() => window.location.reload()}>Try again</button></div></div>;
-  if (bootstrap) return <BootstrapView status={bootstrap} onSignOut={async()=>{await supabase?.auth.signOut();}} onBootstrap={async(payload)=>{await bootstrapSchool(payload);const data=await loadWorkspace();applyRoleAppIdentity(data.viewer.role);setWorkspace(data);setBootstrap(null);}} />;
+  if (bootstrap) return <BootstrapView status={bootstrap} onSignOut={async()=>{await supabase?.auth.signOut();}} onBootstrap={async(payload)=>{await bootstrapSchool(payload);await enterWorkspace();}} />;
   if (!workspace) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><p>Preparing the school operating picture…</p></div></div>;
 
   const addSignal = (signal: CommunitySignal) => setWorkspace((current) => current ? { ...current, signals: [signal, ...current.signals] } : current);
