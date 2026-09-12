@@ -35,6 +35,11 @@ export async function reviewRefund(input:{refundId:string;decision:"approve"|"re
   const {data,error}=await supabase.rpc("dreem_review_refund",{p_refund_id:input.refundId,p_decision:input.decision,p_note:input.note});
   if(error)throw error;return String(data);
 }
+export async function executeRefund(input:{refundId:string;method:"cash"|"momo"|"bank_transfer"|"card"|"cheque";externalReference?:string;evidenceReference:string;idempotencyKey:string}){
+  if(!isSupabaseConfigured||!supabase)return crypto.randomUUID();
+  const {data,error}=await supabase.rpc("dreem_execute_approved_refund",{p_refund_id:input.refundId,p_method:input.method,p_external_reference:input.externalReference||null,p_evidence_reference:input.evidenceReference,p_idempotency_key:input.idempotencyKey});
+  if(error)throw error;return String(data);
+}
 export async function postJournalEntry(input:{entryType:"charge"|"payment"|"allocation"|"waiver"|"refund"|"reversal"|"deposit"|"reconciliation"|"adjustment";referenceType:string;referenceId?:string;studentId?:string;debitAccount:string;creditAccount:string;amount:number;description:string;idempotencyKey:string;reversesEntryId?:string}){
   if(!isSupabaseConfigured||!supabase)return crypto.randomUUID();
   const context=await resolveActiveSchoolContext();
