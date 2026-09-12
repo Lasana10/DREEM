@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BellRing, Mail, MessageSquareText, Send } from "lucide-react";
 import type { Role } from "../domain/types";
 import { disableNotificationChannel, dispatchQueuedNotifications, enableVerifiedAuthChannel, loadDeliverySummary, loadMyNotificationEndpoints, type DeliverySummary, type NotificationEndpoint } from "../lib/notificationChannels";
@@ -8,8 +8,8 @@ const errorText=(reason:unknown)=>reason instanceof Error?reason.message:"Notifi
 export default function NotificationDeliveryPanel({role}:{role:Role}){
  const [endpoints,setEndpoints]=useState<NotificationEndpoint[]>([]),[summary,setSummary]=useState<DeliverySummary[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
  const canDispatch=admins.includes(role);
- async function reload(){const [mine,delivery]=await Promise.all([loadMyNotificationEndpoints(),canDispatch?loadDeliverySummary():Promise.resolve([])]);setEndpoints(mine);setSummary(delivery);}
- useEffect(()=>{reload().catch(reason=>setError(errorText(reason)));},[canDispatch]);
+ const reload=useCallback(async()=>{const [mine,delivery]=await Promise.all([loadMyNotificationEndpoints(),canDispatch?loadDeliverySummary():Promise.resolve([])]);setEndpoints(mine);setSummary(delivery);},[canDispatch]);
+ useEffect(()=>{reload().catch(reason=>setError(errorText(reason)));},[reload]);
  async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await reload();setMessage(success);}catch(reason){setError(errorText(reason));}finally{setBusy(false);}}
  const active=(channel:string)=>endpoints.some(item=>item.channel===channel&&item.enabled&&item.verified);
  return <section className="panel notification-delivery-panel"><div className="panel-title"><BellRing/><div><span>DELIVERY CHANNELS</span><h3>In-app first, verified external channels when enabled</h3><p>DREEM never marks an external message as sent unless the provider accepts it.</p></div></div>{error?<div className="form-status error" role="alert">{error}</div>:null}{message?<div className="form-status success" role="status">{message}</div>:null}
