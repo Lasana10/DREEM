@@ -209,7 +209,7 @@ insert into public.dreem_position_authorities(position_id,scope)
 select p.id,scope
 from public.dreem_school_positions p
 cross join lateral unnest(
-  private.dreem_legacy_authority_scopes(replace(p.code,'legacy-','')::text)
+  private.dreem_legacy_authority_scopes(replace(replace(p.code,'legacy-',''),'-','_')::text)
 ) as scope
 where p.code like 'legacy-%'
 on conflict do nothing;
