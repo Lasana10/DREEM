@@ -92,7 +92,7 @@ function WorkspaceApp() {
   const roleOwnsCompactTransportCycle=["transport_manager","driver","security_guard"].includes(workspace.viewer.role);
   const showJourney=journeyViews.includes(view)&&!(view==="transport"&&roleOwnsCompactTransportCycle);
   const journey = showJourney ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
-  const isSchoolLeadership=canAuthority(workspace.viewer,"institutional_leadership")||canAuthority(workspace.viewer,"academics")||canAuthority(workspace.viewer,"admissions")||canAuthority(workspace.viewer,"finance_approval")||canAuthority(workspace.viewer,"transport");
+  const isSchoolLeadership=canAuthority(workspace.viewer,"institutional_leadership")||canAuthority(workspace.viewer,"academics_approval")||canAuthority(workspace.viewer,"admissions_decision")||canAuthority(workspace.viewer,"finance_approval")||canAuthority(workspace.viewer,"transport_management");
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
