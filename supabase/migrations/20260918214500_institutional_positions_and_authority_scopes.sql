@@ -122,17 +122,17 @@ immutable
 set search_path=''
 as $$
   select case p_role
-    when 'platform_founder' then array['institutional_leadership','academics','admissions','finance_collection','finance_approval','safeguarding','transport','gate','staff_management','communications','audit','school_configuration']::text[]
-    when 'school_owner' then array['institutional_leadership','academics','admissions','finance_approval','safeguarding','transport','staff_management','communications','audit','school_configuration']::text[]
-    when 'principal' then array['institutional_leadership','academics','admissions','finance_approval','safeguarding','transport','staff_management','communications','school_configuration']::text[]
-    when 'administrator' then array['admissions','staff_management','communications','school_configuration']::text[]
-    when 'academic_head' then array['academics','admissions','communications']::text[]
+    when 'platform_founder' then array['institutional_leadership','academics_delivery','academics_approval','admissions_intake','admissions_decision','finance_collection','finance_approval','safeguarding','transport_management','transport_operation','gate','staff_management','communications_publish','communications_approve','audit','school_configuration']::text[]
+    when 'school_owner' then array['institutional_leadership','academics_approval','admissions_decision','finance_approval','safeguarding','transport_management','staff_management','communications_publish','communications_approve','audit','school_configuration']::text[]
+    when 'principal' then array['institutional_leadership','academics_approval','admissions_decision','finance_approval','safeguarding','transport_management','staff_management','communications_publish','communications_approve','school_configuration']::text[]
+    when 'administrator' then array['admissions_intake','staff_management','communications_publish','school_configuration']::text[]
+    when 'academic_head' then array['academics_approval','admissions_decision','communications_publish']::text[]
     when 'bursar' then array['finance_collection']::text[]
     when 'accountant' then array['finance_approval','audit']::text[]
-    when 'teacher' then array['academics']::text[]
-    when 'tutor' then array['academics']::text[]
-    when 'transport_manager' then array['transport']::text[]
-    when 'driver' then array['transport']::text[]
+    when 'teacher' then array['academics_delivery']::text[]
+    when 'tutor' then array['academics_delivery']::text[]
+    when 'transport_manager' then array['transport_management','communications_publish']::text[]
+    when 'driver' then array['transport_operation']::text[]
     when 'security_guard' then array['gate']::text[]
     when 'auditor' then array['audit']::text[]
     else array[]::text[]
@@ -347,7 +347,7 @@ begin
 
   delete from public.dreem_position_authorities where position_id=v_position_id;
   foreach v_scope in array coalesce(p_scopes,array[]::text[]) loop
-    if v_scope not in ('institutional_leadership','academics','admissions','finance_collection','finance_approval','safeguarding','transport','gate','staff_management','communications','audit','school_configuration') then
+    if v_scope not in ('institutional_leadership','academics_delivery','academics_approval','admissions_intake','admissions_decision','finance_collection','finance_approval','safeguarding','transport_management','transport_operation','gate','staff_management','communications_publish','communications_approve','audit','school_configuration') then
       raise exception 'Invalid authority scope: %',v_scope;
     end if;
     insert into public.dreem_position_authorities(position_id,scope) values(v_position_id,v_scope) on conflict do nothing;
@@ -419,7 +419,7 @@ begin
 
   delete from public.dreem_position_authorities where position_id=v_position_id;
   foreach v_scope in array coalesce(p_scopes,array[]::text[]) loop
-    if v_scope not in ('institutional_leadership','academics','admissions','finance_collection','finance_approval','safeguarding','transport','gate','staff_management','communications','audit','school_configuration') then
+    if v_scope not in ('institutional_leadership','academics_delivery','academics_approval','admissions_intake','admissions_decision','finance_collection','finance_approval','safeguarding','transport_management','transport_operation','gate','staff_management','communications_publish','communications_approve','audit','school_configuration') then
       raise exception 'Invalid authority scope: %',v_scope;
     end if;
     insert into public.dreem_position_authorities(position_id,scope)
