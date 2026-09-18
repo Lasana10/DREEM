@@ -1,14 +1,17 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { BadgeDollarSign, BookOpenCheck, ReceiptText, Scale } from "lucide-react";
 import type { Role } from "../domain/types";
+import type { AuthorityScope } from "../lib/authority";
+import { canAuthority } from "../lib/access";
 import { executeRefund, loadInstitutionFinance, postJournalEntry, requestRefund, reviewRefund, type FinanceControlSnapshot, type JournalEntry, type RefundRequestRow, type RefundablePayment } from "../lib/financeInstitution";
 
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 const errorText=(reason:unknown)=>reason instanceof Error?reason.message:"Finance control action could not be completed.";
 
-export default function FinanceInstitutionControls({role,onChanged}:{role:Role;onChanged:()=>Promise<void>}){
+export default function FinanceInstitutionControls({role,authorityScopes,onChanged}:{role:Role;authorityScopes?:AuthorityScope[];onChanged:()=>Promise<void>}){
   const [snapshot,setSnapshot]=useState<FinanceControlSnapshot|null>(null),[refunds,setRefunds]=useState<RefundRequestRow[]>([]),[payments,setPayments]=useState<RefundablePayment[]>([]),[journal,setJournal]=useState<JournalEntry[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
-  const canRequest=["bursar","platform_founder","school_owner","principal"].includes(role),canReview=["accountant","platform_founder","school_owner","principal"].includes(role),canExecute=["bursar","platform_founder","school_owner","principal"].includes(role),canPost=["accountant","platform_founder","school_owner","principal"].includes(role),readOnly=role==="auditor";
+  const viewer={role,authorityScopes};
+  const canRequest=canAuthority(viewer,"finance_collection"),canReview=canAuthority(viewer,"finance_approval"),canExecute=canAuthority(viewer,"finance_collection"),canPost=canAuthority(viewer,"finance_approval"),readOnly=canAuthority(viewer,"audit")&&!canReview&&!canRequest;
   async function reload(){const data=await loadInstitutionFinance();setSnapshot(data.snapshot);setRefunds(data.refunds);setPayments(data.payments);setJournal(data.journal);}
   useEffect(()=>{reload().catch(reason=>setError(errorText(reason)));},[]);
   async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await Promise.all([reload(),onChanged()]);setMessage(success);}catch(reason){setError(errorText(reason));}finally{setBusy(false);}}
