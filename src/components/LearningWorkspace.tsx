@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
 import { createIdempotencyKey } from "../domain/rules";
+import { canAuthority } from "../lib/access";
 import {
   createAssignment,
   gradeAssignmentSubmission,
@@ -41,22 +42,10 @@ export default function LearningWorkspace({
   onRefresh: () => Promise<void>;
 }) {
   const role = workspace.viewer.role,
-    canCreate = [
-      "platform_founder",
-      "school_owner",
-      "principal",
-      "academic_head",
-      "teacher",
-    ].includes(role),
+    canCreate = canAuthority(workspace.viewer,"academics_delivery"),
+    canReview = canAuthority(workspace.viewer,"academics_approval") || canAuthority(workspace.viewer,"academics_delivery"),
     family = role === "student" || role === "parent",
-    canSubmit =
-      family ||
-      [
-        "platform_founder",
-        "school_owner",
-        "principal",
-        "administrator",
-      ].includes(role);
+    canSubmit = family;
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
@@ -364,7 +353,7 @@ export default function LearningWorkspace({
             </form>
           )}
         </section>
-        {!family && (
+        {canReview && !family && (
           <section className="panel">
             <Title
               icon={<ClipboardCheck />}
