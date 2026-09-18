@@ -4,7 +4,7 @@ import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
 type QueueItem={id:string;view:ViewKey;title:string;detail:string;count:number;tone:"urgent"|"attention"|"normal";owner:string;icon:React.ReactNode};
 export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:WorkspaceData;onNavigate:(view:ViewKey)=>void}){
- const viewer=workspace.viewer,role=viewer.role,ownerView=canAuthority(viewer,"institutional_leadership");
+ const viewer=workspace.viewer,ownerView=canAuthority(viewer,"institutional_leadership");
  const admissionPending=workspace.admissions.filter(item=>!["admitted","rejected","withdrawn"].includes(item.status)).length;
  const lessonReview=workspace.academics.lessonPlans.filter(item=>item.status==="submitted").length,assessmentReview=workspace.academics.assessments.filter(item=>item.status==="submitted").length;
  const careOpen=workspace.cases.filter(item=>!["resolved","closed"].includes(item.status)).length,urgentCare=workspace.cases.filter(item=>!["resolved","closed"].includes(item.status)&&["urgent","critical"].includes(item.priority)).length;
