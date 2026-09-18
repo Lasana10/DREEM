@@ -60,7 +60,7 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
     {error?<div className="form-status error" role="alert">{error}</div>:null}
     {message?<div className="form-status success" role="status"><BadgeCheck/>{message}</div>:null}
 
-    <div className="role-guide">{positionPresets.map((preset,index)=><button type="button" key={\`\${preset.title}:\${index}\`} onClick={()=>applyPreset(index)}><strong>{preset.title}</strong><small>{preset.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")}</small></button>)}</div>
+    <div className="role-guide">{positionPresets.map((preset,index)=><button type="button" key={preset.title+":"+index} onClick={()=>applyPreset(index)}><strong>{preset.title}</strong><small>{preset.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")}</small></button>)}</div>
 
     <form onSubmit={save}>
       <div className="form-grid">
