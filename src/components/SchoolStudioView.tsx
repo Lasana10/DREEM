@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import { CheckCircle2, ImagePlus, Palette, Printer, Settings2, ShieldCheck, Upload } from "lucide-react";
-import type { SchoolBrand, SchoolSetup } from "../domain/types";
+import type { AccessMembership, SchoolBrand, SchoolSetup } from "../domain/types";
+import InstitutionAuthorityStudio from "./InstitutionAuthorityStudio";
 import { buildClassPack, classPacks, type ClassPackId } from "../domain/classPacks";
 
 const palettes = [
@@ -14,7 +15,7 @@ const palettes = [
 function normalizePrefix(value:string){return value.toUpperCase().replace(/[^A-Z0-9]/g,"").slice(0,8)}
 function contrast(hex:string){const value=hex.replace("#","");const rgb=[0,2,4].map(i=>parseInt(value.slice(i,i+2),16)/255).map(v=>v<=.03928?v/12.92:((v+.055)/1.055)**2.4);return .2126*rgb[0]+.7152*rgb[1]+.0722*rgb[2]}
 
-export function SchoolStudioView({brand,setup,onSave,onSaveSetup,onUploadLogo}:{brand:SchoolBrand;setup:SchoolSetup;onSave:(brand:SchoolBrand)=>Promise<void>;onSaveSetup:(setup:SchoolSetup)=>Promise<void>;onUploadLogo:(file:File)=>Promise<string>}){
+export function SchoolStudioView({brand,setup,memberships,onSave,onSaveSetup,onUploadLogo,onAuthorityChanged}:{brand:SchoolBrand;setup:SchoolSetup;memberships?:AccessMembership[];onSave:(brand:SchoolBrand)=>Promise<void>;onSaveSetup:(setup:SchoolSetup)=>Promise<void>;onUploadLogo:(file:File)=>Promise<string>;onAuthorityChanged?:()=>Promise<void>}){
   const [draft,setDraft]=useState(brand),[setupDraft,setSetupDraft]=useState(setup),[status,setStatus]=useState(""),[failed,setFailed]=useState(false),[uploading,setUploading]=useState(false);
   const [selectedPack,setSelectedPack]=useState<ClassPackId>("bilingual-primary");
   useEffect(()=>setDraft(brand),[brand]);
@@ -37,6 +38,7 @@ async function saveStructure(event:FormEvent){event.preventDefault();setFailed(f
       </form>
       <section className="panel document-preview"><span className="kicker">LIVE SCHOOL ID PREVIEW</span><div className="identity-card improved-id" style={{background:draft.primaryColor,color:contrast(draft.primaryColor)<.35?"white":"#17221c"}}><header>{draft.logoUrl?<img src={draft.logoUrl} alt=""/>:<span style={{background:draft.accentColor}}>{draft.shortName.slice(0,3)}</span>}<div><strong>{draft.name}</strong><small>{draft.motto||"School motto"}</small></div></header><section><div className="photo"><ImagePlus/><small>Learner photo</small></div><div><span className="id-label">STUDENT</span><h3>Demo Learner</h3><p>Class 5</p><strong className="matricule">{draft.studentIdPrefix}-26-1001</strong><small>Valid through 31 July 2027</small></div><div className="qr-placeholder"><span>QR issued with learner credential</span></div></section><footer><ShieldCheck/>The final QR is generated only after credential issuance and reveals role-authorized information.</footer></div><button type="button" onClick={()=>window.print()}><Printer/>Print identity proof</button><div className="record-rule"><strong>Record lifecycle</strong><p>Drafts can be edited. Submitted records need a reasoned amendment. Approved records are corrected by a new version or reversal, never silent overwrite.</p></div></section>
     </div>
+    {memberships?<InstitutionAuthorityStudio memberships={memberships} onChanged={onAuthorityChanged}/>:null}
     <form className="panel settings-form structure-editor" onSubmit={saveStructure}><div className="panel-title"><div><span>ACADEMIC OPERATIONS</span><h3>Build the school structure</h3></div><button className="primary" type="submit"><Settings2/>Save structure</button></div><div className="pack-builder"><div><span className="kicker">STARTING POINT, NEVER A LIMIT</span><h3>Choose a class pack</h3><p>Use a bilingual, English or French baseline, then adapt sections, streams, classes and subjects to the school&apos;s actual organisation.</p></div><div className="pack-controls"><label>Base pack<select aria-label="Class pack" value={selectedPack} onChange={e=>setSelectedPack(e.target.value as ClassPackId)}>{classPacks.map(pack=><option key={pack.id} value={pack.id}>{pack.name}</option>)}</select></label><button type="button" onClick={applyPack}>Load editable draft</button></div><div className="pack-grid">{classPacks.map(pack=><article className={selectedPack===pack.id?"selected":""} key={pack.id} onClick={()=>setSelectedPack(pack.id)}><strong>{pack.name}</strong><small>{pack.description}</small><span>{pack.levels.length} levels · {pack.languages}</span></article>)}</div><div className="form-status success"><CheckCircle2/>Customise names, sections, streams, subjects and progression before saving. Published records are versioned; they are never silently overwritten.</div></div><StructureEditor value={setupDraft} onChange={setSetupDraft}/></form>
   </div>
 }
