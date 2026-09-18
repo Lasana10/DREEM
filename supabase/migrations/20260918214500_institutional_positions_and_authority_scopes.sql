@@ -148,7 +148,7 @@ language sql
 stable
 security definer
 set search_path=''
-as $$
+as $
   with membership as (
     select m.id,m.role
     from public.dreem_school_memberships m
@@ -157,18 +157,34 @@ as $$
       and m.status='approved'
     limit 1
   ),
+  explicit_position as (
+    select exists(
+      select 1
+      from membership m
+      join public.dreem_position_assignments x on x.membership_id=m.id and x.school_id=p_school_id and x.status='active'
+      join public.dreem_school_positions p on p.id=x.position_id and p.is_active
+      where p.code not like 'legacy-%'
+        and (x.starts_on is null or x.starts_on<=current_date)
+        and (x.ends_on is null or x.ends_on>=current_date)
+    ) as present
+  ),
   assigned as (
     select distinct a.scope
     from membership m
     join public.dreem_position_assignments x on x.membership_id=m.id and x.school_id=p_school_id and x.status='active'
     join public.dreem_school_positions p on p.id=x.position_id and p.is_active
     join public.dreem_position_authorities a on a.position_id=p.id
+    cross join explicit_position e
     where (x.starts_on is null or x.starts_on<=current_date)
       and (x.ends_on is null or x.ends_on>=current_date)
+      and (not e.present or p.code not like 'legacy-%')
   )
   select exists(select 1 from assigned where scope=p_scope)
-    or exists(select 1 from membership m where p_scope=any(private.dreem_legacy_authority_scopes(m.role)));
-$$;
+    or exists(
+      select 1 from membership m cross join explicit_position e
+      where not e.present and p_scope=any(private.dreem_legacy_authority_scopes(m.role))
+    );
+$;
 
 revoke all on function public.dreem_has_authority(uuid,text) from public;
 grant execute on function public.dreem_has_authority(uuid,text) to authenticated;
@@ -254,8 +270,29 @@ as $$
           and x.status='active'
           and (x.starts_on is null or x.starts_on<=current_date)
           and (x.ends_on is null or x.ends_on>=current_date)
+          and (
+            p.code not like 'legacy-%'
+            or not exists(
+              select 1
+              from public.dreem_position_assignments x2
+              join public.dreem_school_positions p2 on p2.id=x2.position_id and p2.is_active
+              where x2.membership_id=m.id and x2.school_id=m.school_id and x2.status='active'
+                and p2.code not like 'legacy-%'
+                and (x2.starts_on is null or x2.starts_on<=current_date)
+                and (x2.ends_on is null or x2.ends_on>=current_date)
+            )
+          )
         union
         select unnest(private.dreem_legacy_authority_scopes(m.role))
+        where not exists(
+          select 1
+          from public.dreem_position_assignments x3
+          join public.dreem_school_positions p3 on p3.id=x3.position_id and p3.is_active
+          where x3.membership_id=m.id and x3.school_id=m.school_id and x3.status='active'
+            and p3.code not like 'legacy-%'
+            and (x3.starts_on is null or x3.starts_on<=current_date)
+            and (x3.ends_on is null or x3.ends_on>=current_date)
+        )
       ) scopes
     ) as authority_scopes
   from public.dreem_school_memberships m
