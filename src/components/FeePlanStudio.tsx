@@ -1,6 +1,8 @@
 import { BadgeCheck, CircleDollarSign, Plus, ShieldCheck, Trash2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Role, SchoolSetup } from "../domain/types";
+import type { AuthorityScope } from "../lib/authority";
+import { canAuthority } from "../lib/access";
 import { activateFeePlan, createFeePlan, loadFeePlans, type FeePlanItem, type FeePlanSummary } from "../lib/feePlans";
 
 const money = (value: number) => new Intl.NumberFormat("fr-FR").format(value) + " FCFA";
@@ -10,8 +12,9 @@ function errorText(reason: unknown) {
   return reason instanceof Error ? reason.message : "The fee-plan action could not be completed.";
 }
 
-export default function FeePlanStudio({ setup, role, onChanged }: { setup: SchoolSetup; role: Role; onChanged: () => Promise<void> }) {
-  const canManage = ["platform_founder", "school_owner", "principal"].includes(role);
+export default function FeePlanStudio({ setup, role, authorityScopes, onChanged }: { setup: SchoolSetup; role: Role; authorityScopes?: AuthorityScope[]; onChanged: () => Promise<void> }) {
+  const viewer={role,authorityScopes};
+  const canManage = canAuthority(viewer,"school_configuration") && canAuthority(viewer,"finance_approval");
   const [plans, setPlans] = useState<FeePlanSummary[]>([]);
   const [items, setItems] = useState<FeePlanItem[]>([blankItem(), blankItem()]);
   const [busy, setBusy] = useState(false);
@@ -84,7 +87,7 @@ export default function FeePlanStudio({ setup, role, onChanged }: { setup: Schoo
         {items.length > 1 ? <button type="button" aria-label={`Remove fee item ${index + 1}`} onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /> Remove</button> : null}
       </div>)}
       <div className="mobile-submit-bar"><button type="button" onClick={() => setItems((current) => [...current, blankItem()])}><Plus size={16} /> Add fee item</button><button className="primary" disabled={busy || !setup.classes.length}>{busy ? "Saving…" : "Create draft fee plan"}</button></div>
-    </form> : <p>Fee structures are visible here for assurance. Only founder, school owner or principal can create or activate them.</p>}
+    </form> : <p>Fee structures are visible here for assurance. Only an appointed position with school-configuration and finance-approval authority can create or activate them.</p>}
 
     <div className="academic-grid">
       {plans.map((plan) => <article className="document-row" key={plan.id}>
