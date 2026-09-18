@@ -19,15 +19,15 @@ function categoriesFor(viewer:CommsViewer):AnnouncementCategory[]{
   return Array.from(new Set(categories));
 }
 function audiencesFor(viewer:CommsViewer):AnnouncementAudience[]{
-  if(canAuthority(viewer,"institutional_leadership")||canAuthority(viewer,"academics")||canAuthority(viewer,"admissions"))return["all","staff","families","students"];
-  if(canAuthority(viewer,"transport")||canAuthority(viewer,"communications_publish"))return["staff","families","students"];
+  if(canAuthority(viewer,"institutional_leadership")||canAuthority(viewer,"academics_approval")||canAuthority(viewer,"admissions_decision"))return["all","staff","families","students"];
+  if(canAuthority(viewer,"transport_management")||canAuthority(viewer,"communications_publish"))return["staff","families","students"];
   return[];
 }
 
 export default function CommunicationsWorkspace({role,authorityScopes,signals,onFeedback,onStatus}:{role:Role;authorityScopes?:AuthorityScope[];signals:CommunitySignal[];onFeedback:()=>void;onStatus:(id:string,status:CommunitySignal["status"])=>Promise<void>}){
  const viewer={role,authorityScopes};
  const[announcements,setAnnouncements]=useState<SchoolAnnouncement[]|null>(null),[reviewQueue,setReviewQueue]=useState<AnnouncementReviewItem[]>([]),[announcementError,setAnnouncementError]=useState(""),[busy,setBusy]=useState(false),[message,setMessage]=useState("");
- const canPublish=canAuthority(viewer,"communications")||canAuthority(viewer,"communications_approve"),canApprove=canAuthority(viewer,"communications_approve")||canAuthority(viewer,"institutional_leadership"),allowedCategories=useMemo(()=>categoriesFor(viewer),[role,authorityScopes]),allowedAudiences=useMemo(()=>audiencesFor(viewer),[role,authorityScopes]);
+ const canPublish=canAuthority(viewer,"communications_publish")||canAuthority(viewer,"communications_approve"),canApprove=canAuthority(viewer,"communications_approve")||canAuthority(viewer,"institutional_leadership"),allowedCategories=useMemo(()=>categoriesFor(viewer),[role,authorityScopes]),allowedAudiences=useMemo(()=>audiencesFor(viewer),[role,authorityScopes]);
  async function refresh(){try{const notices=await loadAnnouncements();setAnnouncements(notices);setAnnouncementError("");if(canApprove)setReviewQueue(await loadAnnouncementReviewQueue());}catch(reason){setAnnouncements([]);setAnnouncementError(errorText(reason));}}
  useEffect(()=>{let active=true;Promise.all([loadAnnouncements(),canApprove?loadAnnouncementReviewQueue():Promise.resolve([])]).then(([items,pending])=>{if(active){setAnnouncements(items);setReviewQueue(pending);}}).catch(reason=>{if(active){setAnnouncements([]);setAnnouncementError(errorText(reason));}});return()=>{active=false;};},[canApprove]);
  async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();const form=event.currentTarget,data=new FormData(form),expires=String(data.get("expiresAt")||"");setBusy(true);setAnnouncementError("");setMessage("");try{const result=await publishAnnouncement({title:String(data.get("title")||""),body:String(data.get("body")||""),audience:String(data.get("audience")||allowedAudiences[0]||"staff") as AnnouncementAudience,priority:String(data.get("priority")||"normal") as AnnouncementPriority,category:String(data.get("category")||allowedCategories[0]||"general") as AnnouncementCategory,expiresAt:expires?new Date(`${expires}T23:59:59`).toISOString():undefined});form.reset();setMessage(result.status==="pending_approval"?"Notice submitted for leadership approval.":"Notice published and delivery work queued for the selected audience.");await refresh();}catch(reason){setAnnouncementError(errorText(reason));}finally{setBusy(false);}}
