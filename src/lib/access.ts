@@ -21,29 +21,30 @@ export function canAuthority(viewer:AccessViewer,scope:AuthorityScope){
   return scopesFor(viewer).includes(scope);
 }
 
-export function canOpenView(viewer:AccessViewer,view:WorkspaceView):boolean{
-  const scopes=scopesFor(viewer);
-  const has=(...wanted:AuthorityScope[])=>wanted.some(scope=>scopes.includes(scope));
-  const role=viewer.role;
+export function canAnyAuthority(viewer:AccessViewer,...scopes:AuthorityScope[]){
+  const owned=scopesFor(viewer);return scopes.some(scope=>owned.includes(scope));
+}
 
+export function canOpenView(viewer:AccessViewer,view:WorkspaceView):boolean{
+  const has=(...wanted:AuthorityScope[])=>canAnyAuthority(viewer,...wanted);
+  const role=viewer.role;
   switch(view){
     case "command":
-      return has("institutional_leadership","audit","academics","transport","finance_approval")
-        || ["teacher","accountant","transport_manager"].includes(role);
-    case "admissions": return has("admissions");
-    case "operations": return has("staff_management","admissions","academics")
-      || role==="teacher";
-    case "academics": return has("academics") && !["parent","student"].includes(role);
-    case "learning": return has("academics") || ["parent","student","teacher","tutor"].includes(role);
+      return has("institutional_leadership","audit","academics_approval","admissions_decision","transport_management","finance_approval")
+        || role==="teacher";
+    case "admissions": return has("admissions_intake","admissions_decision");
+    case "operations": return has("staff_management","admissions_intake","academics_delivery") || role==="teacher";
+    case "academics": return has("academics_delivery","academics_approval");
+    case "learning": return has("academics_delivery","academics_approval") || ["parent","student"].includes(role);
     case "learners":
-      return has("institutional_leadership","academics","admissions","finance_collection","finance_approval","safeguarding","transport","gate","audit")
-        || ["parent","student","teacher","tutor"].includes(role);
-    case "credentials": return has("admissions","gate","school_configuration");
-    case "teachers": return has("academics","staff_management","institutional_leadership");
-    case "care": return has("safeguarding","institutional_leadership") || ["teacher","tutor"].includes(role);
-    case "transport": return has("transport","gate","institutional_leadership") || ["parent","student"].includes(role);
+      return has("institutional_leadership","academics_delivery","academics_approval","admissions_intake","admissions_decision","finance_collection","finance_approval","safeguarding","transport_management","gate","audit")
+        || ["parent","student"].includes(role);
+    case "credentials": return has("admissions_intake","admissions_decision","school_configuration");
+    case "teachers": return has("academics_approval","staff_management","institutional_leadership");
+    case "care": return has("safeguarding","institutional_leadership") || has("academics_delivery");
+    case "transport": return has("transport_management","transport_operation","gate","institutional_leadership") || ["parent","student"].includes(role);
     case "finance": return has("finance_collection","finance_approval","audit","institutional_leadership");
-    case "signals": return has("communications","institutional_leadership") || ["parent","student","teacher","tutor","transport_manager"].includes(role);
+    case "signals": return has("communications_publish","communications_approve","institutional_leadership") || ["parent","student","teacher","tutor"].includes(role);
     case "studio": return has("school_configuration");
   }
 }
