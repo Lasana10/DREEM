@@ -108,7 +108,7 @@ function WorkspaceApp() {
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView workspace={workspace} onRefresh={refreshWorkspace}/> : workspace.viewer.role === "driver" ? <DriverWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : workspace.viewer.role === "transport_manager" ? <TransportManagerWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
       {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} setup={workspace.setup} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} onRecorded={refreshWorkspace} />}
-      {view === "signals" && <CommunicationsWorkspace role={workspace.viewer.role} signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
+      {view === "signals" && <CommunicationsWorkspace role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
       {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
     </Shell>
     <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} onCreated={addSignal} />
