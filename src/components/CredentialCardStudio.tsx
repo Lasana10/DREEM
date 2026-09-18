@@ -3,6 +3,7 @@ import { BadgeCheck, Copy, IdCard, Printer, RefreshCw, ShieldX } from "lucide-re
 import { createIdempotencyKey } from "../domain/rules";
 import { loadLearnerIdentity, revokeLearnerCredential, type LearnerIdentityProfile } from "../lib/identity";
 import { issueStudentCredential, type WorkspaceData } from "../lib/repository";
+import { canAuthority } from "../lib/access";
 import { makeQrMatrix } from "../lib/qr";
 import PickupAuthorizationStudio from "./PickupAuthorizationStudio";
 import "./CredentialCardStudio.css";
@@ -30,7 +31,7 @@ function QrCode({ value }: { value: string }) {
 }
 
 export default function CredentialCardStudio({ workspace, onRefresh }: { workspace: WorkspaceData; onRefresh: () => Promise<void> }) {
-  const allowed = ["platform_founder", "school_owner", "principal", "administrator"].includes(workspace.viewer.role);
+  const allowed = canAuthority(workspace.viewer,"admissions") || canAuthority(workspace.viewer,"school_configuration");
   const [studentId, setStudentId] = useState(workspace.learners[0]?.id ?? "");
   const [validUntil, setValidUntil] = useState(nextYear());
   const [identity, setIdentity] = useState<LearnerIdentityProfile | null>(null);
