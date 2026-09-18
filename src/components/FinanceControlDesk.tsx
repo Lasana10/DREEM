@@ -1,14 +1,17 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { BadgeCheck, Banknote, Landmark, Scale, ShieldCheck } from "lucide-react";
 import type { Role } from "../domain/types";
+import type { AuthorityScope } from "../lib/authority";
+import { canAuthority } from "../lib/access";
 import { createCashDepositBatch, loadFinanceControlDesk, reviewCashDepositBatch, reviewCashierSession, submitCashierSession, type FinanceControlDeskData } from "../lib/repository";
 
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 
 function readableError(reason:unknown){if(reason instanceof Error&&reason.message)return reason.message;if(reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"){const item=reason as {message:string;details?:unknown;hint?:unknown;code?:unknown};return [item.message,item.details,item.hint?"Hint: "+item.hint:null,item.code?"Code: "+item.code:null].filter(Boolean).join(" ");}return "Finance command could not be completed. Check the finance setup and permissions.";}
-export default function FinanceControlDesk({role,onChanged}:{role:Role;onChanged:()=>Promise<void>}){
+export default function FinanceControlDesk({role,authorityScopes,onChanged}:{role:Role;authorityScopes?:AuthorityScope[];onChanged:()=>Promise<void>}){
   const[data,setData]=useState<FinanceControlDeskData|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
-  const isCashier=role==="bursar",isReviewer=["platform_founder","school_owner","principal","accountant"].includes(role),isReadOnly=role==="auditor";
+  const viewer={role,authorityScopes};
+  const isCashier=canAuthority(viewer,"finance_collection")&&!canAuthority(viewer,"finance_approval"),isReviewer=canAuthority(viewer,"finance_approval"),isReadOnly=canAuthority(viewer,"audit")&&!isReviewer&&!isCashier;
   async function reload(){try{setData(await loadFinanceControlDesk())}catch(reason){setError(readableError(reason))}}
   useEffect(()=>{void reload()},[]);
   async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await Promise.all([reload(),onChanged()]);setMessage(success)}catch(reason){setError(readableError(reason))}finally{setBusy(false)}}
