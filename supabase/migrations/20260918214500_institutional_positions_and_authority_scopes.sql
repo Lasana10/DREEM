@@ -334,3 +334,156 @@ $$;
 
 revoke all on function public.dreem_set_position(uuid,uuid,text,text,text[]) from public;
 grant execute on function public.dreem_set_position(uuid,uuid,text,text,text[]) to authenticated;
+
+
+-- Reusable institutional position catalogue and assignment commands.
+create or replace function public.dreem_upsert_school_position(
+  p_school_id uuid,
+  p_position_id uuid,
+  p_code text,
+  p_title text,
+  p_category text,
+  p_scopes text[]
+)
+returns uuid
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_position_id uuid;
+  v_scope text;
+begin
+  if not public.dreem_has_authority(p_school_id,'staff_management')
+     and not public.dreem_has_authority(p_school_id,'school_configuration') then
+    raise exception 'This account cannot manage institutional positions';
+  end if;
+  if nullif(trim(p_title),'') is null then raise exception 'Position title is required'; end if;
+  if nullif(trim(p_code),'') is null then raise exception 'Position code is required'; end if;
+  if p_category not in ('governance','leadership','academic','finance','operations','support','audit') then
+    raise exception 'Invalid position category';
+  end if;
+
+  if p_position_id is null then
+    insert into public.dreem_school_positions(school_id,code,title,category,created_by)
+    values(p_school_id,lower(regexp_replace(trim(p_code),'[^a-zA-Z0-9]+','-','g')),trim(p_title),p_category,(select auth.uid()))
+    returning id into v_position_id;
+  else
+    update public.dreem_school_positions
+       set code=lower(regexp_replace(trim(p_code),'[^a-zA-Z0-9]+','-','g')),
+           title=trim(p_title),
+           category=p_category,
+           is_active=true,
+           updated_at=now()
+     where id=p_position_id and school_id=p_school_id
+     returning id into v_position_id;
+    if v_position_id is null then raise exception 'Position not found in this school'; end if;
+  end if;
+
+  delete from public.dreem_position_authorities where position_id=v_position_id;
+  foreach v_scope in array coalesce(p_scopes,array[]::text[]) loop
+    if v_scope not in ('institutional_leadership','academics','admissions','finance_collection','finance_approval','safeguarding','transport','gate','staff_management','communications','audit','school_configuration') then
+      raise exception 'Invalid authority scope: %',v_scope;
+    end if;
+    insert into public.dreem_position_authorities(position_id,scope)
+    values(v_position_id,v_scope)
+    on conflict do nothing;
+  end loop;
+
+  insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail)
+  values(p_school_id,(select auth.uid()),
+    case when p_position_id is null then 'institution.position_created' else 'institution.position_updated' end,
+    'school_position',v_position_id,
+    jsonb_build_object('title',trim(p_title),'category',p_category,'scopes',coalesce(p_scopes,array[]::text[])));
+
+  return v_position_id;
+end;
+$$;
+revoke all on function public.dreem_upsert_school_position(uuid,uuid,text,text,text,text[]) from public;
+grant execute on function public.dreem_upsert_school_position(uuid,uuid,text,text,text,text[]) to authenticated;
+
+create or replace function public.dreem_assign_school_position(
+  p_school_id uuid,
+  p_membership_id uuid,
+  p_position_id uuid,
+  p_is_primary boolean default true
+)
+returns uuid
+language plpgsql
+security definer
+set search_path=''
+as $$
+declare
+  v_assignment_id uuid;
+begin
+  if not public.dreem_has_authority(p_school_id,'staff_management')
+     and not public.dreem_has_authority(p_school_id,'school_configuration') then
+    raise exception 'This account cannot assign institutional positions';
+  end if;
+  if not exists(select 1 from public.dreem_school_memberships m where m.id=p_membership_id and m.school_id=p_school_id and m.status='approved') then
+    raise exception 'Approved membership not found in this school';
+  end if;
+  if not exists(select 1 from public.dreem_school_positions p where p.id=p_position_id and p.school_id=p_school_id and p.is_active) then
+    raise exception 'Active position not found in this school';
+  end if;
+
+  if p_is_primary then
+    update public.dreem_position_assignments set is_primary=false,updated_at=now()
+    where membership_id=p_membership_id and status='active';
+  end if;
+
+  insert into public.dreem_position_assignments(school_id,membership_id,position_id,is_primary,status,assigned_by)
+  values(p_school_id,p_membership_id,p_position_id,p_is_primary,'active',(select auth.uid()))
+  on conflict(membership_id,position_id)
+  do update set is_primary=excluded.is_primary,status='active',assigned_by=excluded.assigned_by,updated_at=now()
+  returning id into v_assignment_id;
+
+  insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail)
+  values(p_school_id,(select auth.uid()),'institution.position_assigned','school_membership',p_membership_id,
+    jsonb_build_object('position_id',p_position_id,'primary',p_is_primary));
+
+  return v_assignment_id;
+end;
+$$;
+revoke all on function public.dreem_assign_school_position(uuid,uuid,uuid,boolean) from public;
+grant execute on function public.dreem_assign_school_position(uuid,uuid,uuid,boolean) to authenticated;
+
+create or replace function public.dreem_end_school_position_assignment(
+  p_school_id uuid,
+  p_assignment_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path=''
+as $$
+begin
+  if not public.dreem_has_authority(p_school_id,'staff_management')
+     and not public.dreem_has_authority(p_school_id,'school_configuration') then
+    raise exception 'This account cannot change institutional assignments';
+  end if;
+  update public.dreem_position_assignments
+     set status='ended',ends_on=coalesce(ends_on,current_date),is_primary=false,updated_at=now()
+   where id=p_assignment_id and school_id=p_school_id and status='active';
+  if not found then raise exception 'Active position assignment not found'; end if;
+  insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail)
+  values(p_school_id,(select auth.uid()),'institution.position_assignment_ended','position_assignment',p_assignment_id,'{}'::jsonb);
+end;
+$$;
+revoke all on function public.dreem_end_school_position_assignment(uuid,uuid) from public;
+grant execute on function public.dreem_end_school_position_assignment(uuid,uuid) to authenticated;
+
+drop policy if exists "position assignments visible to self or same school leadership" on public.dreem_position_assignments;
+create policy "position assignments visible to self or authorized school staff"
+on public.dreem_position_assignments for select to authenticated
+using (
+  exists (
+    select 1 from public.dreem_school_memberships own
+    where own.id=dreem_position_assignments.membership_id
+      and own.profile_id=(select auth.uid())
+      and own.status='approved'
+  )
+  or public.dreem_has_authority(dreem_position_assignments.school_id,'staff_management')
+  or public.dreem_has_authority(dreem_position_assignments.school_id,'school_configuration')
+  or public.dreem_has_authority(dreem_position_assignments.school_id,'audit')
+);
