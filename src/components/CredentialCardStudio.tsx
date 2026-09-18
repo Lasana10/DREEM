@@ -31,7 +31,7 @@ function QrCode({ value }: { value: string }) {
 }
 
 export default function CredentialCardStudio({ workspace, onRefresh }: { workspace: WorkspaceData; onRefresh: () => Promise<void> }) {
-  const allowed = canAuthority(workspace.viewer,"admissions") || canAuthority(workspace.viewer,"school_configuration");
+  const allowed = canAuthority(workspace.viewer,"admissions_intake") || canAuthority(workspace.viewer,"admissions_decision") || canAuthority(workspace.viewer,"school_configuration");
   const [studentId, setStudentId] = useState(workspace.learners[0]?.id ?? "");
   const [validUntil, setValidUntil] = useState(nextYear());
   const [identity, setIdentity] = useState<LearnerIdentityProfile | null>(null);
