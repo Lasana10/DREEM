@@ -10,7 +10,7 @@ describe("DREEM school context picker",()=>{
     const choose=vi.fn(async()=>undefined);
     render(<SchoolContextPicker memberships={[{schoolId:"school-a",schoolName:"Graceland Bilingual Complex",role:"teacher"},{schoolId:"school-b",schoolName:"Second Campus",role:"bursar"}]} onChoose={choose} onSignOut={async()=>undefined}/>);
     expect(screen.getByText("Graceland Bilingual Complex")).toBeInTheDocument();
-    expect(screen.getByText(/Approved as Teacher/i)).toBeInTheDocument();
+    expect(screen.getByText(/Teacher/i)).toBeInTheDocument();
     expect(screen.getByText(/Approved as Bursar/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button",{name:/Graceland Bilingual Complex/i}));
     expect(choose).toHaveBeenCalledWith("school-a");
