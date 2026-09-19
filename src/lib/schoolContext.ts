@@ -5,7 +5,7 @@ import { isSupabaseConfigured, supabase } from "./supabase";
 
 const ACTIVE_SCHOOL="dreem-active-school-id";
 export type ActiveSchoolContext={schoolId:string;userId:string;role:Role;positionTitle:string;authorityScopes:AuthorityScope[]};
-export type SchoolMembershipContext={schoolId:string;schoolName:string;role:Role;positionTitle:string;authorityScopes:AuthorityScope[]};
+export type SchoolMembershipContext={schoolId:string;schoolName:string;role:Role;positionTitle?:string;authorityScopes?:AuthorityScope[]};
 
 type SchoolContextRow={school_id:unknown;school_name:unknown;role:unknown;position_title?:unknown;authority_scopes?:unknown};
 export function cachedActiveSchoolId(){if(typeof localStorage==="undefined")return"";return localStorage.getItem(ACTIVE_SCHOOL)??"";}
@@ -36,9 +36,9 @@ async function persistServerSchool(schoolId:string){if(!supabase)throw new Error
 
 export async function resolveActiveSchoolContext():Promise<ActiveSchoolContext>{
   const{userId,memberships}=await listApprovedSchoolContexts();const cached=cachedActiveSchoolId();
-  if(cached){const membership=memberships.find(item=>item.schoolId===cached);if(!membership){clearActiveSchoolId();throw new Error("DREEM_SCHOOL_SELECTION_REQUIRED");}await persistServerSchool(membership.schoolId);return{schoolId:membership.schoolId,userId,role:membership.role,positionTitle:membership.positionTitle,authorityScopes:membership.authorityScopes};}
+  if(cached){const membership=memberships.find(item=>item.schoolId===cached);if(!membership){clearActiveSchoolId();throw new Error("DREEM_SCHOOL_SELECTION_REQUIRED");}await persistServerSchool(membership.schoolId);return{schoolId:membership.schoolId,userId,role:membership.role,positionTitle:membership.positionTitle??humanizeRole(membership.role),authorityScopes:membership.authorityScopes??legacyAuthorityScopes(membership.role)};}
   if(memberships.length>1)throw new Error("DREEM_SCHOOL_SELECTION_REQUIRED");
-  const membership=memberships[0];await persistServerSchool(membership.schoolId);return{schoolId:membership.schoolId,userId,role:membership.role,positionTitle:membership.positionTitle,authorityScopes:membership.authorityScopes};
+  const membership=memberships[0];await persistServerSchool(membership.schoolId);return{schoolId:membership.schoolId,userId,role:membership.role,positionTitle:membership.positionTitle??humanizeRole(membership.role),authorityScopes:membership.authorityScopes??legacyAuthorityScopes(membership.role)};
 }
 
 export async function selectActiveSchoolContext(schoolId:string,memberships:SchoolMembershipContext[]){const membership=memberships.find(item=>item.schoolId===schoolId);if(!membership)throw new Error("That school is not an approved membership for this account.");await persistServerSchool(membership.schoolId);return membership;}
