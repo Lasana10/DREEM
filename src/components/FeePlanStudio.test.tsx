@@ -24,6 +24,7 @@ describe("FeePlanStudio", () => {
   it("allows leadership to build a class fee plan", async () => {
     render(<FeePlanStudio setup={demoSetup} role="principal" onChanged={vi.fn().mockResolvedValue(undefined)} />);
     await waitFor(() => expect(loadFeePlans).toHaveBeenCalled());
+    fireEvent.click(screen.getByRole("button", { name: /create a custom fee plan/i }));
     fireEvent.change(screen.getByLabelText("Class"), { target: { value: demoSetup.classes[0].id } });
     fireEvent.change(screen.getByLabelText("Plan name"), { target: { value: "Annual class fees" } });
     fireEvent.change(screen.getByLabelText("Fee code 1"), { target: { value: "TUITION" } });

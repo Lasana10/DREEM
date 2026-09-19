@@ -14,7 +14,8 @@ describe("School Studio branding",()=>{
     const onSave=vi.fn().mockResolvedValue(undefined);
     render(<SchoolStudioView brand={brand} setup={setup} onSave={onSave} onSaveSetup={vi.fn()} onUploadLogo={vi.fn()}/>);
     fireEvent.click(screen.getByRole("button",{name:"Royal"}));
-    fireEvent.change(screen.getByLabelText("Student ID prefix"),{target:{value:"gra school"}});
+    fireEvent.click(screen.getByRole("button",{name:/advanced document settings/i}));
+    fireEvent.change(screen.getByLabelText("Learner ID prefix"),{target:{value:"gra school"}});
     fireEvent.click(screen.getByRole("button",{name:/save and publish identity/i}));
     await waitFor(()=>expect(onSave).toHaveBeenCalledWith(expect.objectContaining({primaryColor:"#173f70",accentColor:"#f0c75e",studentIdPrefix:"GRASCHOO"})));
   });
