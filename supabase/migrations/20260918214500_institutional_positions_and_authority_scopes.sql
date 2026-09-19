@@ -9,7 +9,7 @@ create table if not exists public.dreem_school_positions (
   category text not null default 'operations' check (category in ('governance','leadership','academic','finance','operations','support','audit')),
   reports_to_position_id uuid references public.dreem_school_positions(id) on delete set null,
   is_active boolean not null default true,
-  created_by uuid references public.neutral_profiles(id) on delete set null,
+  created_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (school_id, code)
@@ -48,7 +48,7 @@ create table if not exists public.dreem_position_assignments (
   status text not null default 'active' check (status in ('active','suspended','ended')),
   starts_on date,
   ends_on date,
-  assigned_by uuid references public.neutral_profiles(id) on delete set null,
+  assigned_by uuid,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (membership_id, position_id)
