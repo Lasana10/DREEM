@@ -18,6 +18,7 @@ const workspace: WorkspaceData = {
   operations: { invitations: [], memberships: [{ id: "m1", profileId: "staff-1", name: "Admissions Lead", role: "administrator", status: "approved" }], recentAttendance: 0, recentAssessments: 0 },
   learners: demoLearners, teachers: demoTeachers, signals: demoSignals, cases: demoStudentCases, admissions: demoAdmissions, academics: demoAcademics, transport: demoTransport, finance: demoFinance,
 };
+const intakeWorkspace:WorkspaceData={...workspace,viewer:{name:"Admissions Lead",email:"admissions@example.test",role:"administrator"}};
 const submittedWorkspace = { ...workspace, admissions: [{ ...demoAdmissions[0], status: "submitted" as const }] };
 const acceptedWorkspace = { ...workspace, admissions: [{ ...demoAdmissions[0], status: "accepted" as const }] };
 const terminalWorkspace = { ...workspace, admissions: [{ ...demoAdmissions[0], status: "enrolled" as const }] };
@@ -31,7 +32,8 @@ describe("Admissions workflow", () => {
   afterEach(cleanup);
 
   it("captures required guardian declarations with the application", async () => {
-    render(<AdmissionsView workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
+    render(<AdmissionsView workspace={intakeWorkspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
+    expect(screen.queryByRole("heading",{name:/review, offer, accept and enrol/i})).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Learner full name"), { target: { value: "Applicant Learner" } });
     fireEvent.change(screen.getByLabelText("Target class"), { target: { value: "Form 1" } });
     fireEvent.change(screen.getByLabelText("Guardian full name"), { target: { value: "Applicant Guardian" } });
@@ -41,8 +43,9 @@ describe("Admissions workflow", () => {
     await waitFor(() => expect(recordAdmissionApplication).toHaveBeenCalledWith(expect.objectContaining({ learnerFullName: "Applicant Learner", guardianFullName: "Applicant Guardian", consentAccuracy: true, consentDataProcessing: true })));
   });
 
-  it("presents one recommended action instead of a status selector", async () => {
+  it("presents decision work only to decision authority", async () => {
     render(<AdmissionsView workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
+    expect(screen.queryByRole("button",{name:/submit application/i})).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /approve and send offer/i })).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Decision / action evidence"), { target: { value: "Leadership approved the evidence." } });
     fireEvent.click(screen.getByRole("button", { name: /approve and send offer/i }));
