@@ -58,7 +58,7 @@ import { resolveActiveSchoolContext } from "./schoolContext";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
 
 export interface WorkspaceData {
-  viewer: { id?: string; name: string; email: string; role: Role; positionTitle: string; authorityScopes: AuthorityScope[] };
+  viewer: { id?: string; name: string; email: string; role: Role; positionTitle?: string; authorityScopes?: AuthorityScope[] };
   brand: SchoolBrand;
   setup: SchoolSetup;
   operations: OperationalSummary;
