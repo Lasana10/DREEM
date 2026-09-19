@@ -8,6 +8,7 @@ import {
   endSchoolPositionAssignment,
   loadInstitutionAuthority,
   positionPresets,
+  positionPackPresets,
   upsertSchoolPosition,
   type PositionAssignment,
   type PositionCategory,
@@ -22,7 +23,7 @@ function errorText(reason:unknown){return reason instanceof Error?reason.message
 export default function InstitutionAuthorityStudio({memberships,onChanged}:{memberships:AccessMembership[];onChanged?:()=>Promise<void>}){
   const[positions,setPositions]=useState<SchoolPosition[]>([]),[assignments,setAssignments]=useState<PositionAssignment[]>([]);
   const[title,setTitle]=useState(""),[category,setCategory]=useState<PositionCategory>("leadership"),[scopes,setScopes]=useState<AuthorityScope[]>([]);
-  const[message,setMessage]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false);
+  const[message,setMessage]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false),[advanced,setAdvanced]=useState(false);
   const approved=memberships.filter(item=>item.status==="approved");
 
   async function refresh(){const data=await loadInstitutionAuthority();setPositions(data.positions);setAssignments(data.assignments);}
@@ -54,13 +55,22 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
     await run(async()=>{await upsertSchoolPosition({code:codeFrom(savedTitle),title:savedTitle,category,scopes});setTitle("");setScopes([]);},"Institutional position saved. Titles remain human-facing; authority controls access.");
   }
 
+  async function applyPositionPack(index:number){
+    const pack=positionPackPresets[index];
+    await run(async()=>{for(const position of pack.positions)await upsertSchoolPosition({code:codeFrom(position.title),title:position.title,category:position.category,scopes:[...position.scopes]});},`${pack.name} positions are ready. Appoint people only to the posts they actually hold.`);
+  }
+
   return <section className="panel settings-form institution-authority-studio">
     <div className="panel-title"><UserCog/><div><span>INSTITUTION & AUTHORITY</span><h3>Model the school as it actually operates</h3><p>Principal, Headmistress, Director, Dean, Proprietor and other titles are appointments. DREEM grants capabilities through explicit authority, not through the title itself.</p></div></div>
     <div className="care-assurance"><ShieldCheck/><span><strong>Title ≠ permission</strong><small>One person may hold several appointments; each appointment grants only the authority the school deliberately assigns.</small></span></div>
     {error?<div className="form-status error" role="alert">{error}</div>:null}
     {message?<div className="form-status success" role="status"><BadgeCheck/>{message}</div>:null}
 
-    <div className="role-guide">{positionPresets.map((preset,index)=><button type="button" key={preset.title+":"+index} onClick={()=>applyPreset(index)}><strong>{preset.title}</strong><small>{preset.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")}</small></button>)}</div>
+    <div className="position-pack-grid">{positionPackPresets.map((pack,index)=><button type="button" key={pack.name} disabled={busy} onClick={()=>void applyPositionPack(index)}><strong>{pack.name}</strong><small>{pack.description}</small><span>Use this setup</span></button>)}</div>
+    <div className="workflow-next"><small>RECOMMENDED</small><strong>Start with a pack, then appoint people.</strong><p>Most schools should never configure permission codes one by one. DREEM keeps the detailed authority model underneath, while school leaders work with familiar posts.</p></div>
+    <button type="button" className="secondary" onClick={()=>setAdvanced(value=>!value)}>{advanced?"Hide advanced position editor":"Advanced: customise a position"}</button>
+
+    {advanced?<><div className="role-guide">{positionPresets.map((preset,index)=><button type="button" key={preset.title+":"+index} onClick={()=>applyPreset(index)}><strong>{preset.title}</strong><small>{preset.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")}</small></button>)}</div>
 
     <form onSubmit={save}>
       <div className="form-grid">
@@ -69,7 +79,7 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
       </div>
       <fieldset className="palette-field"><legend>Authority carried by this position</legend><div className="authority-scope-grid">{authorityScopeOptions.map(item=><label key={item.value}><input type="checkbox" checked={scopes.includes(item.value)} onChange={()=>toggle(item.value)}/><span><strong>{item.label}</strong><small>{item.description}</small></span></label>)}</div></fieldset>
       <button className="primary" disabled={busy||!title.trim()} type="submit"><Plus/>Save position</button>
-    </form>
+    </form></>:null}
 
     <div className="document-row"><Building2/><div><strong>Position catalogue</strong><small>Create the institutional posts once, then appoint approved people to them. A person can hold several posts; mark the main one as primary.</small></div></div>
     <div className="academic-grid">{positions.filter(item=>item.active).map(position=><article className="document-row" key={position.id}><strong>{position.title}</strong><span>{position.category} · {position.scopes.length} authorit{position.scopes.length===1?"y":"ies"}</span><small>{position.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")||"No privileged authority"}</small></article>)}{!positions.length?<p>No institutional position has been configured yet.</p>:null}</div>
