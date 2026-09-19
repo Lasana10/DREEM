@@ -3,14 +3,14 @@ import { allowedWorkspaceViews, canOpenView, defaultWorkspaceView } from "./acce
 
 describe("authority-driven workspace access",()=>{
   it("does not make a title string a permission",()=>{
-    const viewer={role:"teacher" as const,positionTitle:"Headmistress",authorityScopes:["academics"] as import("./authority").AuthorityScope[]};
+    const viewer={role:"teacher" as const,positionTitle:"Headmistress",authorityScopes:["academics_delivery"] as import("./authority").AuthorityScope[]};
     expect(canOpenView(viewer,"finance")).toBe(false);
     expect(canOpenView(viewer,"studio")).toBe(false);
     expect(canOpenView(viewer,"academics")).toBe(true);
   });
 
   it("lets configured authority shape leadership access independently of legacy role",()=>{
-    const viewer={role:"administrator" as const,positionTitle:"Director",authorityScopes:["institutional_leadership","admissions","communications"] as import("./authority").AuthorityScope[]};
+    const viewer={role:"administrator" as const,positionTitle:"Director",authorityScopes:["institutional_leadership","admissions_decision","communications_publish"] as import("./authority").AuthorityScope[]};
     expect(canOpenView(viewer,"command")).toBe(true);
     expect(canOpenView(viewer,"admissions")).toBe(true);
     expect(canOpenView(viewer,"finance")).toBe(true);
@@ -27,7 +27,7 @@ describe("authority-driven workspace access",()=>{
   });
 
   it("uses authority to choose a natural first workspace",()=>{
-    const transportLead={role:"administrator" as const,authorityScopes:["transport"] as import("./authority").AuthorityScope[]};
+    const transportLead={role:"administrator" as const,authorityScopes:["transport_management"] as import("./authority").AuthorityScope[]};
     expect(defaultWorkspaceView(transportLead)).toBe("command");
     expect(allowedWorkspaceViews(transportLead)).toContain("transport");
   });
