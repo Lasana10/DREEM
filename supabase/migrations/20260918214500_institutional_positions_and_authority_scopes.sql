@@ -152,7 +152,7 @@ language sql
 stable
 security definer
 set search_path=''
-as $
+as $auth$
   with membership as (
     select m.id,m.role
     from public.dreem_school_memberships m
@@ -188,8 +188,7 @@ as $
       select 1 from membership m cross join explicit_position e
       where not e.present and p_scope=any(private.dreem_legacy_authority_scopes(m.role))
     );
-$;
-
+$auth$;
 revoke all on function public.dreem_has_authority(uuid,text) from public;
 grant execute on function public.dreem_has_authority(uuid,text) to authenticated;
 
