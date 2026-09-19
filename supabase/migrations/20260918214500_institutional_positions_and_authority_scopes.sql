@@ -514,6 +514,7 @@ revoke all on function public.dreem_end_school_position_assignment(uuid,uuid) fr
 grant execute on function public.dreem_end_school_position_assignment(uuid,uuid) to authenticated;
 
 drop policy if exists "position assignments visible to self or same school leadership" on public.dreem_position_assignments;
+drop policy if exists "position assignments visible to self or authorized school staff" on public.dreem_position_assignments;
 create policy "position assignments visible to self or authorized school staff"
 on public.dreem_position_assignments for select to authenticated
 using (
