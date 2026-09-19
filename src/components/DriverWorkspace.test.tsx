@@ -19,7 +19,9 @@ describe("DREEM Driver",()=>{
     render(<DriverWorkspace workspace={workspace} onRefresh={async()=>undefined}/>);
     expect(screen.getByRole("heading",{name:"Drive the assigned trip. Record what actually happens."})).toBeInTheDocument();
     expect(screen.getByText("Morning Route")).toBeInTheDocument();
-    expect(screen.getByRole("button",{name:"Record journey event"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Start / depart"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Report delay"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Finish journey"})).toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Activate route"})).not.toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Register vehicle"})).not.toBeInTheDocument();
   });

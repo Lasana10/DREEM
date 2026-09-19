@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { BellRing, Mail, MessageSquareText, Send } from "lucide-react";
 import type { Role } from "../domain/types";
+import type { AuthorityScope } from "../lib/authority";
+import { canAuthority } from "../lib/access";
 import { disableNotificationChannel, dispatchQueuedNotifications, enableVerifiedAuthChannel, loadDeliverySummary, loadMyNotificationEndpoints, type DeliverySummary, type NotificationEndpoint } from "../lib/notificationChannels";
 
-const admins:Role[]=["platform_founder","school_owner","principal","administrator"];
 const errorText=(reason:unknown)=>reason instanceof Error?reason.message:"Notification control could not be completed.";
-export default function NotificationDeliveryPanel({role}:{role:Role}){
+export default function NotificationDeliveryPanel({role,authorityScopes}:{role:Role;authorityScopes?:AuthorityScope[]}){
+ const viewer={role,authorityScopes};
  const [endpoints,setEndpoints]=useState<NotificationEndpoint[]>([]),[summary,setSummary]=useState<DeliverySummary[]>([]),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
- const canDispatch=admins.includes(role);
+ const canDispatch=canAuthority(viewer,"communications_publish")||canAuthority(viewer,"communications_approve")||canAuthority(viewer,"institutional_leadership");
  const reload=useCallback(async()=>{const [mine,delivery]=await Promise.all([loadMyNotificationEndpoints(),canDispatch?loadDeliverySummary():Promise.resolve([])]);setEndpoints(mine);setSummary(delivery);},[canDispatch]);
  useEffect(()=>{reload().catch(reason=>setError(errorText(reason)));},[reload]);
  async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await reload();setMessage(success);}catch(reason){setError(errorText(reason));}finally{setBusy(false);}}

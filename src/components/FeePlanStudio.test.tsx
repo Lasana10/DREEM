@@ -37,6 +37,6 @@ describe("FeePlanStudio", () => {
     render(<FeePlanStudio setup={demoSetup} role="bursar" onChanged={vi.fn().mockResolvedValue(undefined)} />);
     await waitFor(() => expect(loadFeePlans).toHaveBeenCalled());
     expect(screen.queryByRole("button", { name: "Create draft fee plan" })).not.toBeInTheDocument();
-    expect(screen.getByText(/Only founder, school owner or principal/i)).toBeInTheDocument();
+    expect(screen.getByText(/school-configuration and finance-approval authority/i)).toBeInTheDocument();
   });
 });

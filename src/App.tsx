@@ -26,18 +26,13 @@ import TeacherHome from "./components/TeacherHome";
 import LearningWorkspace from "./components/LearningWorkspace";
 import FamilyLearningWorkspace from "./components/FamilyLearningWorkspace";
 import StudentWorkspace from "./components/StudentWorkspace";
-import type { BootstrapStatus, CommunitySignal, Role } from "./domain/types";
+import type { BootstrapStatus, CommunitySignal } from "./domain/types";
 import { buildOperationalPulse } from "./domain/rules";
 import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loadBootstrapStatus, loadWorkspace, recordAssessment, recordAttendance, saveSchoolBrand, saveSchoolSetup, updateAccessStatus, updateSignalStatus, uploadSchoolLogo, type WorkspaceData } from "./lib/repository";
 import { listApprovedSchoolContexts, resolveActiveSchoolContext, selectActiveSchoolContext, type SchoolMembershipContext } from "./lib/schoolContext";
 import { supabase } from "./lib/supabase";
 import { applyRoleAppIdentity } from "./lib/roleApp";
-
-const defaultViewByRole: Record<Role, ViewKey> = {
-  platform_founder:"command",school_owner:"command",principal:"command",administrator:"command",academic_head:"command",
-  bursar:"finance",accountant:"finance",teacher:"command",tutor:"learning",transport_manager:"transport",driver:"transport",security_guard:"transport",parent:"learning",student:"learning",auditor:"command",
-};
-const schoolLeadershipRoles:Role[]=["platform_founder","school_owner","principal","administrator","academic_head"];
+import { canAuthority, defaultWorkspaceView } from "./lib/access";
 
 function WorkspaceApp() {
   const [view, setView] = useState<ViewKey>("command");
@@ -49,7 +44,7 @@ function WorkspaceApp() {
 
   async function enterWorkspace(){
     await resolveActiveSchoolContext();
-    const data=await loadWorkspace();applyRoleAppIdentity(data.viewer.role);setWorkspace(data);setView(defaultViewByRole[data.viewer.role]);setBootstrap(null);setSchoolChoices(null);setError("");
+    const data=await loadWorkspace();applyRoleAppIdentity(data.viewer.role);setWorkspace(data);setView(defaultWorkspaceView(data.viewer));setBootstrap(null);setSchoolChoices(null);setError("");
   }
 
   useEffect(() => {
@@ -58,7 +53,7 @@ function WorkspaceApp() {
       try{
         await resolveActiveSchoolContext();
         const data = await loadWorkspace();
-        if (active) { applyRoleAppIdentity(data.viewer.role); setWorkspace(data); setView(defaultViewByRole[data.viewer.role]); setBootstrap(null); setError(""); }
+        if (active) { applyRoleAppIdentity(data.viewer.role); setWorkspace(data); setView(defaultWorkspaceView(data.viewer)); setBootstrap(null); setError(""); }
       }catch(reason){
         const message = reason instanceof Error ? reason.message : (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string" ? reason.message : "The school workspace could not be loaded.");
         if(message==="DREEM_SCHOOL_SELECTION_REQUIRED"){
@@ -97,7 +92,7 @@ function WorkspaceApp() {
   const roleOwnsCompactTransportCycle=["transport_manager","driver","security_guard"].includes(workspace.viewer.role);
   const showJourney=journeyViews.includes(view)&&!(view==="transport"&&roleOwnsCompactTransportCycle);
   const journey = showJourney ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
-  const isSchoolLeadership=schoolLeadershipRoles.includes(workspace.viewer.role);
+  const isSchoolLeadership=canAuthority(workspace.viewer,"institutional_leadership")||canAuthority(workspace.viewer,"academics_approval")||canAuthority(workspace.viewer,"admissions_decision")||canAuthority(workspace.viewer,"finance_approval")||canAuthority(workspace.viewer,"transport_management");
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
@@ -107,14 +102,14 @@ function WorkspaceApp() {
       {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
       {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
-      {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} />}
+      {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} />}
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeacherDevelopmentView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "transport" && (workspace.viewer.role === "security_guard" ? <SecurityGateView workspace={workspace} onRefresh={refreshWorkspace}/> : workspace.viewer.role === "driver" ? <DriverWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : workspace.viewer.role === "transport_manager" ? <TransportManagerWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : <TransportView workspace={workspace} onRefresh={refreshWorkspace}/>)}
-      {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} setup={workspace.setup} role={workspace.viewer.role} onRecorded={refreshWorkspace} />}
-      {view === "signals" && <CommunicationsWorkspace role={workspace.viewer.role} signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
-      {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} />}
+      {view === "finance" && <FinanceWorkspace finance={workspace.finance} learners={workspace.learners} operations={workspace.operations} setup={workspace.setup} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} onRecorded={refreshWorkspace} />}
+      {view === "signals" && <CommunicationsWorkspace role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} signals={workspace.signals} onFeedback={openFeedback} onStatus={moveSignal} />}
+      {view === "studio" && <SchoolStudioView brand={workspace.brand} setup={workspace.setup} memberships={workspace.operations.memberships} onSave={saveBrand} onSaveSetup={saveSetup} onUploadLogo={uploadSchoolLogo} onAuthorityChanged={refreshWorkspace} />}
     </Shell>
     <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} onCreated={addSignal} />
   </>;

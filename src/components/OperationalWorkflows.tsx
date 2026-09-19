@@ -3,6 +3,7 @@ import { BadgeCheck, ClipboardCheck, GraduationCap, IdCard, MailPlus, PenLine, Q
 import type { AccessMembership, AssessmentCommand, AttendanceCommand, EnrollmentPayload, StaffInvitation } from "../domain/types";
 import { createIdempotencyKey } from "../domain/rules";
 import type { WorkspaceData } from "../lib/repository";
+import { canAuthority } from "../lib/access";
 
 type Status = { tone: "idle" | "success" | "error"; message: string };
 const roleOptions:{value:StaffInvitation["role"];label:string;purpose:string}[]=[
@@ -44,7 +45,7 @@ export default function OperationalWorkflowsView({
   const learners = workspace.learners;
   const classes = workspace.setup.classes.length ? workspace.setup.classes.map((item) => item.name) : Array.from(new Set(learners.map((item) => item.className)));
   const subjects = workspace.setup.subjects;
-  const canManageAccess = ["platform_founder","school_owner","principal","administrator"].includes(workspace.viewer.role);
+  const canManageAccess = canAuthority(workspace.viewer,"staff_management");
 
   async function run(action: () => Promise<string>) {
     setStatus({ tone: "idle", message: "Saving..." });
@@ -165,7 +166,7 @@ export default function OperationalWorkflowsView({
     <div className="ops-grid">
       <form className="panel settings-form" onSubmit={invite}>
         <div className="panel-title"><div><span>ACCESS</span><h3>Invite staff</h3></div><MailPlus/></div>
-        <p className="form-help">This is where leadership creates teachers, bursars, accountants, transport staff, security gate officers and auditors. The invited person accepts the email, then leadership approves the membership below.</p><div className="role-guide">{roleOptions.map(role=><article key={role.value}><strong>{role.label}</strong><small>{role.purpose}</small></article>)}</div><div className="form-grid"><label>Full name<input name="fullName" autoComplete="name" required/></label><label>Email<input name="email" type="email" inputMode="email" autoComplete="email" required/></label><label>Role<select name="role" defaultValue="teacher">{roleOptions.map(role=><option key={role.value} value={role.value}>{role.label}</option>)}</select></label></div>
+        <p className="form-help">Invite a person into the institution using a workspace archetype; their actual title and authority are assigned separately. The invited person accepts the email, then an authorized staff manager approves the membership.</p><div className="role-guide">{roleOptions.map(role=><article key={role.value}><strong>{role.label}</strong><small>{role.purpose}</small></article>)}</div><div className="form-grid"><label>Full name<input name="fullName" autoComplete="name" required/></label><label>Email<input name="email" type="email" inputMode="email" autoComplete="email" required/></label><label>Workspace profile<select name="role" defaultValue="teacher">{roleOptions.map(role=><option key={role.value} value={role.value}>{role.label}</option>)}</select></label></div>
         <button className="primary" type="submit"><UserPlus/>Create invitation</button>
         <small>{workspace.operations.invitations.filter((item) => item.status === "pending").length} pending invitations</small>
         {canManageAccess&&workspace.operations.memberships.filter((item)=>item.status==="pending").map((membership)=><div className="access-review" key={membership.id}><span><strong>{membership.name}</strong><small>{membership.role.replaceAll("_"," ")}</small></span><button type="button" onClick={()=>run(async()=>{await onUpdateAccess(membership.id,"approved");return `${membership.name} approved.`})}>Approve</button><button type="button" onClick={()=>run(async()=>{await onUpdateAccess(membership.id,"rejected");return `${membership.name} rejected.`})}>Reject</button></div>)}

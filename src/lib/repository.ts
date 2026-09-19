@@ -52,10 +52,13 @@ import {
   demoTransport,
 } from "../domain/demo";
 import { requirePositiveAmount, routeSignal } from "../domain/rules";
+import type { AuthorityScope } from "./authority";
+import { legacyAuthorityScopes } from "./authority";
+import { resolveActiveSchoolContext } from "./schoolContext";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
 
 export interface WorkspaceData {
-  viewer: { id?: string; name: string; email: string; role: Role };
+  viewer: { id?: string; name: string; email: string; role: Role; positionTitle?: string; authorityScopes?: AuthorityScope[] };
   brand: SchoolBrand;
   setup: SchoolSetup;
   operations: OperationalSummary;
@@ -98,23 +101,8 @@ async function deleteRemovedSetupRows(
 
 async function activeSchool() {
   if (!supabase) throw new Error("Supabase is not configured.");
-  const [
-    { data: membership, error: membershipError },
-    { data: userData, error: userError },
-  ] = await Promise.all([
-    supabase
-      .from("dreem_school_memberships")
-      .select("school_id")
-      .eq("status", "approved")
-      .limit(1)
-      .maybeSingle(),
-    supabase.auth.getUser(),
-  ]);
-  if (membershipError) throw membershipError;
-  if (userError) throw userError;
-  if (!membership || !userData.user)
-    throw new Error("No active school membership was found.");
-  return { schoolId: String(membership.school_id), userId: userData.user.id };
+  const context=await resolveActiveSchoolContext();
+  return { schoolId:context.schoolId, userId:context.userId };
 }
 
 export async function loadWorkspace(): Promise<WorkspaceData> {
@@ -125,6 +113,8 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
           name: "Demo leader",
           email: "demo@dreem.local",
           role: "principal",
+          positionTitle: "Principal",
+          authorityScopes: legacyAuthorityScopes("principal"),
         },
         brand: demoBrand,
         setup: demoSetup,
@@ -148,16 +138,18 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
     );
   }
 
-  const { data: memberships, error: membershipError } = await supabase
+  const context=await resolveActiveSchoolContext();
+  const schoolId=context.schoolId;
+  const { data: membership, error: membershipError } = await supabase
     .from("dreem_school_memberships")
     .select("school_id,role")
+    .eq("school_id", schoolId)
+    .eq("profile_id", context.userId)
     .eq("status", "approved")
-    .limit(1);
+    .maybeSingle();
   if (membershipError) throw membershipError;
-  const membership = memberships?.[0] as Record<string, unknown> | undefined;
   if (!membership)
-    throw new Error("Your account is not attached to an active school.");
-  const schoolId = String(membership.school_id);
+    throw new Error("Your account is not attached to the selected school.");
   const [schoolResult, brandResult, userResult] = await Promise.all([
     supabase.from("schools").select("name,slug").eq("id", schoolId).single(),
     supabase
@@ -558,6 +550,8 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
       ),
       email: String(userResult.data.user?.email ?? ""),
       role: String(membership.role) as Role,
+      positionTitle: context.positionTitle,
+      authorityScopes: context.authorityScopes,
     },
     brand: {
       name: String(rawSchool.name),
