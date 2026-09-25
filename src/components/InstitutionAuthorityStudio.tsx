@@ -73,13 +73,13 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
   }
 
   return <section className="panel settings-form institution-authority-studio">
-    <div className="panel-title"><UserCog/><div><span>INSTITUTION & AUTHORITY</span><h3>Model the school as it actually operates</h3><p>Principal, Headmistress, Director, Dean, Proprietor and other titles are appointments. DREEM grants capabilities through explicit authority, not through the title itself.</p></div></div>
-    <div className="care-assurance"><ShieldCheck/><span><strong>Title ≠ permission</strong><small>One person may hold several appointments; each appointment grants only the authority the school deliberately assigns.</small></span></div>
+    <div className="panel-title"><UserCog/><div><span>DREEM RECOMMENDED</span><h3>Start with the way a real school normally works</h3><p>Choose a ready-made school setup, appoint people, then change only what is different in your institution.</p></div></div>
+    <div className="care-assurance"><ShieldCheck/><span><strong>Safe defaults</strong><small>Recommended roles already separate collection, approval, teaching, safeguarding and transport responsibilities.</small></span></div>
     {error?<div className="form-status error" role="alert">{error}</div>:null}
     {message?<div className="form-status success" role="status"><BadgeCheck/>{message}</div>:null}
 
     <div className="position-pack-grid">{positionPackPresets.map((pack,index)=><button type="button" key={pack.name} disabled={busy} onClick={()=>void applyPositionPack(index)}><strong>{pack.name}</strong><small>{pack.description}</small><span>Use this setup</span></button>)}</div>
-    <div className="workflow-next"><small>RECOMMENDED</small><strong>Start with a pack, then appoint people.</strong><p>Most schools should never configure permission codes one by one. DREEM keeps the detailed authority model underneath, while school leaders work with familiar posts.</p></div>
+    <div className="workflow-next"><small>DREEM RECOMMENDED</small><strong>Use a pack, then customise only what your school needs.</strong><p>The detailed permission model stays underneath. You can change a position later without rebuilding the whole school setup.</p></div>
 
     {positions.some(item=>item.active)?<section className="subform">
       <div className="panel-title"><Eye/><div><span>ACCESS PREVIEW</span><h3>See what a position can actually open</h3><p>This is a safe preview of workspace access. It does not impersonate a staff member and does not bypass row-level data rules.</p></div></div>
@@ -88,7 +88,7 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
       <div className="compact-table">{previewViews.length?previewViews.map(view=><div key={view}><span><strong>{viewLabels[view]}</strong><small>Visible from this position's authority</small></span><BadgeCheck/></div>):<div><span><strong>No privileged workspace</strong><small>This position currently carries no DREEM authority.</small></span><ShieldAlert/></div>}</div></>:null}
     </section>:null}
 
-    <button type="button" className="secondary" onClick={()=>setAdvanced(value=>!value)}>{advanced?"Hide advanced position editor":"Advanced: customise a position"}</button>
+    <button type="button" className="secondary" onClick={()=>setAdvanced(value=>!value)}>{advanced?"Close customisation":"Customize roles & permissions"}</button>
 
     {advanced?<><div className="role-guide">{positionPresets.map((preset,index)=><button type="button" key={preset.title+":"+index} onClick={()=>applyPreset(index)}><strong>{preset.title}</strong><small>{preset.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")}</small></button>)}</div>
 
@@ -98,7 +98,7 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
         <label>Position family<select value={category} onChange={e=>setCategory(e.target.value as PositionCategory)}>{categories.map(item=><option key={item} value={item}>{item.replace("_"," ")}</option>)}</select></label>
       </div>
       {hasSeparationConflict(scopes)?<div className="form-status error"><ShieldAlert/>Separate finance collection from finance approval. DREEM will not save a position that can both collect and independently approve the same money trail.</div>:null}
-      <fieldset className="palette-field"><legend>Authority carried by this position</legend><div className="authority-scope-grid">{authorityScopeOptions.map(item=><label key={item.value}><input type="checkbox" checked={scopes.includes(item.value)} onChange={()=>toggle(item.value)}/><span><strong>{item.label}</strong><small>{item.description}</small></span></label>)}</div></fieldset>
+      <fieldset className="palette-field"><legend>Advanced authority carried by this position</legend><div className="authority-scope-grid">{authorityScopeOptions.map(item=><label key={item.value}><input type="checkbox" checked={scopes.includes(item.value)} onChange={()=>toggle(item.value)}/><span><strong>{item.label}</strong><small>{item.description}</small></span></label>)}</div></fieldset>
       <button className="primary" disabled={busy||!title.trim()||hasSeparationConflict(scopes)} type="submit"><Plus/>Save position</button>
     </form></>:null}
 
