@@ -1,83 +1,69 @@
-# Supabase CLI Runbook
+# DREEM Supabase CLI Runbook
 
-This repo is now prepared for a CLI-driven schema flow.
+This repository targets DREEM's isolated production Supabase project.
 
-## Current project
+## Production project
 
-- Project ref: `vpxtmgpxqlmkkyijuare`
-- Supabase dashboard: [TSIDEK project](https://supabase.com/dashboard/project/vpxtmgpxqlmkkyijuare)
-- Edge Functions dashboard: [Functions](https://supabase.com/dashboard/project/vpxtmgpxqlmkkyijuare/functions)
-- Auth users dashboard: [Auth users](https://supabase.com/dashboard/project/vpxtmgpxqlmkkyijuare/auth/users)
-- SQL editor: [SQL editor](https://supabase.com/dashboard/project/vpxtmgpxqlmkkyijuare/sql)
-- Main migration: [supabase/migrations/20260712130000_initial_schema.sql](C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/supabase/migrations/20260712130000_initial_schema.sql)
-- Assignment submissions migration: [supabase/migrations/20260724103000_assignment_submissions.sql](C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/supabase/migrations/20260724103000_assignment_submissions.sql)
-- DREEM membership boundary migration: [supabase/migrations/20260728110000_neutral_profiles_and_dreem_memberships.sql](C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/supabase/migrations/20260728110000_neutral_profiles_and_dreem_memberships.sql)
-- Edge Function: [supabase/functions/provision-access-user/index.ts](C:/Users/MEDION/Documents/Codex/2026-05-13/i-have-checked-well-and-i/supabase/functions/provision-access-user/index.ts)
+- Project ref: `vlukkucwtfmfgpzvjyvd`
+- Frontend URL: `https://vlukkucwtfmfgpzvjyvd.supabase.co`
+- DREEM and TSIDKENU must not share production business data, role tables, service-role credentials, or deployment configuration.
+- Repository migrations live under `supabase/migrations/`.
+- Edge Functions live under `supabase/functions/`.
 
-## Current live status
+The connected Supabase account/tooling must show project `vlukkucwtfmfgpzvjyvd` before any production schema, function, advisor, or secret operation is executed. If it is not visible, stop rather than applying DREEM changes to another project.
 
-- Database migrations for workflow corrections, richer school configuration, student controls, and operational grants are applied on the live project.
-- Assignment submissions table is applied live with RLS and limited authenticated grants.
-- Shared-project boundary tables are applied live:
-  - `neutral_profiles`
-  - `dreem_school_memberships`
-- `provision-access-user` is deployed as version `2` and writes DREEM membership rows.
+## Safe deployment flow
 
-## DREEM vs TSIDKENU separation
-
-DREEM and TSIDKENU can temporarily share Supabase Auth, but they must not share business authorization.
-
-DREEM checks `dreem_school_memberships`.
-
-TSIDKENU should later check `tsid_firm_memberships`.
-
-Do not create generic product-role tables that mix school and firm permissions.
-- Edge Function `provision-access-user` is deployed and `ACTIVE`.
-- `provision-access-user` has Supabase platform JWT verification enabled.
-- The frontend live access-provisioning flow calls this Edge Function.
-
-## Recommended flow
-
-Run these commands from the repo root:
+From the repository root:
 
 ```powershell
 supabase login
-supabase link --project-ref vpxtmgpxqlmkkyijuare
+supabase link --project-ref vlukkucwtfmfgpzvjyvd
+supabase migration list
 supabase db push
 supabase functions deploy provision-access-user
+supabase functions deploy update-access-status
+supabase functions deploy dispatch-notifications
 ```
 
-Use this when redeploying from the CLI. The current function was deployed through Supabase MCP because local CLI auth was not available.
+Discover the current CLI commands with `supabase --help` and the relevant subcommand `--help` before changing this flow.
 
-## If the project is not initialized locally
+## Verification after schema/function changes
 
-If `supabase link` complains about local project setup, run:
+1. Confirm the linked project ref is `vlukkucwtfmfgpzvjyvd`.
+2. Run migration status and confirm local/remote history align.
+3. Run Supabase security and performance advisors.
+4. Verify RLS remains enabled on exposed public tables.
+5. Verify public views that should respect underlying RLS use security-invoker semantics.
+6. Test one approved user and one denied/cross-school user for each changed authorization path.
+7. Verify Edge Functions with real authenticated requests; a successful deployment alone is not functional proof.
+
+## Server-only secrets
+
+Server secrets belong only in Supabase Edge Function or worker environments:
 
 ```powershell
-supabase init
+supabase secrets set SUPABASE_URL=https://vlukkucwtfmfgpzvjyvd.supabase.co
+supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_ROTATED_SERVER_ONLY_KEY
 ```
 
-Then rerun:
+Notification dispatch additionally uses provider secrets such as:
 
-```powershell
-supabase link --project-ref vpxtmgpxqlmkkyijuare
-supabase db push
-supabase functions deploy provision-access-user
+```text
+RESEND_API_KEY=
+DREEM_FROM_EMAIL=
+SMS_WEBHOOK_URL=
+SMS_WEBHOOK_TOKEN=
+WHATSAPP_WEBHOOK_URL=
+WHATSAPP_WEBHOOK_TOKEN=
 ```
 
-## Function secrets
+Only configure the channels the school actually enables.
 
-Before deploying or testing the Edge Function, verify server-side secrets:
+## Production rules
 
-```powershell
-supabase secrets set SUPABASE_URL=https://vpxtmgpxqlmkkyijuare.supabase.co
-supabase secrets set SUPABASE_SERVICE_ROLE_KEY=YOUR_SERVICE_ROLE_KEY
-```
-
-Supabase commonly provides some runtime variables automatically, but for production we should explicitly verify this function can read the service role secret before using it to onboard real users.
-
-## Important
-
-- Do not put `SUPABASE_SERVICE_ROLE_KEY` in frontend env vars.
-- Rotate any secret that was previously pasted into chat before production use.
-- If `db push` fails because the remote database already has partial objects from manual SQL runs, reset only the conflicting objects first, then rerun `supabase db push`.
+- Never put `SUPABASE_SERVICE_ROLE_KEY` in Vite/frontend environment variables.
+- Rotate any server credential that has been pasted into chat, source control, logs, or a client build.
+- Do not use TSIDKENU project `vpxtmgpxqlmkkyijuare` for DREEM deployment.
+- Do not reset or delete remote objects to resolve migration drift without first identifying which migration owns them.
+- Treat CI success, database migration success, and production browser proof as separate release gates.
