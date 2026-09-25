@@ -13,8 +13,7 @@ const optionalIntegrationEnv = {
   oneDrive: [
     "ONEDRIVE_CLIENT_ID",
     "ONEDRIVE_CLIENT_SECRET",
-    "ONEDRIVE_TENANT_ID",
-    "ONEDRIVE_REDIRECT_URI"
+    "ONEDRIVE_TENANT_ID"
   ],
   cloudflareR2: [
     "CLOUDFLARE_R2_ACCOUNT_ID",
@@ -333,6 +332,52 @@ function integrationReady(keys) {
   return keys.every((key) => Boolean(process.env[key]));
 }
 
+function oneDriveReady() {
+  const baseReady = integrationReady(optionalIntegrationEnv.oneDrive);
+  return baseReady && Boolean(process.env.ONEDRIVE_REFRESH_TOKEN || process.env.ONEDRIVE_DRIVE_ID);
+}
+
+async function oneDriveAccess() {
+  if (!oneDriveReady()) return { ok: false, error: "OneDrive transfer credentials are not configured." };
+  const tenant = process.env.ONEDRIVE_TENANT_ID;
+  const body = new URLSearchParams({
+    client_id: process.env.ONEDRIVE_CLIENT_ID,
+    client_secret: process.env.ONEDRIVE_CLIENT_SECRET,
+    grant_type: process.env.ONEDRIVE_REFRESH_TOKEN ? "refresh_token" : "client_credentials"
+  });
+  if (process.env.ONEDRIVE_REFRESH_TOKEN) {
+    body.set("refresh_token", process.env.ONEDRIVE_REFRESH_TOKEN);
+    body.set("scope", "offline_access Files.ReadWrite.All");
+  } else {
+    body.set("scope", "https://graph.microsoft.com/.default");
+  }
+  const response = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+  const token = await response.json().catch(() => ({}));
+  if (!response.ok || !token.access_token) return { ok: false, error: token.error_description ?? "OneDrive token exchange failed." };
+  return { ok: true, accessToken: token.access_token };
+}
+
+async function uploadOneDriveSnapshot(key, content) {
+  const auth = await oneDriveAccess();
+  if (!auth.ok) return auth;
+  const safeName = key.replace(/[^a-zA-Z0-9._-]+/g, "-");
+  const path = process.env.ONEDRIVE_DRIVE_ID
+    ? `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(process.env.ONEDRIVE_DRIVE_ID)}/root:/${encodeURIComponent(safeName)}:/content`
+    : `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(safeName)}:/content`;
+  const response = await fetch(path, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${auth.accessToken}`, "Content-Type": "application/json" },
+    body: content
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) return { ok: false, error: result?.error?.message ?? "OneDrive upload failed.", status: response.status };
+  return { ok: true, itemId: result.id ?? null, webUrl: result.webUrl ?? null, name: result.name ?? safeName, bytes: Buffer.byteLength(content) };
+}
+
 function jobSecretConfigured() {
   return Boolean(process.env.DREEM_WORKER_JOB_SECRET);
 }
@@ -347,7 +392,7 @@ function isAuthorizedJobRequest(request) {
 }
 
 function getBackupTopology() {
-  const oneDriveReady = integrationReady(optionalIntegrationEnv.oneDrive);
+  const oneDriveReadyState = oneDriveReady();
   const r2Ready = integrationReady(optionalIntegrationEnv.cloudflareR2);
   const b2Ready = integrationReady(optionalIntegrationEnv.backblazeB2);
 
@@ -402,7 +447,7 @@ function buildBackupManifest({ provider, job, ready, body }) {
 }
 
 function getRuntimeStatus() {
-  const oneDriveReady = integrationReady(optionalIntegrationEnv.oneDrive);
+  const oneDriveReadyState = oneDriveReady();
   const r2Ready = integrationReady(optionalIntegrationEnv.cloudflareR2);
   const b2Ready = integrationReady(optionalIntegrationEnv.backblazeB2);
   const smtpReady = integrationReady(optionalIntegrationEnv.smtp);
@@ -422,7 +467,7 @@ function getRuntimeStatus() {
     required: envStatus(requiredServerEnv),
     integrations: {
       oneDrive: {
-        ready: oneDriveReady,
+        ready: oneDriveReadyState,
         env: envStatus(optionalIntegrationEnv.oneDrive),
         nextUse: "school-owned file backup and document sync"
       },
@@ -518,6 +563,50 @@ async function exportSchoolSnapshot(schoolId) {
   }
 
   return { tables, errors, objectCount };
+}
+
+async function executeOneDriveBackup(request, response) {
+  const job = "onedrive-sync";
+  const ready = oneDriveReady();
+  if (request.method === "GET") {
+    json(response, ready ? 200 : 501, { job, ready, accepted: false, method: "POST", protected: jobSecretConfigured(), message: ready ? "OneDrive school-owned backup is ready." : "OneDrive transfer credentials are not configured." });
+    return;
+  }
+  if (!isAuthorizedJobRequest(request)) {
+    json(response, 401, { error: "Missing or invalid DREEM worker job secret." });
+    return;
+  }
+  const body = await readJsonBody(request);
+  if (!body.schoolId) {
+    json(response, 400, { job, accepted: false, error: "schoolId is required." });
+    return;
+  }
+  const manifest = { ...buildBackupManifest({ provider: "onedrive", job, ready, body }), transferAdapter: "microsoft-graph-json-snapshot" };
+  const logResult = await createBackupJobLog({ provider: "onedrive", jobType: "sync", status: ready ? "running" : "blocked", manifest, errorMessage: ready ? null : "OneDrive transfer credentials are not configured.", body });
+  if (!logResult.ok) {
+    json(response, 503, { job, accepted: false, error: logResult.error });
+    return;
+  }
+  if (!ready) {
+    json(response, 501, { job, accepted: false, backupJob: logResult.job, blocker: "Configure an app-authorized drive ID or delegated refresh token." });
+    return;
+  }
+  const snapshot = await exportSchoolSnapshot(body.schoolId);
+  const createdAt = new Date().toISOString();
+  const fileName = `DREEM-backup-${body.schoolId}-${createdAt.replace(/[:.]/g, "-")}.json`;
+  const payload = JSON.stringify({ manifest: { ...manifest, createdAt, warnings: snapshot.errors }, data: snapshot.tables }, null, 2);
+  const upload = await uploadOneDriveSnapshot(fileName, payload);
+  const finalStatus = upload.ok && snapshot.errors.length === 0 ? "completed" : "failed";
+  const finalError = upload.ok ? (snapshot.errors.length ? `Snapshot completed with ${snapshot.errors.length} export warning(s).` : null) : upload.error;
+  const update = await updateBackupJobLog(logResult.job.id, {
+    status: finalStatus,
+    object_count: snapshot.objectCount,
+    bytes_processed: upload.ok ? upload.bytes : 0,
+    manifest: { ...manifest, fileName, oneDriveItemId: upload.ok ? upload.itemId : null, oneDriveWebUrl: upload.ok ? upload.webUrl : null, exportWarnings: snapshot.errors },
+    error_message: finalError,
+    finished_at: new Date().toISOString()
+  });
+  json(response, upload.ok ? 202 : 502, { job, accepted: upload.ok, backupJob: update.ok ? update.job : logResult.job, fileName, exportedRows: snapshot.objectCount, warnings: snapshot.errors, error: upload.ok ? undefined : upload.error });
 }
 
 async function executeS3Backup({ request, response, job, provider, requiredKeys, messageWhenReady }) {
@@ -869,15 +958,7 @@ async function handleRequest(request, response) {
   }
 
   if (url.pathname === "/jobs/onedrive-sync") {
-    await jobResponse(
-      request,
-      response,
-      "onedrive-sync",
-      "onedrive",
-      "sync",
-      optionalIntegrationEnv.oneDrive,
-      "OneDrive sync worker is configured for school-owned document backup."
-    );
+    await executeOneDriveBackup(request, response);
     return;
   }
 
