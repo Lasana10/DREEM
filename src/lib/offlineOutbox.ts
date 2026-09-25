@@ -74,7 +74,13 @@ export function deviceId() {
 
 export async function enqueueOffline<T>(input: Omit<OfflineOperation<T>, "id"|"deviceId"|"createdAt"|"attempts"|"status"|"payloadDigest">) {
   const semantic={schoolId:input.schoolId,actorId:input.actorId,role:input.role,entity:input.entity,command:input.command,payload:input.payload,idempotencyKey:input.idempotencyKey,expectedVersion:input.expectedVersion,correctsOperationId:input.correctsOperationId,correctionReason:input.correctionReason};
-  const operation: OfflineOperation<T> = { ...input, payloadDigest:await offlinePayloadDigest(semantic), id: crypto.randomUUID(), deviceId: deviceId(), createdAt: new Date().toISOString(), attempts: 0, status: "pending" };
+  const payloadDigest=await offlinePayloadDigest(semantic);
+  const existing=(await listOffline({schoolId:input.schoolId,actorId:input.actorId})).find(item=>item.command===input.command&&item.idempotencyKey===input.idempotencyKey);
+  if(existing){
+    if(existing.payloadDigest!==payloadDigest)throw new Error("Offline conflict: this action key is already queued with different evidence. Review the pending action instead of overwriting it.");
+    return existing as OfflineOperation<T>;
+  }
+  const operation: OfflineOperation<T> = { ...input, payloadDigest, id: crypto.randomUUID(), deviceId: deviceId(), createdAt: new Date().toISOString(), attempts: 0, status: "pending" };
   await tx("readwrite", store => store.add(operation));
   window.dispatchEvent(new CustomEvent("dreem:outbox-changed"));
   return operation;
