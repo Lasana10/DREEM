@@ -36,13 +36,14 @@ describe("Family app", () => {
   it("shows guardians a private child-scoped experience", () => {
     render(<FamilyLearningWorkspace workspace={base} />);
     expect(screen.getByText("DREEM FAMILY")).toBeInTheDocument();
-    expect(screen.getByText(/without receiving teacher-only or unrelated learner records/i)).toBeInTheDocument();
-    expect(screen.getByLabelText("Child")).toBeInTheDocument();
+    expect(screen.getByText(/Your children, one calm view/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Demo Learner A/i })).toBeInTheDocument();
   });
 
   it("does not let Family impersonate the learner to submit schoolwork", () => {
     render(<FamilyLearningWorkspace workspace={{ ...base, learners: [demoLearners[0]] }} />);
-    expect(screen.getByText(/Learner submissions are completed in DREEM Student/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Learning" }));
+    expect(screen.getByText(/Assignments and submission status/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Submit work" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Written response")).not.toBeInTheDocument();
   });
@@ -53,8 +54,9 @@ describe("Family app", () => {
     loadCircle.mockResolvedValueOnce([{ collectorId: "collector-1", fullName: "First Child Collector", relationship: "Aunt", phoneLast4: "1234", status: "active", validUntil: "", lastReleaseAt: "" }]);
     loadCircle.mockRejectedValueOnce({ message: "Pickup access denied" });
     render(<FamilyLearningWorkspace workspace={{ ...base, learners: [first, second] }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Transport" }));
     await screen.findByText(/First Child Collector/);
-    fireEvent.change(screen.getByLabelText("Child"), { target: { value: second.id } });
+    fireEvent.click(screen.getByRole("button", { name: /Second Child/i }));
     expect(screen.queryByText(/First Child Collector/)).not.toBeInTheDocument();
     await screen.findByText(/Pickup access denied/);
     expect(screen.queryByText(/First Child Collector/)).not.toBeInTheDocument();
