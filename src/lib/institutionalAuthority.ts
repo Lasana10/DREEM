@@ -55,6 +55,12 @@ export const positionPresets:{title:string;category:PositionCategory;scopes:Auth
   {title:"Auditor",category:"audit",scopes:["audit"]},
 ];
 
+export const positionPackPresets=[
+  {name:"Standard bilingual school",description:"Ready-to-use leadership, academic, admissions, finance, transport and gate positions.",positions:positionPresets.filter(item=>["Principal / Head of School","Teacher","Registrar / Admissions Lead","Bursar / Cashier","Accountant / Finance Reviewer","Transport Manager","Driver","Gate / Security Lead"].includes(item.title))},
+  {name:"Compact school",description:"For smaller schools where a few people legitimately carry several responsibilities.",positions:positionPresets.filter(item=>["Owner / Proprietor","Principal / Head of School","Teacher","Bursar / Cashier"].includes(item.title))},
+  {name:"Academic-first school",description:"Leadership and teaching posts first; add finance and transport only when the school uses them.",positions:positionPresets.filter(item=>["Principal / Head of School","Dean / Academic Head","Teacher","Registrar / Admissions Lead"].includes(item.title))},
+] as const;
+
 function requireSupabase(){if(!supabase)throw new Error("DREEM institutional authority is unavailable.");return supabase;}
 
 export async function loadInstitutionAuthority():Promise<{positions:SchoolPosition[];assignments:PositionAssignment[]}>{

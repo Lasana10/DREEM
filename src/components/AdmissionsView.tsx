@@ -7,6 +7,7 @@ import {
   recordAdmissionApplication,
   type WorkspaceData,
 } from "../lib/repository";
+import { canAuthority } from "../lib/access";
 
 type State = { error: boolean; message: string };
 type TargetAdmissionStatus = Exclude<AdmissionStatus, "submitted">;
@@ -98,6 +99,8 @@ export default function AdmissionsView({
   onOpenLearners?: () => void;
 }) {
   const initialApplication = workspace.admissions[0];
+  const canIntake=canAuthority(workspace.viewer,"admissions_intake");
+  const canDecide=canAuthority(workspace.viewer,"admissions_decision");
   const [state, setState] = useState<State>({ error: false, message: "" });
   const [busy, setBusy] = useState(false);
   const actionLock = useRef(false);
@@ -212,11 +215,8 @@ export default function AdmissionsView({
       <section className="page-intro">
         <div>
           <span>ADMISSIONS & ENROLMENT</span>
-          <h2>One controlled journey from applicant to learner OneFile.</h2>
-          <p>
-            Declarations, guardian identity, review decisions and final enrolment remain linked instead of being
-            re-entered across paper registers.
-          </p>
+          <h2>{canDecide ? "Review and move applicants forward without exposing every step to every staff member." : "Capture applicants quickly and hand them to the right reviewer."}</h2>
+          <p>{canDecide ? "You see the decision work assigned to your authority. Intake staff keep collecting complete applicant evidence without gaining approval powers." : "Your work is intake: capture the learner and guardian once, submit it, and let DREEM hand the record to an authorized reviewer."}</p>
         </div>
       </section>
 
@@ -251,7 +251,7 @@ export default function AdmissionsView({
       </section>
 
       <div className="care-grid">
-        <form className="panel settings-form" onSubmit={record}>
+        {canIntake ? <form className="panel settings-form" onSubmit={record}>
           <div className="panel-title">
             <div>
               <span>NEW APPLICATION</span>
@@ -340,9 +340,9 @@ export default function AdmissionsView({
             <FileCheck2 />
             {busy ? "Saving…" : "Submit application"}
           </button>
-        </form>
+        </form> : null}
 
-        <form className="panel settings-form" onSubmit={progress}>
+        {canDecide ? <form className="panel settings-form" onSubmit={progress}>
           <div className="panel-title">
             <div>
               <span>DECISION WORKFLOW</span>
@@ -439,7 +439,8 @@ export default function AdmissionsView({
             <ClipboardList />
             {busy ? "Saving…" : effectiveTargetStatus ? admissionActionLabels[effectiveTargetStatus] : "No further action"}
           </button>
-        </form>
+        </form> : null}
+        {!canIntake && !canDecide ? <section className="panel"><p>Your admissions access is read-only. You can follow records already shared with your role, but you cannot create or decide applications.</p></section> : null}
       </div>
 
       <section className="panel case-register">

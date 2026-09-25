@@ -7,6 +7,11 @@ import { activateFeePlan, createFeePlan, loadFeePlans, type FeePlanItem, type Fe
 
 const money = (value: number) => new Intl.NumberFormat("fr-FR").format(value) + " FCFA";
 const blankItem = (): FeePlanItem => ({ code: "", label: "", amount: 0, required: true });
+const feeTemplates=[
+  {name:"Tuition only",items:[{code:"TUITION",label:"Tuition",amount:0,required:true}]},
+  {name:"Standard school fees",items:[{code:"TUITION",label:"Tuition",amount:0,required:true},{code:"REGISTRATION",label:"Registration",amount:0,required:true},{code:"PTA",label:"PTA / association",amount:0,required:false}]},
+  {name:"Full learner plan",items:[{code:"TUITION",label:"Tuition",amount:0,required:true},{code:"REGISTRATION",label:"Registration",amount:0,required:true},{code:"UNIFORM",label:"Uniform",amount:0,required:false},{code:"TRANSPORT",label:"Transport",amount:0,required:false}]},
+] satisfies {name:string;items:FeePlanItem[]}[];
 
 function errorText(reason: unknown) {
   return reason instanceof Error ? reason.message : "The fee-plan action could not be completed.";
@@ -20,6 +25,7 @@ export default function FeePlanStudio({ setup, role, authorityScopes, onChanged 
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [showBuilder,setShowBuilder]=useState(false);
   const classIds = useMemo(() => setup.classes.map((item) => item.id), [setup.classes]);
   const refresh = useCallback(async () => {
     setPlans(await loadFeePlans(classIds));
@@ -71,7 +77,10 @@ export default function FeePlanStudio({ setup, role, authorityScopes, onChanged 
     {error ? <div className="form-status error" role="alert">{error}</div> : null}
     {message ? <div className="form-status success" role="status"><BadgeCheck />{message}</div> : null}
 
-    {canManage ? <form className="settings-form" onSubmit={create}>
+    {canManage ? <>
+      <div className="fee-template-grid">{feeTemplates.map(template=><button type="button" key={template.name} onClick={()=>{setItems(template.items.map(item=>({...item})));setShowBuilder(true);setError("");}}><strong>{template.name}</strong><small>{template.items.map(item=>item.label).join(" · ")}</small><span>Use template</span></button>)}</div>
+      <button type="button" className="secondary" onClick={()=>setShowBuilder(value=>!value)}>{showBuilder?"Hide fee builder":"Create a custom fee plan"}</button>
+      {showBuilder?<form className="settings-form" onSubmit={create}>
       <div className="form-grid">
         <label>Academic year<select name="academicYearId"><option value="">Choose academic year</option>{setup.academicYears.map((year) => <option key={year.id} value={year.id}>{year.name}</option>)}</select></label>
         <label>Class<select name="classId" required><option value="">Choose class</option>{setup.classes.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}{entry.sectionName ? ` · ${entry.sectionName}` : ""}</option>)}</select></label>
@@ -87,7 +96,7 @@ export default function FeePlanStudio({ setup, role, authorityScopes, onChanged 
         {items.length > 1 ? <button type="button" aria-label={`Remove fee item ${index + 1}`} onClick={() => setItems((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 size={16} /> Remove</button> : null}
       </div>)}
       <div className="mobile-submit-bar"><button type="button" onClick={() => setItems((current) => [...current, blankItem()])}><Plus size={16} /> Add fee item</button><button className="primary" disabled={busy || !setup.classes.length}>{busy ? "Saving…" : "Create draft fee plan"}</button></div>
-    </form> : <p>Fee structures are visible here for assurance. Only an appointed position with school-configuration and finance-approval authority can create or activate them.</p>}
+    </form>:null}</> : <p>Fee structures are visible here for assurance. Only an appointed position with school-configuration and finance-approval authority can create or activate them.</p>}
 
     <div className="academic-grid">
       {plans.map((plan) => <article className="document-row" key={plan.id}>
