@@ -3,12 +3,11 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles.css";
-import "./experience-v2.css";
 import "./roleWorkspaces.css";
 import "./components/TransportManagerWorkspace.css";
 import "./components/TeacherClassroomWorkspace.css";
-import "./experience-v2.css";
 import "./connectivity.css";
+import "./experience-v2.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
