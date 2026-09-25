@@ -5,14 +5,7 @@ export default function TeacherDevelopmentView({ teachers }:{ teachers:TeacherSu
   const balanced = teachers.filter(item => item.workload === "balanced").length;
   const support = teachers.filter(item => item.nextSupport && item.nextSupport.trim().length > 0);
   return <div className="content">
-    <section className="page-intro">
-      <div>
-        <span>TEACHING & STAFF DEVELOPMENT</span>
-        <h2>Support teachers from verified school evidence.</h2>
-        <p>This leadership view summarizes teaching evidence already recorded in DREEM. It does not invent performance claims or make disciplinary decisions.</p>
-      </div>
-      <div className="care-assurance"><ShieldCheck/><span><strong>Coaching, not surveillance</strong><small>Context, workload and learner evidence stay distinguishable.</small></span></div>
-    </section>
+    <section className="role-hero"><div><span className="eyebrow">TEACHING TEAM</span><h2>{teachers.length} teacher{teachers.length===1?"":"s"} in view</h2><p>Use recorded teaching evidence to support workload, coaching and follow-up—not automatic disciplinary decisions.</p></div><div className="role-hero-status"><span className="status-pill info"><ShieldCheck size={14}/> Coaching evidence</span></div></section>
 
     <div className="metrics">
       <article className="metric"><span>Teachers visible</span><strong>{teachers.length}</strong><small>Authorized staff evidence only</small></article>
@@ -31,9 +24,6 @@ export default function TeacherDevelopmentView({ teachers }:{ teachers:TeacherSu
       </article>)}
     </section>
 
-    <section className="panel">
-      <div className="panel-title"><UserRoundCheck/><div><span>SAFE DEVELOPMENT CYCLE</span><h3>Evidence → review → support → follow-up</h3></div></div>
-      <p>1. Record teaching ownership and classroom evidence. 2. Review the evidence with context. 3. Agree a support action where needed. 4. Follow up with new evidence. DREEM preserves the history; consequential staff decisions remain human-controlled.</p>
-    </section>
+    <details className="depth-drawer"><summary>How teacher development evidence is handled</summary><section className="panel"><div className="panel-title"><UserRoundCheck/><div><span>DEVELOPMENT FLOW</span><h3>Evidence → review → support → follow-up</h3></div></div><p>DREEM preserves the history and context. Consequential staff decisions remain human-controlled.</p></section></details>
   </div>;
 }
