@@ -20,8 +20,8 @@ describe("DREEM Driver",()=>{
     expect(screen.getByRole("heading",{name:"Morning Route"})).toBeInTheDocument();
     expect(screen.getByText("Morning Route")).toBeInTheDocument();
     expect(screen.getByRole("button",{name:"Start / depart"})).toBeInTheDocument();
-    expect(screen.getByRole("button",{name:"Report delay"})).toBeInTheDocument();
-    expect(screen.getByRole("button",{name:"Finish journey"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Delay"})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Finish"})).toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Activate route"})).not.toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Register vehicle"})).not.toBeInTheDocument();
   });
