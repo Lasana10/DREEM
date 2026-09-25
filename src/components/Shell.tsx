@@ -3,7 +3,7 @@ import {
   FolderHeart, GraduationCap, IdCard, Menu, MessageSquareMore, ReceiptText,
   Search, Settings2, ShieldCheck, UserPlus, UsersRound, X,
 } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import type { Role, SchoolBrand } from "../domain/types";
 import type { AuthorityScope } from "../lib/authority";
 import { allowedWorkspaceViews } from "../lib/access";
@@ -48,7 +48,8 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,c
  const[online,setOnline]=useState(navigator.onLine),[mobileMenuOpen,setMobileMenuOpen]=useState(false),[pending,setPending]=useState(0),[query,setQuery]=useState("");
  useEffect(()=>{let active=true;const refresh=()=>{if(viewer.id)pendingOfflineCount({actorId:viewer.id}).then(value=>active&&setPending(value)).catch(()=>{});};const connect=()=>{setOnline(true);refresh();},disconnect=()=>setOnline(false);window.addEventListener("online",connect);window.addEventListener("offline",disconnect);window.addEventListener("dreem:outbox-changed",refresh);refresh();return()=>{active=false;window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect);window.removeEventListener("dreem:outbox-changed",refresh);};},[viewer.id]);
  const connectivity=!online?(pending?("Offline · "+pending+" queued"):"Offline"):(pending?(pending+" pending sync"):"Synced");
- const results=useMemo(()=>query.trim()?visibleNav.filter(item=>labelFor(viewer.role,item.id).toLowerCase().includes(query.toLowerCase())||item.label.toLowerCase().includes(query.toLowerCase())).slice(0,6):[],[query,visibleNav,viewer.role]);
+ const normalizedQuery=query.trim().toLowerCase();
+ const results=normalizedQuery?visibleNav.filter(item=>labelFor(viewer.role,item.id).toLowerCase().includes(normalizedQuery)||item.label.toLowerCase().includes(normalizedQuery)).slice(0,6):[];
  return <main className="shell" style={{"--brand":brand.primaryColor,"--accent":brand.accentColor} as React.CSSProperties}>
   <aside className="sidebar">
     <div className="brand"><span>D</span><div><strong>DREEM</strong><small>School Operating System</small></div></div>
