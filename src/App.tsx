@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
+import PaymentAcknowledgement from "./components/PaymentAcknowledgement";
 import AdmissionsView from "./components/AdmissionsView";
 import AcademicJourneyWorkspace from "./components/AcademicJourneyWorkspace";
 import TransportView from "./components/TransportView";
@@ -115,4 +116,7 @@ function WorkspaceApp() {
   </>;
 }
 
-export default function App() { return <AuthGate><WorkspaceApp /></AuthGate>; }
+export default function App() {
+  if(/^\/payment\/ack\/[0-9a-fA-F-]{36}\/?$/.test(window.location.pathname))return <PaymentAcknowledgement/>;
+  return <AuthGate><WorkspaceApp /></AuthGate>;
+}
