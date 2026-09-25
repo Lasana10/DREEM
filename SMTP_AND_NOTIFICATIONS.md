@@ -1,49 +1,54 @@
-# SMTP and Notifications
+# DREEM Notifications
 
-## Recommendation
+## Production architecture
 
-Do not let SMTP block the product. DREEM can start with Supabase Auth email/OTP and later add transactional email for:
+DREEM uses a durable notification queue rather than treating SMTP as the source of truth.
 
-- school invitations
-- payment receipts
-- parent reminders
-- transport delay alerts
-- weekly academic summaries
+The current path is:
 
-## Best simple path
+1. A school announcement is created and queued.
+2. `dreem_notification_deliveries` records recipient/channel delivery state.
+3. The `dispatch-notifications` Supabase Edge Function processes queued external deliveries.
+4. Email uses Resend when configured.
+5. SMS and WhatsApp use provider-neutral signed webhook adapters when configured.
+6. A provider acceptance updates the delivery record; an unavailable provider remains retryable rather than being marked sent.
 
-Use a transactional email provider first, not a random mailbox SMTP password.
+In-app delivery remains available independently of external providers.
 
-Good options:
+## Required server configuration
 
-- [Resend](https://resend.com/)
-- [Brevo SMTP](https://www.brevo.com/products/transactional-email/)
-- [SendGrid](https://sendgrid.com/)
-
-If using normal SMTP, DREEM needs:
+Supabase Edge Function secrets for email:
 
 ```text
-SMTP_HOST=
-SMTP_PORT=587
-SMTP_USER=
-SMTP_PASSWORD=
-SMTP_FROM=DREEM <noreply@your-domain.com>
+RESEND_API_KEY=
+DREEM_FROM_EMAIL=
 ```
 
-Put these only in Render or Supabase Edge Function secrets, never in frontend env.
+Optional provider adapters:
 
-## Current implementation state
+```text
+SMS_WEBHOOK_URL=
+SMS_WEBHOOK_TOKEN=
+WHATSAPP_WEBHOOK_URL=
+WHATSAPP_WEBHOOK_TOKEN=
+```
 
-The Render worker now exposes:
+These values are server-only. Never place them in frontend environment variables.
 
-- `/health`
-- `/integrations/status`
-- `/jobs/email-dispatch`
+## Render worker trigger
 
-For now `/jobs/email-dispatch` checks whether SMTP is configured. The real queue sender should come after we define the notification table and templates.
+The Render worker endpoint `POST /jobs/email-dispatch` now delegates to the durable Supabase `dispatch-notifications` function instead of maintaining a second SMTP sender.
 
-## Direct setup links
+Request requirements:
 
-- [Render environment variables](https://render.com/docs/configure-environment-variables)
-- [Supabase Auth SMTP settings](https://supabase.com/dashboard/project/vpxtmgpxqlmkkyijuare/auth/providers)
-- [Supabase Edge Function secrets](https://supabase.com/dashboard/project/vpxtmgpxqlmkkyijuare/functions/secrets)
+- `X-DREEM-WORKER-SECRET` when worker job protection is configured
+- JSON body containing `schoolId`
+- optional `limit` (the Edge Function caps batches)
+
+A successful HTTP trigger means the dispatcher accepted the job; inspect delivery status/evidence for actual provider acceptance.
+
+## Production project
+
+DREEM production project ref: `vlukkucwtfmfgpzvjyvd`.
+
+Before deploying notification functions or secrets, confirm the connected Supabase project is this DREEM project. Do not use the TSIDKENU project for DREEM notification delivery.
