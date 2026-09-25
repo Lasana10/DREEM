@@ -62,16 +62,6 @@ const admissionActionLabels: Record<TargetAdmissionStatus, string> = {
   enrolled: "Enrol and create learner OneFile",
 };
 
-const journeySteps = ["Application", "Review", "Offer", "Accepted", "OneFile"];
-
-function admissionJourneyPosition(status: AdmissionStatus) {
-  if (status === "enrolled") return 4;
-  if (status === "accepted") return 3;
-  if (status === "offered") return 2;
-  if (["under_review", "documents_pending", "interview", "waitlisted"].includes(status)) return 1;
-  return 0;
-}
-
 function displayOwner(owner?: string) {
   if (!owner) return "Admissions queue";
   return /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(owner) ? "Assigned staff member" : owner;
