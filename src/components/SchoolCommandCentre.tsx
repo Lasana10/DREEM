@@ -1,4 +1,4 @@
-import { AlertTriangle, BookOpenCheck, BusFront, CircleDollarSign, ClipboardCheck, FolderHeart, MessageSquareMore, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
+import { BookOpenCheck, BusFront, CircleDollarSign, ClipboardCheck, FolderHeart, MessageSquareMore, ShieldCheck, UserPlus, UsersRound } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
