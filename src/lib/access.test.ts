@@ -36,11 +36,12 @@ describe("authority-driven workspace access",()=>{
     const teacherWithoutDelegation={role:"teacher" as const,authorityScopes:[] as import("./authority").AuthorityScope[]};
     const parentWithoutResolvedFamilyContext={role:"parent" as const,authorityScopes:[] as import("./authority").AuthorityScope[]};
     expect(allowedWorkspaceViews(teacherWithoutDelegation)).toEqual([]);
-    expect(canOpenView(parentWithoutResolvedFamilyContext,"learning")).toBe(false);
-    expect(canOpenView(parentWithoutResolvedFamilyContext,"transport")).toBe(false);
+    expect(canOpenView(parentWithoutResolvedFamilyContext,"learning")).toBe(true);
+    expect(canOpenView(parentWithoutResolvedFamilyContext,"transport")).toBe(true);
+    expect(canOpenView(parentWithoutResolvedFamilyContext,"finance")).toBe(false);
   });
 
-  it("keeps legacy fallback only for viewers whose authority payload has not been introduced yet",()=>{
+  it("keeps family self-service separate from institutional authority and legacy fallback only for unresolved staff",()=>{
     expect(canOpenView({role:"teacher"},"operations")).toBe(true);
     expect(canOpenView({role:"parent"},"learning")).toBe(true);
   });
