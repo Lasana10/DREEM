@@ -62,16 +62,6 @@ const admissionActionLabels: Record<TargetAdmissionStatus, string> = {
   enrolled: "Enrol and create learner OneFile",
 };
 
-const journeySteps = ["Application", "Review", "Offer", "Accepted", "OneFile"];
-
-function admissionJourneyPosition(status: AdmissionStatus) {
-  if (status === "enrolled") return 4;
-  if (status === "accepted") return 3;
-  if (status === "offered") return 2;
-  if (["under_review", "documents_pending", "interview", "waitlisted"].includes(status)) return 1;
-  return 0;
-}
-
 function displayOwner(owner?: string) {
   if (!owner) return "Admissions queue";
   return /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(owner) ? "Assigned staff member" : owner;
@@ -212,11 +202,11 @@ export default function AdmissionsView({
 
   return (
     <div className="content">
-      <section className="page-intro">
+      <section className="role-hero">
         <div>
-          <span>ADMISSIONS & ENROLMENT</span>
-          <h2>{canDecide ? "Review and move applicants forward without exposing every step to every staff member." : "Capture applicants quickly and hand them to the right reviewer."}</h2>
-          <p>{canDecide ? "You see the decision work assigned to your authority. Intake staff keep collecting complete applicant evidence without gaining approval powers." : "Your work is intake: capture the learner and guardian once, submit it, and let DREEM hand the record to an authorized reviewer."}</p>
+          <span className="eyebrow">ADMISSIONS · TODAY</span>
+          <h2>{canDecide ? active.length + " application" + (active.length === 1 ? "" : "s") + " in progress" : "New applications"}</h2>
+          <p>{canDecide ? "See the current status, make the next decision, and move on." : "Capture the learner and guardian once. DREEM routes the record to the right reviewer."}</p>
         </div>
       </section>
 
@@ -345,8 +335,8 @@ export default function AdmissionsView({
         {canDecide ? <form className="panel settings-form" onSubmit={progress}>
           <div className="panel-title">
             <div>
-              <span>DECISION WORKFLOW</span>
-              <h3>Review, offer, accept and enrol</h3>
+              <span>NEXT DECISION</span>
+              <h3>Choose an application and take the next action</h3>
             </div>
             <ClipboardList />
           </div>
@@ -371,15 +361,13 @@ export default function AdmissionsView({
             </select>
           </label>
           {selectedApplication ? (
-            <div className="admission-journey" aria-label="Admission journey">
-              {journeySteps.map((step, index) => (
-                <span
-                  className={index < admissionJourneyPosition(selectedApplication.status) ? "complete" : index === admissionJourneyPosition(selectedApplication.status) ? "current" : ""}
-                  key={step}
-                >
-                  <b>{index + 1}</b>{step}
-                </span>
-              ))}
+            <div className="action-row">
+              <div className="action-icon"><ClipboardList /></div>
+              <div>
+                <strong>{selectedApplication.learnerName}</strong>
+                <small>Current status: {admissionStatusLabels[selectedApplication.status]} · {selectedApplication.targetClassName}</small>
+              </div>
+              <span className="status-pill info">{admissionStatusLabels[selectedApplication.status]}</span>
             </div>
           ) : null}
           {effectiveTargetStatus ? (
@@ -446,8 +434,8 @@ export default function AdmissionsView({
       <section className="panel case-register">
         <div className="panel-title">
           <div>
-            <span>APPLICATION REGISTER</span>
-            <h3>Current admission journeys</h3>
+            <span>APPLICATIONS</span>
+            <h3>All current records</h3>
           </div>
         </div>
         {workspace.admissions.map(item => (

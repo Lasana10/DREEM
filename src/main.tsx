@@ -6,8 +6,8 @@ import "./styles.css";
 import "./roleWorkspaces.css";
 import "./components/TransportManagerWorkspace.css";
 import "./components/TeacherClassroomWorkspace.css";
-import "./experience-v2.css";
 import "./connectivity.css";
+import "./experience-v2.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
