@@ -133,26 +133,7 @@ export default function LearningWorkspace({
     );
   return (
     <div className="content">
-      <section className="page-intro">
-        <div>
-          <span>LEARNING WORKSPACE</span>
-          <h2>Set work. Submit evidence. Give useful feedback.</h2>
-          <p>
-            Assignments remain tied to the teacher, class, subject, deadline and
-            curriculum outcomes.
-          </p>
-        </div>
-        <div className="care-assurance">
-          <ShieldCheck />
-          <span>
-            <strong>Protected learner evidence</strong>
-            <small>
-              Late work is timestamped; grades stay inside the authorised school
-              record.
-            </small>
-          </span>
-        </div>
-      </section>
+      <section className="role-hero"><div><span className="eyebrow">LEARNING WORKSPACE</span><h2>Set work, review submissions and give feedback</h2><p>Class, subject, deadline and learner evidence stay connected automatically.</p></div><div className="role-hero-status"><span className="status-pill info"><ShieldCheck size={14}/> Protected evidence</span></div></section>
       {error && (
         <div className="form-status error" role="alert" aria-live="assertive">
           {error}
