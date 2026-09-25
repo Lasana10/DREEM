@@ -398,7 +398,7 @@ function getBackupTopology() {
 
   return {
     policy: "supabase-primary-r2-fast-replica-b2-cold-replica-onedrive-school-owned-copy",
-    ready: r2Ready || b2Ready || oneDriveReady,
+    ready: r2Ready || b2Ready || oneDriveReadyState,
     jobProtection: jobSecretConfigured() ? "shared-secret-required" : "open-internal-preview",
     lanes: [
       {
@@ -421,7 +421,7 @@ function getBackupTopology() {
       {
         provider: "onedrive",
         role: "school-owned administrative copy and human-readable document backup",
-        ready: oneDriveReady
+        ready: oneDriveReadyState
       },
       {
         provider: "local-node",
@@ -468,7 +468,7 @@ function getRuntimeStatus() {
     integrations: {
       oneDrive: {
         ready: oneDriveReadyState,
-        env: envStatus(optionalIntegrationEnv.oneDrive),
+        env: [...envStatus(optionalIntegrationEnv.oneDrive), { key: "ONEDRIVE_REFRESH_TOKEN_OR_DRIVE_ID", configured: Boolean(process.env.ONEDRIVE_REFRESH_TOKEN || process.env.ONEDRIVE_DRIVE_ID) }],
         nextUse: "school-owned file backup and document sync"
       },
       cloudflareR2: {
