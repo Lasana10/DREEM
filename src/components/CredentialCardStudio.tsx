@@ -78,13 +78,13 @@ export default function CredentialCardStudio({ workspace, onRefresh }: { workspa
   }
 
   if (!allowed) return <div className="content"><div className="form-status error">Card administration is restricted to authorized school administration.</div></div>;
-  if (!workspace.learners.length) return <div className="content"><section className="page-intro"><div><span>IDENTITY STUDIO</span><h2>Create the first learner before issuing a card.</h2><p>Accepted admissions and approved direct enrolments create the permanent learner record used by credentials.</p></div></section></div>;
+  if (!workspace.learners.length) return <div className="content"><section className="role-hero"><div><span className="eyebrow">LEARNER ID</span><h2>Create the first learner before issuing a card</h2><p>Admissions creates the permanent learner record used by school credentials.</p></div></section></div>;
 
   const primaryGuardian = identity?.guardians.find((guardian) => guardian.isPrimary) ?? identity?.guardians[0];
   const isActive = identity?.credential?.status === "active";
 
   return <div className="content credential-studio">
-    <section className="page-intro credential-card-controls"><div><span>LEARNER IDENTITY STUDIO</span><h2>Issue, print, reissue and revoke school credentials.</h2><p>The QR contains only the one-time verification secret. DREEM stores its hash, so an existing card must be reissued if its printable QR was not retained.</p></div></section>
+    <section className="role-hero credential-card-controls"><div><span className="eyebrow">LEARNER IDENTITY</span><h2>Issue and manage school cards</h2><p>Select a learner, issue the card and print it. Security details stay protected underneath.</p></div></section>
     {error && <div className="form-status error credential-card-controls">{error}</div>}
     {message && <div className="form-status success credential-card-controls"><BadgeCheck />{message}</div>}
     <section className="panel settings-form credential-card-controls">
