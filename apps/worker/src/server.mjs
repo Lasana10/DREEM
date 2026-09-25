@@ -928,13 +928,50 @@ async function handleRequest(request, response) {
   }
 
   if (url.pathname === "/jobs/email-dispatch") {
-    const smtpReady = integrationReady(optionalIntegrationEnv.smtp);
-    json(response, smtpReady ? 202 : 501, {
+    if (request.method === "GET") {
+      json(response, integrationReady(requiredServerEnv) ? 200 : 503, {
+        job: "email-dispatch",
+        ready: integrationReady(requiredServerEnv),
+        accepted: false,
+        method: "POST",
+        protected: jobSecretConfigured(),
+        dispatcher: "supabase-edge-function:dispatch-notifications",
+        message: "DREEM notification delivery is handled by the durable Supabase queue and provider adapters."
+      });
+      return;
+    }
+
+    if (!isAuthorizedJobRequest(request)) {
+      json(response, 401, { error: "Missing or invalid DREEM worker job secret." });
+      return;
+    }
+
+    const body = await readJsonBody(request);
+    if (!body.schoolId) {
+      json(response, 400, { job: "email-dispatch", accepted: false, error: "schoolId is required." });
+      return;
+    }
+    if (!integrationReady(requiredServerEnv)) {
+      json(response, 503, { job: "email-dispatch", accepted: false, error: "Supabase worker credentials are not configured." });
+      return;
+    }
+
+    const functionUrl = `${process.env.SUPABASE_URL.replace(/\/$/, "")}/functions/v1/dispatch-notifications`;
+    const dispatchResponse = await fetch(functionUrl, {
+      method: "POST",
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ schoolId: body.schoolId, limit: body.limit ?? 50 })
+    });
+    const result = await dispatchResponse.json().catch(() => ({}));
+    json(response, dispatchResponse.ok ? 202 : dispatchResponse.status, {
       job: "email-dispatch",
-      accepted: smtpReady,
-      message: smtpReady
-        ? "SMTP dispatch is configured; notification queue can be enabled next."
-        : "SMTP credentials are not configured yet."
+      accepted: dispatchResponse.ok,
+      dispatcher: "supabase-edge-function:dispatch-notifications",
+      ...result
     });
     return;
   }
