@@ -1,7 +1,7 @@
 import {
   BarChart3, BookOpenCheck, Building2, BusFront, CircleUserRound, ClipboardCheck,
   FolderHeart, GraduationCap, IdCard, Menu, MessageSquareMore, ReceiptText,
-  Search, Settings2, ShieldCheck, UserPlus, UsersRound, X,
+  Search, Search, Settings2, ShieldCheck, UserPlus, UsersRound, X,
 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import type { Role, SchoolBrand } from "../domain/types";
