@@ -17,7 +17,7 @@ describe("DREEM Driver",()=>{
   afterEach(cleanup);
   it("shows only the assigned journey operations instead of fleet administration",()=>{
     render(<DriverWorkspace workspace={workspace} onRefresh={async()=>undefined}/>);
-    expect(screen.getByRole("heading",{name:"Drive the assigned trip. Record what actually happens."})).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:"Morning Route"})).toBeInTheDocument();
     expect(screen.getByText("Morning Route")).toBeInTheDocument();
     expect(screen.getByRole("button",{name:"Start / depart"})).toBeInTheDocument();
     expect(screen.getByRole("button",{name:"Report delay"})).toBeInTheDocument();
