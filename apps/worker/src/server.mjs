@@ -57,13 +57,13 @@ const backupTables = [
   "profiles",
   "dreem_school_memberships",
   "access_identities",
+  "access_invites",
   "students",
   "attendance",
   "fee_accounts",
   "fee_payments",
   "fee_reminders",
   "classroom_materials",
-  "assignment_submissions",
   "announcements",
   "transport_routes",
   "storage_connections",
@@ -75,7 +75,73 @@ const backupTables = [
   "bursar_liabilities",
   "bursar_settlements",
   "audit_events",
-  "sync_queue"
+  "sync_queue",
+  "backup_jobs",
+  "dreem_school_brands",
+  "dreem_community_signals",
+  "dreem_signal_events",
+  "dreem_domain_events",
+  "dreem_interventions",
+  "dreem_growth_snapshots",
+  "dreem_teacher_growth_snapshots",
+  "dreem_guardians",
+  "dreem_student_guardians",
+  "dreem_student_credentials",
+  "dreem_admission_applications",
+  "dreem_admission_consents",
+  "dreem_admission_events",
+  "dreem_student_cases",
+  "dreem_case_events",
+  "dreem_curriculum_outcomes",
+  "dreem_teaching_assignments",
+  "dreem_timetable_entries",
+  "dreem_lesson_plans",
+  "dreem_assessment_reviews",
+  "dreem_report_cards",
+  "dreem_report_card_results",
+  "dreem_academic_documents",
+  "dreem_assignments",
+  "dreem_assignment_submissions",
+  "dreem_transport_routes",
+  "dreem_transport_stops",
+  "dreem_transport_vehicles",
+  "dreem_transport_drivers",
+  "dreem_transport_consents",
+  "dreem_transport_assignments",
+  "dreem_transport_trips",
+  "dreem_transport_trip_events",
+  "dreem_authorized_collectors",
+  "dreem_learner_release_events",
+  "dreem_payment_rails",
+  "dreem_payment_intents",
+  "dreem_financial_payments",
+  "dreem_payment_confirmations",
+  "dreem_payment_events",
+  "dreem_cashier_sessions",
+  "dreem_reconciliation_reviews",
+  "dreem_cash_deposit_batches",
+  "dreem_cash_deposit_items",
+  "dreem_fee_plans",
+  "dreem_fee_plan_items",
+  "dreem_student_fee_charges",
+  "dreem_payment_allocations",
+  "dreem_fee_adjustments",
+  "dreem_refund_requests",
+  "dreem_finance_journal_entries",
+  "dreem_announcements",
+  "dreem_notification_deliveries",
+  "dreem_notification_endpoints",
+  "dreem_offline_operation_receipts",
+  "dreem_gate_offline_incidents",
+  "dreem_school_positions",
+  "dreem_position_assignments",
+  "dreem_user_active_school"
+];
+
+const dependentBackupTables = [
+  { table: "dreem_position_authorities", foreignKey: "position_id", parentTable: "dreem_school_positions" },
+  { table: "dreem_assignment_outcomes", foreignKey: "assignment_id", parentTable: "dreem_assignments" },
+  { table: "dreem_lesson_plan_outcomes", foreignKey: "lesson_plan_id", parentTable: "dreem_lesson_plans" }
 ];
 
 function json(response, statusCode, body) {
@@ -565,6 +631,38 @@ async function updateBackupJobLog(jobId, fields) {
   return { ok: true, job: result.body?.[0] ?? null };
 }
 
+async function exportFilteredRows(table, filter) {
+  const rows = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await supabaseRequest(
+      `${table}?select=*&${filter}&limit=${pageSize}&offset=${offset}`
+    );
+    if (!result.ok) return { ok: false, rows, error: result.error };
+    const page = Array.isArray(result.body) ? result.body : [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return { ok: true, rows };
+}
+
+async function exportDependentRows(table, foreignKey, parentIds) {
+  if (!parentIds.length) return { ok: true, rows: [] };
+  const rows = [];
+  const chunkSize = 100;
+  for (let index = 0; index < parentIds.length; index += chunkSize) {
+    const chunk = parentIds.slice(index, index + chunkSize);
+    const encodedIds = chunk.map((id) => `"${String(id).replace(/"/g, "")}"`).join(",");
+    const result = await exportFilteredRows(
+      table,
+      `${foreignKey}=in.(${encodeURIComponent(encodedIds)})`
+    );
+    if (!result.ok) return { ok: false, rows, error: result.error };
+    rows.push(...result.rows);
+  }
+  return { ok: true, rows };
+}
+
 async function exportSchoolSnapshot(schoolId) {
   const tables = {};
   const errors = [];
@@ -575,9 +673,7 @@ async function exportSchoolSnapshot(schoolId) {
       table === "schools"
         ? `id=eq.${encodeURIComponent(schoolId)}`
         : `school_id=eq.${encodeURIComponent(schoolId)}`;
-    const result = await supabaseRequest(
-      `${table}?select=*&${filter}&limit=10000`
-    );
+    const result = await exportFilteredRows(table, filter);
 
     if (!result.ok) {
       errors.push({ table, error: result.error });
@@ -585,9 +681,21 @@ async function exportSchoolSnapshot(schoolId) {
       continue;
     }
 
-    const rows = Array.isArray(result.body) ? result.body : [];
-    tables[table] = rows;
-    objectCount += rows.length;
+    tables[table] = result.rows;
+    objectCount += result.rows.length;
+  }
+
+  for (const dependent of dependentBackupTables) {
+    const parentRows = Array.isArray(tables[dependent.parentTable]) ? tables[dependent.parentTable] : [];
+    const parentIds = parentRows.map((row) => row.id).filter(Boolean);
+    const result = await exportDependentRows(dependent.table, dependent.foreignKey, parentIds);
+    if (!result.ok) {
+      errors.push({ table: dependent.table, error: result.error });
+      tables[dependent.table] = [];
+      continue;
+    }
+    tables[dependent.table] = result.rows;
+    objectCount += result.rows.length;
   }
 
   return { tables, errors, objectCount };
@@ -728,7 +836,7 @@ async function executeS3Backup({ request, response, job, provider, requiredKeys,
         objectKey,
         startedAt,
         createdAt,
-        tables: backupTables,
+        tables: [...backupTables, ...dependentBackupTables.map((item) => item.table)],
         warnings: snapshot.errors
       },
       data: snapshot.tables
@@ -749,7 +857,7 @@ async function executeS3Backup({ request, response, job, provider, requiredKeys,
     objectKey,
     bucket: uploadResult.ok ? uploadResult.bucket : null,
     bytes: uploadResult.ok ? uploadResult.bytes : 0,
-    exportedTables: backupTables.length,
+    exportedTables: backupTables.length + dependentBackupTables.length,
     exportWarnings: snapshot.errors
   };
   const updateResult = await updateBackupJobLog(logResult.job.id, {
