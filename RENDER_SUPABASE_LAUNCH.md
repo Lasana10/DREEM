@@ -60,7 +60,7 @@ After Render deploys, verify `GET /health` is HTTP 200, then trigger the school-
 Required:
 
 ```text
-SUPABASE_URL=https://vpxtmgpxqlmkkyijuare.supabase.co
+SUPABASE_URL=https://vlukkucwtfmfgpzvjyvd.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=YOUR_ROTATED_SERVER_ONLY_KEY
 ```
 

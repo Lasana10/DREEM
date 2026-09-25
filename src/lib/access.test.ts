@@ -31,4 +31,18 @@ describe("authority-driven workspace access",()=>{
     expect(defaultWorkspaceView(transportLead)).toBe("command");
     expect(allowedWorkspaceViews(transportLead)).toContain("transport");
   });
+
+  it("never re-grants legacy role powers when authority resolves to an explicit empty set",()=>{
+    const teacherWithoutDelegation={role:"teacher" as const,authorityScopes:[] as import("./authority").AuthorityScope[]};
+    const parentWithoutResolvedFamilyContext={role:"parent" as const,authorityScopes:[] as import("./authority").AuthorityScope[]};
+    expect(allowedWorkspaceViews(teacherWithoutDelegation)).toEqual([]);
+    expect(canOpenView(parentWithoutResolvedFamilyContext,"learning")).toBe(true);
+    expect(canOpenView(parentWithoutResolvedFamilyContext,"transport")).toBe(true);
+    expect(canOpenView(parentWithoutResolvedFamilyContext,"finance")).toBe(false);
+  });
+
+  it("keeps family self-service separate from institutional authority and legacy fallback only for unresolved staff",()=>{
+    expect(canOpenView({role:"teacher"},"operations")).toBe(true);
+    expect(canOpenView({role:"parent"},"learning")).toBe(true);
+  });
 });

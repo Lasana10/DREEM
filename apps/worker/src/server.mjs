@@ -9,12 +9,27 @@ const requiredServerEnv = [
   "SUPABASE_SERVICE_ROLE_KEY"
 ];
 
+const expectedSupabaseProjectRef =
+  process.env.DREEM_EXPECTED_SUPABASE_PROJECT_REF ?? "vlukkucwtfmfgpzvjyvd";
+
+function configuredSupabaseProjectRef() {
+  try {
+    const host = new URL(process.env.SUPABASE_URL ?? "").hostname;
+    return host.endsWith(".supabase.co") ? host.split(".")[0] : "";
+  } catch {
+    return "";
+  }
+}
+
+function supabaseProjectIsSafe() {
+  return configuredSupabaseProjectRef() === expectedSupabaseProjectRef;
+}
+
 const optionalIntegrationEnv = {
   oneDrive: [
     "ONEDRIVE_CLIENT_ID",
     "ONEDRIVE_CLIENT_SECRET",
-    "ONEDRIVE_TENANT_ID",
-    "ONEDRIVE_REDIRECT_URI"
+    "ONEDRIVE_TENANT_ID"
   ],
   cloudflareR2: [
     "CLOUDFLARE_R2_ACCOUNT_ID",
@@ -42,6 +57,7 @@ const backupTables = [
   "profiles",
   "dreem_school_memberships",
   "access_identities",
+  "access_invites",
   "students",
   "attendance",
   "fee_accounts",
@@ -60,7 +76,73 @@ const backupTables = [
   "bursar_liabilities",
   "bursar_settlements",
   "audit_events",
-  "sync_queue"
+  "sync_queue",
+  "backup_jobs",
+  "dreem_school_brands",
+  "dreem_community_signals",
+  "dreem_signal_events",
+  "dreem_domain_events",
+  "dreem_interventions",
+  "dreem_growth_snapshots",
+  "dreem_teacher_growth_snapshots",
+  "dreem_guardians",
+  "dreem_student_guardians",
+  "dreem_student_credentials",
+  "dreem_admission_applications",
+  "dreem_admission_consents",
+  "dreem_admission_events",
+  "dreem_student_cases",
+  "dreem_case_events",
+  "dreem_curriculum_outcomes",
+  "dreem_teaching_assignments",
+  "dreem_timetable_entries",
+  "dreem_lesson_plans",
+  "dreem_assessment_reviews",
+  "dreem_report_cards",
+  "dreem_report_card_results",
+  "dreem_academic_documents",
+  "dreem_assignments",
+  "dreem_assignment_submissions",
+  "dreem_transport_routes",
+  "dreem_transport_stops",
+  "dreem_transport_vehicles",
+  "dreem_transport_drivers",
+  "dreem_transport_consents",
+  "dreem_transport_assignments",
+  "dreem_transport_trips",
+  "dreem_transport_trip_events",
+  "dreem_authorized_collectors",
+  "dreem_learner_release_events",
+  "dreem_payment_rails",
+  "dreem_payment_intents",
+  "dreem_financial_payments",
+  "dreem_payment_confirmations",
+  "dreem_payment_events",
+  "dreem_cashier_sessions",
+  "dreem_reconciliation_reviews",
+  "dreem_cash_deposit_batches",
+  "dreem_cash_deposit_items",
+  "dreem_fee_plans",
+  "dreem_fee_plan_items",
+  "dreem_student_fee_charges",
+  "dreem_payment_allocations",
+  "dreem_fee_adjustments",
+  "dreem_refund_requests",
+  "dreem_finance_journal_entries",
+  "dreem_announcements",
+  "dreem_notification_deliveries",
+  "dreem_notification_endpoints",
+  "dreem_offline_operation_receipts",
+  "dreem_gate_offline_incidents",
+  "dreem_school_positions",
+  "dreem_position_assignments",
+  "dreem_user_active_school"
+];
+
+const dependentBackupTables = [
+  { table: "dreem_position_authorities", foreignKey: "position_id", parentTable: "dreem_school_positions" },
+  { table: "dreem_assignment_outcomes", foreignKey: "assignment_id", parentTable: "dreem_assignments" },
+  { table: "dreem_lesson_plan_outcomes", foreignKey: "lesson_plan_id", parentTable: "dreem_lesson_plans" }
 ];
 
 function json(response, statusCode, body) {
@@ -110,6 +192,12 @@ function supabaseRestHeaders(prefer) {
 async function supabaseRequest(path, options = {}) {
   if (!integrationReady(requiredServerEnv)) {
     return { ok: false, error: "Supabase worker credentials are not configured." };
+  }
+  if (!supabaseProjectIsSafe()) {
+    return {
+      ok: false,
+      error: `DREEM worker is refusing Supabase access: configured project ${configuredSupabaseProjectRef() || "unknown"} does not match expected project ${expectedSupabaseProjectRef}.`
+    };
   }
 
   const response = await fetch(
@@ -333,6 +421,52 @@ function integrationReady(keys) {
   return keys.every((key) => Boolean(process.env[key]));
 }
 
+function oneDriveReady() {
+  const baseReady = integrationReady(optionalIntegrationEnv.oneDrive);
+  return baseReady && Boolean(process.env.ONEDRIVE_REFRESH_TOKEN || process.env.ONEDRIVE_DRIVE_ID);
+}
+
+async function oneDriveAccess() {
+  if (!oneDriveReady()) return { ok: false, error: "OneDrive transfer credentials are not configured." };
+  const tenant = process.env.ONEDRIVE_TENANT_ID;
+  const body = new URLSearchParams({
+    client_id: process.env.ONEDRIVE_CLIENT_ID,
+    client_secret: process.env.ONEDRIVE_CLIENT_SECRET,
+    grant_type: process.env.ONEDRIVE_REFRESH_TOKEN ? "refresh_token" : "client_credentials"
+  });
+  if (process.env.ONEDRIVE_REFRESH_TOKEN) {
+    body.set("refresh_token", process.env.ONEDRIVE_REFRESH_TOKEN);
+    body.set("scope", "offline_access Files.ReadWrite.All");
+  } else {
+    body.set("scope", "https://graph.microsoft.com/.default");
+  }
+  const response = await fetch(`https://login.microsoftonline.com/${encodeURIComponent(tenant)}/oauth2/v2.0/token`, {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body
+  });
+  const token = await response.json().catch(() => ({}));
+  if (!response.ok || !token.access_token) return { ok: false, error: token.error_description ?? "OneDrive token exchange failed." };
+  return { ok: true, accessToken: token.access_token };
+}
+
+async function uploadOneDriveSnapshot(key, content) {
+  const auth = await oneDriveAccess();
+  if (!auth.ok) return auth;
+  const safeName = key.replace(/[^a-zA-Z0-9._-]+/g, "-");
+  const path = process.env.ONEDRIVE_DRIVE_ID
+    ? `https://graph.microsoft.com/v1.0/drives/${encodeURIComponent(process.env.ONEDRIVE_DRIVE_ID)}/root:/${encodeURIComponent(safeName)}:/content`
+    : `https://graph.microsoft.com/v1.0/me/drive/root:/${encodeURIComponent(safeName)}:/content`;
+  const response = await fetch(path, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${auth.accessToken}`, "Content-Type": "application/json" },
+    body: content
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) return { ok: false, error: result?.error?.message ?? "OneDrive upload failed.", status: response.status };
+  return { ok: true, itemId: result.id ?? null, webUrl: result.webUrl ?? null, name: result.name ?? safeName, bytes: Buffer.byteLength(content) };
+}
+
 function jobSecretConfigured() {
   return Boolean(process.env.DREEM_WORKER_JOB_SECRET);
 }
@@ -347,13 +481,13 @@ function isAuthorizedJobRequest(request) {
 }
 
 function getBackupTopology() {
-  const oneDriveReady = integrationReady(optionalIntegrationEnv.oneDrive);
+  const oneDriveReadyState = oneDriveReady();
   const r2Ready = integrationReady(optionalIntegrationEnv.cloudflareR2);
   const b2Ready = integrationReady(optionalIntegrationEnv.backblazeB2);
 
   return {
     policy: "supabase-primary-r2-fast-replica-b2-cold-replica-onedrive-school-owned-copy",
-    ready: r2Ready || b2Ready || oneDriveReady,
+    ready: r2Ready || b2Ready || oneDriveReadyState,
     jobProtection: jobSecretConfigured() ? "shared-secret-required" : "open-internal-preview",
     lanes: [
       {
@@ -376,7 +510,7 @@ function getBackupTopology() {
       {
         provider: "onedrive",
         role: "school-owned administrative copy and human-readable document backup",
-        ready: oneDriveReady
+        ready: oneDriveReadyState
       },
       {
         provider: "local-node",
@@ -402,16 +536,22 @@ function buildBackupManifest({ provider, job, ready, body }) {
 }
 
 function getRuntimeStatus() {
-  const oneDriveReady = integrationReady(optionalIntegrationEnv.oneDrive);
+  const oneDriveReadyState = oneDriveReady();
   const r2Ready = integrationReady(optionalIntegrationEnv.cloudflareR2);
   const b2Ready = integrationReady(optionalIntegrationEnv.backblazeB2);
   const smtpReady = integrationReady(optionalIntegrationEnv.smtp);
   const serverReady = integrationReady(requiredServerEnv);
+  const projectSafe = serverReady && supabaseProjectIsSafe();
 
   return {
     service: "dreem-worker",
     role: "backend-sync-and-integration-lane",
-    status: serverReady ? "ready" : "missing-required-env",
+    status: !serverReady ? "missing-required-env" : projectSafe ? "ready" : "wrong-supabase-project",
+    supabase: {
+      configuredProjectRef: configuredSupabaseProjectRef() || null,
+      expectedProjectRef: expectedSupabaseProjectRef,
+      projectBoundarySafe: projectSafe
+    },
     render: {
       detected: process.env.RENDER === "true",
       serviceName: process.env.RENDER_SERVICE_NAME ?? null,
@@ -422,8 +562,8 @@ function getRuntimeStatus() {
     required: envStatus(requiredServerEnv),
     integrations: {
       oneDrive: {
-        ready: oneDriveReady,
-        env: envStatus(optionalIntegrationEnv.oneDrive),
+        ready: oneDriveReadyState,
+        env: [...envStatus(optionalIntegrationEnv.oneDrive), { key: "ONEDRIVE_REFRESH_TOKEN_OR_DRIVE_ID", configured: Boolean(process.env.ONEDRIVE_REFRESH_TOKEN || process.env.ONEDRIVE_DRIVE_ID) }],
         nextUse: "school-owned file backup and document sync"
       },
       cloudflareR2: {
@@ -492,6 +632,38 @@ async function updateBackupJobLog(jobId, fields) {
   return { ok: true, job: result.body?.[0] ?? null };
 }
 
+async function exportFilteredRows(table, filter) {
+  const rows = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    const result = await supabaseRequest(
+      `${table}?select=*&${filter}&limit=${pageSize}&offset=${offset}`
+    );
+    if (!result.ok) return { ok: false, rows, error: result.error };
+    const page = Array.isArray(result.body) ? result.body : [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return { ok: true, rows };
+}
+
+async function exportDependentRows(table, foreignKey, parentIds) {
+  if (!parentIds.length) return { ok: true, rows: [] };
+  const rows = [];
+  const chunkSize = 100;
+  for (let index = 0; index < parentIds.length; index += chunkSize) {
+    const chunk = parentIds.slice(index, index + chunkSize);
+    const encodedIds = chunk.map((id) => `"${String(id).replace(/"/g, "")}"`).join(",");
+    const result = await exportFilteredRows(
+      table,
+      `${foreignKey}=in.(${encodeURIComponent(encodedIds)})`
+    );
+    if (!result.ok) return { ok: false, rows, error: result.error };
+    rows.push(...result.rows);
+  }
+  return { ok: true, rows };
+}
+
 async function exportSchoolSnapshot(schoolId) {
   const tables = {};
   const errors = [];
@@ -502,9 +674,7 @@ async function exportSchoolSnapshot(schoolId) {
       table === "schools"
         ? `id=eq.${encodeURIComponent(schoolId)}`
         : `school_id=eq.${encodeURIComponent(schoolId)}`;
-    const result = await supabaseRequest(
-      `${table}?select=*&${filter}&limit=10000`
-    );
+    const result = await exportFilteredRows(table, filter);
 
     if (!result.ok) {
       errors.push({ table, error: result.error });
@@ -512,12 +682,68 @@ async function exportSchoolSnapshot(schoolId) {
       continue;
     }
 
-    const rows = Array.isArray(result.body) ? result.body : [];
-    tables[table] = rows;
-    objectCount += rows.length;
+    tables[table] = result.rows;
+    objectCount += result.rows.length;
+  }
+
+  for (const dependent of dependentBackupTables) {
+    const parentRows = Array.isArray(tables[dependent.parentTable]) ? tables[dependent.parentTable] : [];
+    const parentIds = parentRows.map((row) => row.id).filter(Boolean);
+    const result = await exportDependentRows(dependent.table, dependent.foreignKey, parentIds);
+    if (!result.ok) {
+      errors.push({ table: dependent.table, error: result.error });
+      tables[dependent.table] = [];
+      continue;
+    }
+    tables[dependent.table] = result.rows;
+    objectCount += result.rows.length;
   }
 
   return { tables, errors, objectCount };
+}
+
+async function executeOneDriveBackup(request, response) {
+  const job = "onedrive-sync";
+  const ready = oneDriveReady();
+  if (request.method === "GET") {
+    json(response, ready ? 200 : 501, { job, ready, accepted: false, method: "POST", protected: jobSecretConfigured(), message: ready ? "OneDrive school-owned backup is ready." : "OneDrive transfer credentials are not configured." });
+    return;
+  }
+  if (!isAuthorizedJobRequest(request)) {
+    json(response, 401, { error: "Missing or invalid DREEM worker job secret." });
+    return;
+  }
+  const body = await readJsonBody(request);
+  if (!body.schoolId) {
+    json(response, 400, { job, accepted: false, error: "schoolId is required." });
+    return;
+  }
+  const manifest = { ...buildBackupManifest({ provider: "onedrive", job, ready, body }), transferAdapter: "microsoft-graph-json-snapshot" };
+  const logResult = await createBackupJobLog({ provider: "onedrive", jobType: "sync", status: ready ? "running" : "blocked", manifest, errorMessage: ready ? null : "OneDrive transfer credentials are not configured.", body });
+  if (!logResult.ok) {
+    json(response, 503, { job, accepted: false, error: logResult.error });
+    return;
+  }
+  if (!ready) {
+    json(response, 501, { job, accepted: false, backupJob: logResult.job, blocker: "Configure an app-authorized drive ID or delegated refresh token." });
+    return;
+  }
+  const snapshot = await exportSchoolSnapshot(body.schoolId);
+  const createdAt = new Date().toISOString();
+  const fileName = `DREEM-backup-${body.schoolId}-${createdAt.replace(/[:.]/g, "-")}.json`;
+  const payload = JSON.stringify({ manifest: { ...manifest, createdAt, warnings: snapshot.errors }, data: snapshot.tables }, null, 2);
+  const upload = await uploadOneDriveSnapshot(fileName, payload);
+  const finalStatus = upload.ok && snapshot.errors.length === 0 ? "completed" : "failed";
+  const finalError = upload.ok ? (snapshot.errors.length ? `Snapshot completed with ${snapshot.errors.length} export warning(s).` : null) : upload.error;
+  const update = await updateBackupJobLog(logResult.job.id, {
+    status: finalStatus,
+    object_count: snapshot.objectCount,
+    bytes_processed: upload.ok ? upload.bytes : 0,
+    manifest: { ...manifest, fileName, oneDriveItemId: upload.ok ? upload.itemId : null, oneDriveWebUrl: upload.ok ? upload.webUrl : null, exportWarnings: snapshot.errors },
+    error_message: finalError,
+    finished_at: new Date().toISOString()
+  });
+  json(response, upload.ok ? 202 : 502, { job, accepted: upload.ok, backupJob: update.ok ? update.job : logResult.job, fileName, exportedRows: snapshot.objectCount, warnings: snapshot.errors, error: upload.ok ? undefined : upload.error });
 }
 
 async function executeS3Backup({ request, response, job, provider, requiredKeys, messageWhenReady }) {
@@ -611,7 +837,7 @@ async function executeS3Backup({ request, response, job, provider, requiredKeys,
         objectKey,
         startedAt,
         createdAt,
-        tables: backupTables,
+        tables: [...backupTables, ...dependentBackupTables.map((item) => item.table)],
         warnings: snapshot.errors
       },
       data: snapshot.tables
@@ -632,7 +858,7 @@ async function executeS3Backup({ request, response, job, provider, requiredKeys,
     objectKey,
     bucket: uploadResult.ok ? uploadResult.bucket : null,
     bytes: uploadResult.ok ? uploadResult.bytes : 0,
-    exportedTables: backupTables.length,
+    exportedTables: backupTables.length + dependentBackupTables.length,
     exportWarnings: snapshot.errors
   };
   const updateResult = await updateBackupJobLog(logResult.job.id, {
@@ -869,15 +1095,7 @@ async function handleRequest(request, response) {
   }
 
   if (url.pathname === "/jobs/onedrive-sync") {
-    await jobResponse(
-      request,
-      response,
-      "onedrive-sync",
-      "onedrive",
-      "sync",
-      optionalIntegrationEnv.oneDrive,
-      "OneDrive sync worker is configured for school-owned document backup."
-    );
+    await executeOneDriveBackup(request, response);
     return;
   }
 
@@ -928,13 +1146,60 @@ async function handleRequest(request, response) {
   }
 
   if (url.pathname === "/jobs/email-dispatch") {
-    const smtpReady = integrationReady(optionalIntegrationEnv.smtp);
-    json(response, smtpReady ? 202 : 501, {
+    if (request.method === "GET") {
+      json(response, integrationReady(requiredServerEnv) ? 200 : 503, {
+        job: "email-dispatch",
+        ready: integrationReady(requiredServerEnv),
+        accepted: false,
+        method: "POST",
+        protected: jobSecretConfigured(),
+        dispatcher: "supabase-edge-function:dispatch-notifications",
+        message: "DREEM notification delivery is handled by the durable Supabase queue and provider adapters."
+      });
+      return;
+    }
+
+    if (!isAuthorizedJobRequest(request)) {
+      json(response, 401, { error: "Missing or invalid DREEM worker job secret." });
+      return;
+    }
+
+    const body = await readJsonBody(request);
+    if (!body.schoolId) {
+      json(response, 400, { job: "email-dispatch", accepted: false, error: "schoolId is required." });
+      return;
+    }
+    if (!integrationReady(requiredServerEnv)) {
+      json(response, 503, { job: "email-dispatch", accepted: false, error: "Supabase worker credentials are not configured." });
+      return;
+    }
+    if (!supabaseProjectIsSafe()) {
+      json(response, 503, {
+        job: "email-dispatch",
+        accepted: false,
+        error: "DREEM worker is connected to the wrong Supabase project.",
+        configuredProjectRef: configuredSupabaseProjectRef() || null,
+        expectedProjectRef: expectedSupabaseProjectRef
+      });
+      return;
+    }
+
+    const functionUrl = `${process.env.SUPABASE_URL.replace(/\/$/, "")}/functions/v1/dispatch-notifications`;
+    const dispatchResponse = await fetch(functionUrl, {
+      method: "POST",
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ schoolId: body.schoolId, limit: body.limit ?? 50 })
+    });
+    const result = await dispatchResponse.json().catch(() => ({}));
+    json(response, dispatchResponse.ok ? 202 : dispatchResponse.status, {
       job: "email-dispatch",
-      accepted: smtpReady,
-      message: smtpReady
-        ? "SMTP dispatch is configured; notification queue can be enabled next."
-        : "SMTP credentials are not configured yet."
+      accepted: dispatchResponse.ok,
+      dispatcher: "supabase-edge-function:dispatch-notifications",
+      ...result
     });
     return;
   }

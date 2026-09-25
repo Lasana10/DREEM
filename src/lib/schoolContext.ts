@@ -14,13 +14,14 @@ export function clearActiveSchoolId(){if(typeof localStorage!=="undefined")local
 
 function normalizeMembership(row:SchoolContextRow):SchoolMembershipContext{
   const role=row.role as Role;
-  const scopes=Array.isArray(row.authority_scopes)?row.authority_scopes.map(String) as AuthorityScope[]:legacyAuthorityScopes(role);
+  const rawScopes=row.authority_scopes;
+  const scopes=Array.isArray(rawScopes)?rawScopes.map(String) as AuthorityScope[]:legacyAuthorityScopes(role);
   return{
     schoolId:String(row.school_id),
     schoolName:String(row.school_name),
     role,
     positionTitle:row.position_title?String(row.position_title):humanizeRole(role),
-    authorityScopes:scopes.length?scopes:legacyAuthorityScopes(role),
+    authorityScopes:scopes,
   };
 }
 

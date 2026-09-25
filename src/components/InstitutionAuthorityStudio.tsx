@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { BadgeCheck, Building2, Plus, ShieldCheck, UserCog } from "lucide-react";
+import { BadgeCheck, Building2, Eye, Plus, ShieldAlert, ShieldCheck, UserCog } from "lucide-react";
 import type { AccessMembership } from "../domain/types";
 import type { AuthorityScope } from "../lib/authority";
+import { allowedWorkspaceViews, type WorkspaceView } from "../lib/access";
 import {
   assignSchoolPosition,
   authorityScopeOptions,
@@ -17,13 +18,20 @@ import {
 
 const categories:PositionCategory[]=["governance","leadership","academic","finance","operations","support","audit"];
 const codeFrom=(value:string)=>value.toLowerCase().trim().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,48)||"position";
+const viewLabels:Record<WorkspaceView,string>={
+  command:"Command centre",admissions:"Admissions",operations:"Daily operations",academics:"Academic delivery",learning:"Assignments",
+  learners:"Learner records",credentials:"ID cards",teachers:"Teaching & staff development",care:"Care & safeguarding",
+  transport:"Transport & pickup",finance:"Finance & fees",signals:"Messages & feedback",studio:"School settings",
+};
 
 function errorText(reason:unknown){return reason instanceof Error?reason.message:"Institutional authority could not be updated.";}
+function hasSeparationConflict(scopes:AuthorityScope[]){return scopes.includes("finance_collection")&&scopes.includes("finance_approval");}
 
 export default function InstitutionAuthorityStudio({memberships,onChanged}:{memberships:AccessMembership[];onChanged?:()=>Promise<void>}){
   const[positions,setPositions]=useState<SchoolPosition[]>([]),[assignments,setAssignments]=useState<PositionAssignment[]>([]);
   const[title,setTitle]=useState(""),[category,setCategory]=useState<PositionCategory>("leadership"),[scopes,setScopes]=useState<AuthorityScope[]>([]);
   const[message,setMessage]=useState(""),[error,setError]=useState(""),[busy,setBusy]=useState(false),[advanced,setAdvanced]=useState(false);
+  const[previewPositionId,setPreviewPositionId]=useState("");
   const approved=memberships.filter(item=>item.status==="approved");
 
   async function refresh(){const data=await loadInstitutionAuthority();setPositions(data.positions);setAssignments(data.assignments);}
@@ -34,6 +42,9 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
     member:approved.find(member=>member.id===item.membershipId),
     position:positions.find(position=>position.id===item.positionId),
   })).filter(item=>item.member&&item.position),[assignments,approved,positions]);
+
+  const previewPosition=positions.find(item=>item.id===previewPositionId)??positions.find(item=>item.active);
+  const previewViews=previewPosition?allowedWorkspaceViews({role:"administrator",authorityScopes:previewPosition.scopes,positionTitle:previewPosition.title}):[];
 
   function applyPreset(index:number){
     const preset=positionPresets[index];
@@ -52,6 +63,7 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
   async function save(event:FormEvent<HTMLFormElement>){
     event.preventDefault();
     const savedTitle=title.trim();
+    if(hasSeparationConflict(scopes)){setError("Finance collection and finance approval cannot be carried by the same DREEM position. Create separate collector and reviewer appointments.");return;}
     await run(async()=>{await upsertSchoolPosition({code:codeFrom(savedTitle),title:savedTitle,category,scopes});setTitle("");setScopes([]);},"Institutional position saved. Titles remain human-facing; authority controls access.");
   }
 
@@ -68,6 +80,14 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
 
     <div className="position-pack-grid">{positionPackPresets.map((pack,index)=><button type="button" key={pack.name} disabled={busy} onClick={()=>void applyPositionPack(index)}><strong>{pack.name}</strong><small>{pack.description}</small><span>Use this setup</span></button>)}</div>
     <div className="workflow-next"><small>RECOMMENDED</small><strong>Start with a pack, then appoint people.</strong><p>Most schools should never configure permission codes one by one. DREEM keeps the detailed authority model underneath, while school leaders work with familiar posts.</p></div>
+
+    {positions.some(item=>item.active)?<section className="subform">
+      <div className="panel-title"><Eye/><div><span>ACCESS PREVIEW</span><h3>See what a position can actually open</h3><p>This is a safe preview of workspace access. It does not impersonate a staff member and does not bypass row-level data rules.</p></div></div>
+      <label>Position to preview<select value={previewPosition?.id??""} onChange={e=>setPreviewPositionId(e.target.value)}>{positions.filter(item=>item.active).map(position=><option key={position.id} value={position.id}>{position.title}</option>)}</select></label>
+      {previewPosition?<><div className="care-assurance"><ShieldCheck/><span><strong>{previewPosition.title}</strong><small>{previewPosition.scopes.length?previewPosition.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · "):"No delegated authority"}</small></span></div>
+      <div className="compact-table">{previewViews.length?previewViews.map(view=><div key={view}><span><strong>{viewLabels[view]}</strong><small>Visible from this position's authority</small></span><BadgeCheck/></div>):<div><span><strong>No privileged workspace</strong><small>This position currently carries no DREEM authority.</small></span><ShieldAlert/></div>}</div></>:null}
+    </section>:null}
+
     <button type="button" className="secondary" onClick={()=>setAdvanced(value=>!value)}>{advanced?"Hide advanced position editor":"Advanced: customise a position"}</button>
 
     {advanced?<><div className="role-guide">{positionPresets.map((preset,index)=><button type="button" key={preset.title+":"+index} onClick={()=>applyPreset(index)}><strong>{preset.title}</strong><small>{preset.scopes.map(scope=>authorityScopeOptions.find(item=>item.value===scope)?.label??scope).join(" · ")}</small></button>)}</div>
@@ -77,8 +97,9 @@ export default function InstitutionAuthorityStudio({memberships,onChanged}:{memb
         <label>Institutional title<input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Headmistress, Dean, Director…" required/></label>
         <label>Position family<select value={category} onChange={e=>setCategory(e.target.value as PositionCategory)}>{categories.map(item=><option key={item} value={item}>{item.replace("_"," ")}</option>)}</select></label>
       </div>
+      {hasSeparationConflict(scopes)?<div className="form-status error"><ShieldAlert/>Separate finance collection from finance approval. DREEM will not save a position that can both collect and independently approve the same money trail.</div>:null}
       <fieldset className="palette-field"><legend>Authority carried by this position</legend><div className="authority-scope-grid">{authorityScopeOptions.map(item=><label key={item.value}><input type="checkbox" checked={scopes.includes(item.value)} onChange={()=>toggle(item.value)}/><span><strong>{item.label}</strong><small>{item.description}</small></span></label>)}</div></fieldset>
-      <button className="primary" disabled={busy||!title.trim()} type="submit"><Plus/>Save position</button>
+      <button className="primary" disabled={busy||!title.trim()||hasSeparationConflict(scopes)} type="submit"><Plus/>Save position</button>
     </form></>:null}
 
     <div className="document-row"><Building2/><div><strong>Position catalogue</strong><small>Create the institutional posts once, then appoint approved people to them. A person can hold several posts; mark the main one as primary.</small></div></div>
