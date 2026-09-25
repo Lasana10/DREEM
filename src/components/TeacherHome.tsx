@@ -32,7 +32,7 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
   </section>
   <div className="focus-grid">
    <section className="focus-card">
-    <div className="panel-title"><CalendarClock/><div><span>TODAY\'S SCHEDULE</span><h3>Your teaching day</h3></div></div>
+    <div className="panel-title"><CalendarClock/><div><span>TODAY'S SCHEDULE</span><h3>Your teaching day</h3></div></div>
     <div className="schedule-list">{todayPeriods.map(item=><div className="schedule-row" key={item.id}><time>{item.startsAt}</time><div><strong>{item.className} · {item.subjectName}</strong><small>{item.endsAt} · {item.room||"Room not assigned"}</small></div>{item.id===next?.id?<button className="primary" onClick={()=>onNavigate("operations")}>Open class</button>:null}</div>)}{!todayPeriods.length?<p>No active teaching period today.</p>:null}</div>
    </section>
    <aside className="focus-card">
