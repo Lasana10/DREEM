@@ -1,4 +1,4 @@
-import { AlertTriangle, Banknote, CircleDollarSign, QrCode, ReceiptText, ShieldCheck, X } from "lucide-react";
+import { AlertTriangle, Banknote, CircleDollarSign, QrCode, ReceiptText, X } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import type { FinanceSummary, LearnerSummary, PaymentCommand } from "../domain/types";
 import { createIdempotencyKey, paymentMethodForRail } from "../domain/rules";
