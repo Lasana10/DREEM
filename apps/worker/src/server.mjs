@@ -64,6 +64,7 @@ const backupTables = [
   "fee_payments",
   "fee_reminders",
   "classroom_materials",
+  "assignment_submissions",
   "announcements",
   "transport_routes",
   "storage_connections",
