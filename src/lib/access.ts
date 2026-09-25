@@ -37,16 +37,16 @@ export function canOpenView(viewer:AccessViewer,view:WorkspaceView):boolean{
     case "admissions": return has("admissions_intake","admissions_decision");
     case "operations": return has("staff_management","admissions_intake","academics_delivery") || (role==="teacher" && viewer.authorityScopes===undefined);
     case "academics": return has("academics_delivery","academics_approval");
-    case "learning": return has("academics_delivery","academics_approval") || (viewer.authorityScopes===undefined && ["parent","student"].includes(role));
+    case "learning": return has("academics_delivery","academics_approval") || ["parent","student"].includes(role);
     case "learners":
       return has("institutional_leadership","academics_delivery","academics_approval","admissions_intake","admissions_decision","finance_collection","finance_approval","safeguarding","transport_management","gate","audit")
-        || (viewer.authorityScopes===undefined && ["parent","student"].includes(role));
+        || ["parent","student"].includes(role);
     case "credentials": return has("admissions_intake","admissions_decision","school_configuration");
     case "teachers": return has("academics_approval","staff_management","institutional_leadership");
     case "care": return has("safeguarding","institutional_leadership") || has("academics_delivery");
-    case "transport": return has("transport_management","transport_operation","gate","institutional_leadership") || (viewer.authorityScopes===undefined && ["parent","student"].includes(role));
+    case "transport": return has("transport_management","transport_operation","gate","institutional_leadership") || ["parent","student"].includes(role);
     case "finance": return has("finance_collection","finance_approval","audit","institutional_leadership");
-    case "signals": return has("communications_publish","communications_approve","institutional_leadership") || (viewer.authorityScopes===undefined && ["parent","student","teacher","tutor"].includes(role));
+    case "signals": return has("communications_publish","communications_approve","institutional_leadership") || ["parent","student"].includes(role) || (viewer.authorityScopes===undefined && ["teacher","tutor"].includes(role));
     case "studio": return has("school_configuration");
   }
 }
