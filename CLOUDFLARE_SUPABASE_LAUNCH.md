@@ -5,7 +5,7 @@
 - Frontend host: Cloudflare Pages
 - Backend platform: Supabase
 - Current frontend root: `apps/web`
-- Current Supabase project: `vpxtmgpxqlmkkyijuare`
+- Current Supabase project: `vlukkucwtfmfgpzvjyvd`
 
 ## Cloudflare Pages setup
 
@@ -27,7 +27,7 @@ Set these in Cloudflare Pages:
 
 - `VITE_DEMO_MODE=false`
 - `VITE_APP_URL=https://your-cloudflare-pages-domain.pages.dev`
-- `VITE_SUPABASE_URL=https://vpxtmgpxqlmkkyijuare.supabase.co`
+- `VITE_SUPABASE_URL=https://vlukkucwtfmfgpzvjyvd.supabase.co`
 - `VITE_SUPABASE_PUBLISHABLE_KEY=<your Supabase publishable key>`
 
 ## Supabase auth shape
