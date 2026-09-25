@@ -10,11 +10,11 @@ describe("shell navigation",()=>{
   it("keeps School settings reachable for leadership on compact navigation",()=>{
     const onView=vi.fn();
     render(<Shell brand={demoBrand} viewer={{name:"Principal",email:"principal@example.test",role:"principal"}} view="academics" onView={onView} signalCount={0} onFeedback={vi.fn()}><div>Academic content</div></Shell>);
-    fireEvent.click(screen.getByRole("button",{name:"School settings"}));
+    fireEvent.click(screen.getByRole("button",{name:"Settings"}));
     expect(onView).toHaveBeenCalledWith("studio");
   });
   it("does not expose School settings to teachers",()=>{
     render(<Shell brand={demoBrand} viewer={{name:"Teacher",email:"teacher@example.test",role:"teacher"}} view="operations" onView={vi.fn()} signalCount={0} onFeedback={vi.fn()}><div>Teacher content</div></Shell>);
-    expect(screen.queryByRole("button",{name:"School settings"})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"Settings"})).not.toBeInTheDocument();
   });
 });
