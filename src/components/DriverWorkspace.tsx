@@ -13,7 +13,8 @@ export default function DriverWorkspace({workspace,onRefresh}:{workspace:Workspa
  const[online,setOnline]=useState(typeof navigator==="undefined"?true:navigator.onLine),[busy,setBusy]=useState(false),[error,setError]=useState(""),[message,setMessage]=useState(""),[activeStopId,setActiveStopId]=useState("");
  const trip=trips.find(item=>item.id===tripId),route=workspace.transport.routes.find(item=>item.id===trip?.routeId);
  const assignments=useMemo(()=>trip?workspace.transport.assignments.filter(item=>item.routeId===trip.routeId&&item.status==="active"):[],[workspace.transport.assignments,trip]);
- const stops=route?.stops??[],activeStop=stops.find(s=>s.id===activeStopId)??stops[0];
+ const stops=useMemo(()=>route?.stops??[],[route]);
+ const activeStop=stops.find(s=>s.id===activeStopId)??stops[0];
  const stopLearners=assignments.filter(item=>!activeStop||item.pickupStopName===activeStop.name||item.dropoffStopName===activeStop.name);
  async function record(eventType:string,studentId?:string,stopId?:string,note?:string){if(!trip)return;setBusy(true);setError("");setMessage("");try{const result=await progressTransportTripResilient({tripId:trip.id,eventType,studentId,stopId,note,idempotencyKey:"driver-trip:"+crypto.randomUUID()},workspace.viewer);if(result.queued)setMessage("Saved on this phone. It will sync automatically.");else{setMessage("Recorded.");await onRefresh();}}catch(reason){setError(errorText(reason));}finally{setBusy(false);}}
  useEffect(()=>{if(stops.length&&!activeStopId)setActiveStopId(stops[0].id);},[stops,activeStopId]);
