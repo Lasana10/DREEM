@@ -1,4 +1,4 @@
-import { BookOpenCheck, BusFront, GraduationCap, ReceiptText, UsersRound, WalletCards } from "lucide-react";
+import { BookOpenCheck, BusFront, GraduationCap, UsersRound, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceData } from "../lib/repository";
 import { loadLearnerFeeStatement, type LearnerFeeStatementRow } from "../lib/familyFinance";
