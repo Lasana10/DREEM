@@ -18,7 +18,6 @@ import SchoolContextPicker from "./components/SchoolContextPicker";
 import Shell, { type ViewKey } from "./components/Shell";
 import { CommandView } from "./components/Views";
 import TeacherDevelopmentView from "./components/TeacherDevelopmentView";
-import WorkspaceJourneyGuide from "./components/WorkspaceJourneyGuide";
 import { SchoolStudioView } from "./components/SchoolStudioView";
 import FinanceWorkspace from "./components/FinanceWorkspace";
 import LearnersWorkspace from "./components/LearnersWorkspace";
@@ -89,15 +88,10 @@ function WorkspaceApp() {
   const moveSignal = async (signalId: string, status: CommunitySignal["status"]) => { await updateSignalStatus(signalId,status); setWorkspace((current) => current ? { ...current, signals:current.signals.map(item=>item.id===signalId?{...item,status}:item) } : current); };
   const openFeedback = () => setFeedbackOpen(true);
   const familyLearning = workspace.viewer.role === "student" || workspace.viewer.role === "parent";
-  const journeyViews:ViewKey[]=["admissions","finance","transport","care"];
-  const roleOwnsCompactTransportCycle=["transport_manager","driver","security_guard"].includes(workspace.viewer.role);
-  const showJourney=journeyViews.includes(view)&&!(view==="transport"&&roleOwnsCompactTransportCycle);
-  const journey = showJourney ? <div className="content journey-guide-wrap"><WorkspaceJourneyGuide view={view} role={workspace.viewer.role}/></div> : null;
   const isSchoolLeadership=canAuthority(workspace.viewer,"institutional_leadership")||canAuthority(workspace.viewer,"academics_approval")||canAuthority(workspace.viewer,"admissions_decision")||canAuthority(workspace.viewer,"finance_approval")||canAuthority(workspace.viewer,"transport_management");
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
-      {journey}
       {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : isSchoolLeadership ? <SchoolCommandCentre workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
