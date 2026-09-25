@@ -1,4 +1,4 @@
-import { BusFront, Clock3, MapPinned, QrCode, UsersRound, Wifi, WifiOff } from "lucide-react";
+import { BusFront, Clock3, MapPinned, UsersRound, Wifi, WifiOff } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { type WorkspaceData } from "../lib/repository";
 import { prepareDriverOfflineContext, progressTransportTripResilient, replayDriverOffline } from "../lib/driverOffline";
@@ -14,50 +14,25 @@ export default function DriverWorkspace({workspace,onRefresh}:{workspace:Workspa
  const trip=trips.find(item=>item.id===tripId),route=workspace.transport.routes.find(item=>item.id===trip?.routeId);
  const assignments=useMemo(()=>trip?workspace.transport.assignments.filter(item=>item.routeId===trip.routeId&&item.status==="active"):[],[workspace.transport.assignments,trip]);
  const stops=route?.stops??[];
- const [selectedStopId,setSelectedStopId]=useState("");
- const selectedStop=stops.find(stop=>stop.id===selectedStopId)??stops[0];
- const stopLearners=selectedStop?assignments.filter(item=>trip?.direction==="outbound"?item.dropoffStopName===selectedStop.name:item.pickupStopName===selectedStop.name):assignments;
-
- async function record(eventType:string,studentId?:string,stopId?:string,note?:string){if(!trip)return;setBusy(true);setError("");setMessage("");try{const result=await progressTransportTripResilient({tripId:trip.id,eventType,studentId,stopId,note,idempotencyKey:"driver-trip:"+crypto.randomUUID()},workspace.viewer);if(result.queued)setMessage("Saved on this phone. DREEM will sync it automatically when connection returns.");else{setMessage("Recorded.");await onRefresh();}}catch(reason){setError(errorText(reason));}finally{setBusy(false);}}
- useEffect(()=>{let active=true;const connect=async()=>{setOnline(true);try{const result=await replayDriverOffline(workspace.viewer);if(active&&result.synced){setMessage(result.synced+" saved update"+(result.synced===1?"":"s")+" synced automatically.");await onRefresh();}if(active&&result.tampered)setError(result.tampered+" saved update failed its safety check and was not sent.");}catch(reason){if(active)setError(errorText(reason));}};const disconnect=()=>setOnline(false);if(navigator.onLine)prepareDriverOfflineContext().catch(()=>{});window.addEventListener("online",connect);window.addEventListener("offline",disconnect);return()=>{active=false;window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect);};},[workspace.viewer,onRefresh]);
-
- if(!driver)return <div className="content role-workspace"><section className="role-hero"><div><span className="eyebrow">DREEM DRIVER</span><h2>No route assigned yet</h2><p>Transport Control will place your journey here when it is ready.</p></div></section></div>;
-
+ const [currentStopId,setCurrentStopId]=useState("");
+ const currentStop=stops.find(stop=>stop.id===currentStopId)??stops[0];
+ const stopLearners=currentStop?assignments.filter(item=>item.pickupStopName===currentStop.name||item.dropoffStopName===currentStop.name):assignments;
+ async function record(eventType:string,studentId?:string,stopId?:string,note?:string){if(!trip)return;setBusy(true);setError("");setMessage("");try{const result=await progressTransportTripResilient({tripId:trip.id,eventType,studentId,stopId,note,idempotencyKey:"driver-trip:"+crypto.randomUUID()},workspace.viewer);if(result.queued)setMessage("Saved on this phone. DREEM will sync it when connection returns.");else{setMessage("Recorded.");await onRefresh();}}catch(reason){setError(errorText(reason));}finally{setBusy(false);}}
+ useEffect(()=>{if(!currentStopId&&stops[0])setCurrentStopId(stops[0].id);},[currentStopId,stops]);
+ useEffect(()=>{let active=true;const connect=async()=>{setOnline(true);try{const result=await replayDriverOffline(workspace.viewer);if(active&&result.synced){setMessage(result.synced+" saved update"+(result.synced===1?"":"s")+" synced.");await onRefresh();}if(active&&result.tampered)setError(result.tampered+" saved update failed its safety check.");}catch(reason){if(active)setError(errorText(reason));}};const disconnect=()=>setOnline(false);if(navigator.onLine)prepareDriverOfflineContext().catch(()=>{});window.addEventListener("online",connect);window.addEventListener("offline",disconnect);return()=>{active=false;window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect);};},[workspace.viewer,onRefresh]);
+ if(!driver)return <div className="content role-workspace"><section className="role-hero"><div><span className="eyebrow">DREEM DRIVER</span><h2>No route assigned yet</h2><p>Transport Control will send today\'s route here automatically.</p></div></section></div>;
  return <div className="content role-workspace driver-workspace">
-  <section className="role-hero">
-   <div><span className="eyebrow">ACTIVE ROUTE</span><h2>{trip?.routeName??"Waiting for today’s trip"}</h2><p>{trip?trip.vehicleCode+" · "+assignments.length+" learner"+(assignments.length===1?"":"s")+" expected"+(trip.scheduledDeparture?" · "+trip.scheduledDeparture:""):"Transport Control will send your assigned trip here."}</p></div>
-   <div className="role-hero-status"><span className={online?"status-pill":"status-pill attention"}>{online?<Wifi size={15}/>:<WifiOff size={15}/>} {online?"Connected":"Offline · saving locally"}</span></div>
-  </section>
-
+  <section className="role-hero"><div><span className="eyebrow">ACTIVE ROUTE</span><h2>{trip?trip.routeName:"Waiting for today\'s trip"}</h2><p>{trip?trip.vehicleCode+" · "+assignments.length+" learners expected"+(trip.scheduledDeparture?" · "+trip.scheduledDeparture:""):"No trip dispatched yet."}</p></div><div className="role-hero-status"><span className={"status-pill "+(online?"":"attention")}>{online?<Wifi size={14}/>:<WifiOff size={14}/>} {online?"Connected":"Offline · saving locally"}</span></div></section>
   {error?<div className="form-status error" role="alert">{error}</div>:null}{message?<div className="form-status success" role="status">{message}</div>:null}
-
-  {trips.length>1?<nav className="workspace-tabs" aria-label="Driver journeys">{trips.map(item=><button key={item.id} className={tripId===item.id?"active":""} onClick={()=>{setTripId(item.id);setSelectedStopId("");}}>{item.routeName} · {item.serviceDate}</button>)}</nav>:null}
-
-  <div className="visual-stats">
+  {trips.length>1?<nav className="workspace-tabs">{trips.slice(0,5).map(item=><button key={item.id} className={tripId===item.id?"active":""} onClick={()=>setTripId(item.id)}>{item.routeName} · {item.serviceDate}</button>)}</nav>:null}
+  <section className="visual-stats">
    <article className="visual-stat green"><div className="icon"><BusFront/></div><div><span>TRIP STATUS</span><strong>{trip?.status.replaceAll("_"," ")??"Not dispatched"}</strong><small>{trip?.direction??""}</small></div></article>
-   <article className="visual-stat"><div className="icon"><UsersRound/></div><div><span>LEARNERS</span><strong>{assignments.length}</strong><small>Assigned to this route</small></div></article>
-   <article className="visual-stat purple"><div className="icon"><MapPinned/></div><div><span>STOPS</span><strong>{stops.length}</strong><small>Tap the current stop below</small></div></article>
-   <article className="visual-stat amber"><div className="icon"><Clock3/></div><div><span>SYNC</span><strong>{online?"Live":"Offline"}</strong><small>{online?"Updates reach school":"Changes queue safely"}</small></div></article>
-  </div>
-
-  {trip?<>
-   <section className="focus-card">
-    <div className="panel-title"><MapPinned/><div><span>ROUTE PROGRESS</span><h3>{selectedStop?"Current stop · "+selectedStop.name:"Choose your stop"}</h3></div></div>
-    <div className="stop-strip">{stops.map(stop=><button key={stop.id} className={"stop-chip "+(selectedStop?.id===stop.id?"active":"")} onClick={()=>setSelectedStopId(stop.id)}>{stop.order}. {stop.name}</button>)}</div>
-    {selectedStop?<div className="gate-scan-actions"><button className="primary" disabled={busy} onClick={()=>void record("stop_arrived",undefined,selectedStop.id)}>Arrived at {selectedStop.name}</button><button disabled={busy} onClick={()=>void record("delay_reported",undefined,selectedStop.id,"Driver reported delay")}>Report delay</button></div>:null}
-   </section>
-
-   <section className="focus-card">
-    <div className="panel-title"><UsersRound/><div><span>{trip.direction==="outbound"?"DROP-OFF":"BOARDING"}</span><h3>{selectedStop?selectedStop.name:"Learners on this route"} · {stopLearners.length}</h3></div><button aria-label="Scan learner credential"><QrCode size={18}/></button></div>
-    <div className="learner-touch-grid">{stopLearners.map(item=><button className="learner-touch" key={item.studentId} disabled={busy} onClick={()=>void record(trip.direction==="outbound"?"student_alighted":"student_boarded",item.studentId,selectedStop?.id)}><span className="avatar">{item.studentName.split(" ").map(x=>x[0]).slice(0,2).join("")}</span><span><strong>{item.studentName}</strong><small>{trip.direction==="outbound"?item.dropoffStopName:item.pickupStopName}</small></span><span className="status-pill info">{trip.direction==="outbound"?"Tap to drop off":"Tap to board"}</span></button>)}</div>
-    {!stopLearners.length?<p>No learner is assigned to this stop.</p>:null}
-   </section>
-
-   <div className="quick-grid">
-    <article className="quick-card"><BusFront/><span>START</span><h3>Begin trip</h3><p>Use when the vehicle starts the assigned journey.</p><button className="primary" disabled={busy} onClick={()=>void record("departed")}>Start / depart</button></article>
-    <article className="quick-card"><Clock3/><span>EXCEPTION</span><h3>Something changed?</h3><p>Report a delay without typing a long message.</p><button disabled={busy} onClick={()=>void record("delay_reported",undefined,undefined,"Driver reported delay")}>Report delay</button></article>
-    <article className="quick-card"><MapPinned/><span>FINISH</span><h3>Arrived at school</h3><p>Close the journey when the route is complete.</p><button disabled={busy} onClick={()=>void record("completed")}>Finish journey</button></article>
-   </div>
-  </>:<section className="panel"><p>No trip is assigned. You do not need to configure anything here.</p></section>}
+   <article className="visual-stat"><div className="icon"><UsersRound/></div><div><span>LEARNERS</span><strong>{assignments.length}</strong><small>on this route</small></div></article>
+   <article className="visual-stat amber"><div className="icon"><MapPinned/></div><div><span>STOPS</span><strong>{stops.length}</strong><small>{currentStop?.name??"No stop"}</small></div></article>
+   <article className="visual-stat purple"><div className="icon"><Clock3/></div><div><span>SYNC</span><strong>{online?"Live":"Offline"}</strong><small>{online?"updates sent automatically":"safe changes queue locally"}</small></div></article>
+  </section>
+  {trip?<><section className="focus-card"><div className="panel-title"><MapPinned/><div><span>CURRENT / NEXT STOP</span><h3>{currentStop?.name??"Choose a stop"}</h3></div></div><div className="stop-strip">{stops.map(stop=><button key={stop.id} className={"stop-chip "+(currentStop?.id===stop.id?"active":"")} onClick={()=>setCurrentStopId(stop.id)}>{stop.order}. {stop.name}</button>)}</div><div className="card-actions"><button className="primary" disabled={busy||!currentStop} onClick={()=>void record("stop_arrived",undefined,currentStop?.id)}>Arrived at stop</button><button disabled={busy} onClick={()=>void record("delay_reported",undefined,currentStop?.id,"Driver reported delay")}>Report delay</button></div></section>
+  <section className="focus-card" style={{marginTop:14}}><div className="panel-title"><UsersRound/><div><span>EXPECTED HERE</span><h3>{stopLearners.length} learner{stopLearners.length===1?"":"s"}</h3></div></div><div className="learner-touch-grid">{stopLearners.map(item=><article className="learner-touch" key={item.studentId}><div className="avatar">{item.studentName.split(" ").map(v=>v[0]).slice(0,2).join("")}</div><div><strong>{item.studentName}</strong><small>{item.pickupStopName} → {item.dropoffStopName}</small></div><div className="card-actions"><button className="primary" disabled={busy} onClick={()=>void record("student_boarded",item.studentId,currentStop?.id)}>Boarded</button><button disabled={busy} onClick={()=>void record("student_alighted",item.studentId,currentStop?.id)}>Drop off</button></div></article>)}</div>{!stopLearners.length?<p>No learner is assigned to this stop.</p>:null}</section>
+  <section className="quick-grid" style={{marginTop:14}}><article className="quick-card"><BusFront/><span>TRIP</span><h3>Start journey</h3><p>Begin the assigned trip with one tap.</p><button className="primary" disabled={busy} onClick={()=>void record("departed")}>Start / depart</button></article><article className="quick-card"><Clock3/><span>DELAY</span><h3>Running late?</h3><p>Record a delay; Transport Control can handle the follow-up.</p><button disabled={busy} onClick={()=>void record("delay_reported",undefined,currentStop?.id,"Driver reported delay")}>Report delay</button></article><article className="quick-card"><BusFront/><span>FINISH</span><h3>End route</h3><p>Complete the trip after the final stop and handover.</p><button disabled={busy} onClick={()=>void record("completed")}>Finish journey</button></article></section></>:<section className="focus-card"><p>No trip is assigned. You do not need to configure anything here.</p></section>}
  </div>;
 }
