@@ -9,6 +9,22 @@ const requiredServerEnv = [
   "SUPABASE_SERVICE_ROLE_KEY"
 ];
 
+const expectedSupabaseProjectRef =
+  process.env.DREEM_EXPECTED_SUPABASE_PROJECT_REF ?? "vlukkucwtfmfgpzvjyvd";
+
+function configuredSupabaseProjectRef() {
+  try {
+    const host = new URL(process.env.SUPABASE_URL ?? "").hostname;
+    return host.endsWith(".supabase.co") ? host.split(".")[0] : "";
+  } catch {
+    return "";
+  }
+}
+
+function supabaseProjectIsSafe() {
+  return configuredSupabaseProjectRef() === expectedSupabaseProjectRef;
+}
+
 const optionalIntegrationEnv = {
   oneDrive: [
     "ONEDRIVE_CLIENT_ID",
@@ -109,6 +125,12 @@ function supabaseRestHeaders(prefer) {
 async function supabaseRequest(path, options = {}) {
   if (!integrationReady(requiredServerEnv)) {
     return { ok: false, error: "Supabase worker credentials are not configured." };
+  }
+  if (!supabaseProjectIsSafe()) {
+    return {
+      ok: false,
+      error: `DREEM worker is refusing Supabase access: configured project ${configuredSupabaseProjectRef() || "unknown"} does not match expected project ${expectedSupabaseProjectRef}.`
+    };
   }
 
   const response = await fetch(
@@ -452,11 +474,17 @@ function getRuntimeStatus() {
   const b2Ready = integrationReady(optionalIntegrationEnv.backblazeB2);
   const smtpReady = integrationReady(optionalIntegrationEnv.smtp);
   const serverReady = integrationReady(requiredServerEnv);
+  const projectSafe = serverReady && supabaseProjectIsSafe();
 
   return {
     service: "dreem-worker",
     role: "backend-sync-and-integration-lane",
-    status: serverReady ? "ready" : "missing-required-env",
+    status: !serverReady ? "missing-required-env" : projectSafe ? "ready" : "wrong-supabase-project",
+    supabase: {
+      configuredProjectRef: configuredSupabaseProjectRef() || null,
+      expectedProjectRef: expectedSupabaseProjectRef,
+      projectBoundarySafe: projectSafe
+    },
     render: {
       detected: process.env.RENDER === "true",
       serviceName: process.env.RENDER_SERVICE_NAME ?? null,
@@ -1034,6 +1062,16 @@ async function handleRequest(request, response) {
     }
     if (!integrationReady(requiredServerEnv)) {
       json(response, 503, { job: "email-dispatch", accepted: false, error: "Supabase worker credentials are not configured." });
+      return;
+    }
+    if (!supabaseProjectIsSafe()) {
+      json(response, 503, {
+        job: "email-dispatch",
+        accepted: false,
+        error: "DREEM worker is connected to the wrong Supabase project.",
+        configuredProjectRef: configuredSupabaseProjectRef() || null,
+        expectedProjectRef: expectedSupabaseProjectRef
+      });
       return;
     }
 
