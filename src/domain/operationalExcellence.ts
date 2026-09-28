@@ -194,6 +194,17 @@ export function buildInstitutionFlowHealth(evidence:OperationalEvidence):FlowHea
     owner:"Admissions / school admin",evidenceCount:brokenAdmissions.length,
   });
 
+  const enrolledWithoutFinance=evidence.admissions.filter(item=>{
+    if(item.status!=="enrolled"||!item.enrolledStudentId)return false;
+    const learner=evidence.learners.find(candidate=>candidate.id===item.enrolledStudentId);
+    return !!learner&&!learner.feeAccountId;
+  });
+  if(enrolledWithoutFinance.length)items.push({
+    id:"enrolment-finance-link",status:"broken",title:"Enrolment did not reach learner finance",
+    detail:enrolledWithoutFinance.length+" enrolled learner"+(enrolledWithoutFinance.length===1?" is":"s are")+" missing the expected fee-account hand-off.",
+    owner:"Admissions / finance admin",evidenceCount:enrolledWithoutFinance.length,
+  });
+
   const brokenTransport=evidence.transport.assignments.filter(item=>item.status==="active"&&!learnerIds.has(item.studentId));
   if(brokenTransport.length)items.push({
     id:"transport-learner-link",status:"broken",title:"Transport hand-off needs repair",
