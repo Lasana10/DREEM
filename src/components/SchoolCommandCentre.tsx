@@ -1,5 +1,6 @@
 import { AlertTriangle, BookOpenCheck, BusFront, CircleDollarSign, ClipboardCheck, FolderHeart, MessageSquareMore, ShieldCheck, UserPlus } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
+import { buildSchoolTodayInsights } from "../domain/rules";
 import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
 type QueueItem={id:string;view:ViewKey;title:string;detail:string;count:number;tone:"urgent"|"attention"|"normal";owner:string;icon:React.ReactNode};
@@ -14,6 +15,7 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const financeExceptions=workspace.finance.openExceptions,cashAwaiting=workspace.finance.cashAwaitingDeposit;
  const can=(view:ViewKey)=>canOpenView(viewer,view);
  const priority=financeExceptions+urgentCare+urgentSignals+delayedTrips;
+ const todayInsights=buildSchoolTodayInsights(workspace.learners,workspace.finance,workspace.signals,workspace.cases);
  const all:QueueItem[]=[
   {id:"admissions",view:"admissions",title:"Admissions waiting",detail:"Applications that need review, decision or enrolment.",count:admissionPending,tone:admissionPending?"attention":"normal",owner:"Admissions",icon:<UserPlus/>},
   {id:"academic",view:"academics",title:"Teaching reviews",detail:(lessonReview+assessmentReview)+" academic item(s) awaiting review.",count:lessonReview+assessmentReview,tone:lessonReview+assessmentReview?"attention":"normal",owner:"Academics",icon:<BookOpenCheck/>},
@@ -35,7 +37,7 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
   </section>
   <div className="focus-grid">
    <section className="focus-card"><div className="panel-title"><ShieldCheck/><div><span>NEEDS YOUR DECISION</span><h3>{active.length?active.length+" active area"+(active.length===1?"":"s"):"No urgent decision waiting"}</h3></div></div><div className="action-list">{active.length?active.map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.title}</strong><small>{item.detail}</small></div><button onClick={()=>onNavigate(item.view)}>Review</button></div>):<p>The school is operating without a priority exception right now.</p>}</div></section>
-   <aside className="focus-card"><div className="panel-title"><MessageSquareMore/><div><span>SCHOOL TODAY</span><h3>What changed today</h3></div></div><div className="action-list">{candidates.slice(0,4).map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.owner}</strong><small>{item.count?item.count+" current item(s)":"No open issue"}</small></div><button onClick={()=>onNavigate(item.view)}>Open</button></div>)}</div></aside>
+   <aside className="focus-card"><div className="panel-title"><MessageSquareMore/><div><span>SCHOOL TODAY</span><h3>What DREEM noticed</h3></div></div><div className="action-list">{todayInsights.slice(0,4).map(item=><div className="action-row" key={item.id}><div className="action-icon"><AlertTriangle/></div><div><strong>{item.title}</strong><small>{item.explanation} · {item.owner}</small></div><span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.action}</span></div>)}</div></aside>
   </div>
   <details className="depth-drawer"><summary>See all school operating areas</summary><section className="panel"><div className="action-list">{candidates.map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.title}</strong><small>{item.detail}</small></div><button onClick={()=>onNavigate(item.view)}>Open</button></div>)}</div></section></details>
  </div>;
