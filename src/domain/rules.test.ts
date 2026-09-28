@@ -40,12 +40,14 @@ describe("operational pulse", () => {
       [{id:"case-1",caseNumber:"DCS-1",studentId:"learner-1",studentName:"Test Learner",category:"safeguarding",priority:"critical",confidentiality:"restricted",status:"open",title:"Urgent concern",summary:"Immediate leadership review is required.",openedBy:"Teacher",openedAt:"2026-08-23",updatedAt:"2026-08-23"}],
     );
     expect(pulse.map((item)=>item.category)).toEqual(["care","finance","learning"]);
+    expect(pulse.find(item=>item.category==="finance")?.title).toMatch(/payment difference/i);
   });
 
   it("reports a clear operating state when there are no exceptions", () => {
     const pulse = buildOperationalPulse([], { expectedToday:0,collectedToday:0,reconciledToday:0,openExceptions:0,openExceptionValue:0,nextDeposit:0,cashCollected:0,cashAwaitingDeposit:0,digitalConfirmed:0,parentConfirmationsPending:0 }, []);
     expect(pulse).toHaveLength(1);
     expect(pulse[0].severity).toBe("positive");
+    expect(pulse[0].title).toMatch(/nothing urgent/i);
   });
 });
 
