@@ -36,6 +36,6 @@ export default function PaymentRailStudio(){
         <div className="payment-rail-actions"><button className="primary" disabled={busy===rail.id}>{busy===rail.id?"Saving…":"Save"}</button></div>
       </form>
     </details>)}</div>
-    <details className="depth-drawer finance-technical-note"><summary>Technical payment controls</summary><div className="panel"><div className="care-assurance"><ShieldCheck/><span><strong>Configuration is not settlement proof</strong><small>Provider callbacks, reconciliation and settlement confirmation remain separate evidence.</small></span></div></div></details>
+    <details className="depth-drawer finance-technical-note"><summary>Technical payment controls</summary><div className="panel"><div className="care-assurance"><ShieldCheck/><span><strong>Setup does not prove money was received</strong><small>Provider confirmation, payment checking and the school’s final confirmation are recorded separately.</small></span></div></div></details>
   </section>;
 }
