@@ -42,3 +42,19 @@ describe("DREEM operational excellence",()=>{
   expect(flow.filter(x=>x.status==="broken").map(x=>x.id)).toEqual(expect.arrayContaining(["admission-learner-link","transport-learner-link"]));
  });
 });
+it("detects an enrolled learner whose finance hand-off is missing",()=>{
+  const flow=buildInstitutionFlowHealth({
+    learners:[{...learner,feeAccountId:undefined}],academics,finance,transport:{...transport,assignments:[]},
+    admissions:[{id:"app2",applicationNumber:"A2",learnerName:"Ada N.",targetClassName:"Class 5",guardianName:"Parent",status:"enrolled",source:"school_desk",enrolledStudentId:"l1",submittedAt:"2026-09-01",updatedAt:"2026-09-02"}],
+    signals:[],cases:[],
+  });
+  expect(flow.some(x=>x.id==="enrolment-finance-link"&&x.status==="broken")).toBe(true);
+});
+
+it("handles a large school evidence set deterministically",()=>{
+  const learners=Array.from({length:2500},(_,index)=>({...learner,id:"l"+index,name:"Learner "+index,attendance:index%5===0?70:95,mastery:index%7===0?50:82}));
+  const actions=evaluateRecommendedPolicies({learners,academics:{...academics,assignmentsForLearners:[],assignmentSubmissions:[]},finance:{...finance,openExceptions:0,openExceptionValue:0,cashAwaitingDeposit:0},transport:{...transport,trips:[],assignments:[]},admissions:[],signals:[],cases:[]});
+  expect(actions.length).toBeGreaterThan(0);
+  expect(actions.filter(item=>item.area==="learner"||item.area==="learning").length).toBeGreaterThan(500);
+  expect(new Set(actions.map(item=>item.id)).size).toBe(actions.length);
+});
