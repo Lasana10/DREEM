@@ -1,6 +1,7 @@
 import { AlertTriangle, BookOpenCheck, BusFront, CircleDollarSign, ClipboardCheck, FolderHeart, MessageSquareMore, ShieldCheck, UserPlus } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 import { buildSchoolTodayInsights } from "../domain/rules";
+import { buildInstitutionFlowHealth, evaluateRecommendedPolicies } from "../domain/operationalExcellence";
 import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
 type QueueItem={id:string;view:ViewKey;title:string;detail:string;count:number;tone:"urgent"|"attention"|"normal";owner:string;icon:React.ReactNode};
@@ -17,9 +18,18 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const learnerOverlap=workspace.learners.filter(item=>item.attendance<80&&item.mastery<60).length;
  const can=(view:ViewKey)=>canOpenView(viewer,view);
  const priority=financeExceptions+urgentCare+urgentSignals+delayedTrips;
- const attentionTotal=priority+learnerOverlap;
- const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
  const todayInsights=buildSchoolTodayInsights(workspace.learners,workspace.finance,workspace.signals,workspace.cases);
+ const policyActions=evaluateRecommendedPolicies({
+   learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
+   admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
+ });
+ const flowHealth=buildInstitutionFlowHealth({
+   learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
+   admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
+ });
+ const brokenFlow=flowHealth.filter(item=>item.status==="broken").length;
+ const attentionTotal=priority+learnerOverlap+brokenFlow;
+ const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
  const all:QueueItem[]=[
   {id:"admissions",view:"admissions",title:"Admissions waiting",detail:"Applications that need review, decision or enrolment.",count:admissionPending,tone:admissionPending?"attention":"normal",owner:"Admissions",icon:<UserPlus/>},
   {id:"academic",view:"academics",title:"Teaching reviews",detail:(lessonReview+assessmentReview)+" academic item(s) awaiting review.",count:lessonReview+assessmentReview,tone:lessonReview+assessmentReview?"attention":"normal",owner:"Academics",icon:<BookOpenCheck/>},
@@ -43,6 +53,9 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
    <section className="focus-card"><div className="panel-title"><ShieldCheck/><div><span>NEEDS YOUR DECISION</span><h3>{active.length?active.length+" active area"+(active.length===1?"":"s"):"No urgent decision waiting"}</h3></div></div><div className="action-list">{active.length?active.map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.title}</strong><small>{item.detail}</small></div><button onClick={()=>onNavigate(item.view)}>Review</button></div>):<p>The school is operating without a priority exception right now.</p>}</div></section>
    <aside className="focus-card"><div className="panel-title"><MessageSquareMore/><div><span>SCHOOL TODAY</span><h3>What DREEM noticed</h3></div></div><div className="action-list">{todayInsights.slice(0,4).map(item=><div className="action-row" key={item.id}><div className="action-icon"><AlertTriangle/></div><div><strong>{item.title}</strong><small>{item.explanation} · {item.owner}</small></div><span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.action}</span></div>)}</div></aside>
   </div>
+
+  <section className="panel" style={{marginTop:14}}><div className="panel-title"><ShieldCheck/><div><span>INSTITUTION HEALTH</span><h3>{brokenFlow?brokenFlow+" broken hand-off"+(brokenFlow===1?"":"s")+" need repair":"Core school hand-offs are connected"}</h3><p>DREEM checks whether important records continue correctly from one school process to the next.</p></div></div><div className="action-list">{flowHealth.slice(0,4).map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.status==="broken"?<AlertTriangle/>:<ShieldCheck/>}</div><div><strong>{item.title}</strong><small>{item.detail} · {item.owner}</small></div><span className={"status-pill "+(item.status==="broken"?"danger":item.status==="attention"?"attention":"")}>{item.status==="healthy"?"Connected":item.status==="broken"?"Repair":"Follow up"}</span></div>)}</div></section>
+  <details className="depth-drawer"><summary>DREEM Recommended follow-up</summary><section className="panel"><div className="action-list">{policyActions.length?policyActions.slice(0,8).map(item=><div className="action-row" key={item.id}><div className="action-icon"><ClipboardCheck/></div><div><strong>{item.title}</strong><small>{item.reason} · Owner: {item.owner}</small></div><span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.nextAction}</span></div>):<p>No recommended follow-up is waiting.</p>}</div></section></details>
   <details className="depth-drawer"><summary>See all school operating areas</summary><section className="panel"><div className="action-list">{candidates.map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.title}</strong><small>{item.detail}</small></div><button onClick={()=>onNavigate(item.view)}>Open</button></div>)}</div></section></details>
  </div>;
 }

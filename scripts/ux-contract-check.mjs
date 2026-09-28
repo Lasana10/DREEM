@@ -10,5 +10,7 @@ if(!studio.includes("School theme"))failures.push("School theme control missing"
 if(!studio.includes("DREEM RECOMMENDED"))failures.push("Recommended school policy layer missing");
 const command=fs.readFileSync("src/components/SchoolCommandCentre.tsx","utf8");
 if(!command.includes("SCHOOL TODAY"))failures.push("Plain-language School Today missing");
+if(!command.includes("INSTITUTION HEALTH"))failures.push("Institution health surface missing");
+if(!command.includes("DREEM Recommended follow-up"))failures.push("Recommended follow-up surface missing");
 if(failures.length){console.error(failures.join("\n"));process.exit(1)}
 console.log("DREEM UX contract passed.");

@@ -1,6 +1,7 @@
 import { BookOpenCheck, CalendarClock, ClipboardCheck, FolderHeart, GraduationCap, UsersRound } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 import type { ViewKey } from "./Shell";
+import { evaluateRecommendedPolicies } from "../domain/operationalExcellence";
 
 function minutes(value:string){const [h,m]=value.slice(0,5).split(":").map(Number);return h*60+m;}
 
@@ -21,6 +22,11 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
  const next=todayPeriods.find(item=>minutes(item.endsAt)>=currentMinutes);
  const completed=todayPeriods.filter(item=>minutes(item.endsAt)<currentMinutes).length;
  const upcoming=todayPeriods.filter(item=>minutes(item.startsAt)>currentMinutes).length;
+ const policyActions=evaluateRecommendedPolicies({
+   learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
+   admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
+ }).filter(item=>item.learnerId&&learnerIds.has(item.learnerId)&&["learner","learning"].includes(item.area));
+ const learnersNeedingFollowUp=new Set(policyActions.map(item=>item.learnerId)).size;
 
  return <div className="content teacher-home role-workspace">
   <section className="role-hero"><div><span className="eyebrow">DREEM TEACHER · TODAY</span><h2>Good day, {workspace.viewer.name.split(" ")[0]}</h2><p>{todayPeriods.length} classes today · {pending.length} submissions waiting · {learnerIds.size} learners in your classes</p></div><div className="role-hero-status"><span className="status-pill info"><CalendarClock size={14}/>{today}</span></div></section>
@@ -28,7 +34,7 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
    <article className="visual-stat"><div className="icon"><CalendarClock/></div><div><span>CLASSES TODAY</span><strong>{todayPeriods.length}</strong><small>{completed} completed · {upcoming} ahead</small></div></article>
    <article className="visual-stat green"><div className="icon"><ClipboardCheck/></div><div><span>TO REVIEW</span><strong>{pending.length}</strong><small>student submissions waiting</small></div></article>
    <article className="visual-stat purple"><div className="icon"><BookOpenCheck/></div><div><span>ASSIGNMENTS</span><strong>{published.length}</strong><small>{drafts.length} draft{drafts.length===1?"":"s"}</small></div></article>
-   <article className="visual-stat amber"><div className="icon"><UsersRound/></div><div><span>MY LEARNERS</span><strong>{learnerIds.size}</strong><small>across {classes.length} class{classes.length===1?"":"es"}</small></div></article>
+   <article className={"visual-stat "+(learnersNeedingFollowUp?"amber":"green")}><div className="icon"><UsersRound/></div><div><span>LEARNER FOLLOW-UP</span><strong>{learnersNeedingFollowUp}</strong><small>{learnersNeedingFollowUp?"need a closer look":"no current concern"}</small></div></article>
   </section>
   <div className="focus-grid">
    <section className="focus-card">
@@ -41,6 +47,7 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
     <div className="card-actions"><button className="primary" onClick={()=>onNavigate("operations")}>{next?"Take attendance / open class":"Open my classes"}</button></div>
    </aside>
   </div>
+  {policyActions.length?<section className="focus-card" style={{marginTop:14}}><div className="panel-title"><FolderHeart/><div><span>LEARNERS TO CHECK</span><h3>{learnersNeedingFollowUp} learner{learnersNeedingFollowUp===1?"":"s"} may need follow-up</h3><p>DREEM combines attendance, learning and missing-work evidence; you decide the right response.</p></div></div><div className="action-list">{policyActions.slice(0,5).map(item=><div className="action-row" key={item.id}><div className="action-icon"><GraduationCap/></div><div><strong>{item.title}</strong><small>{item.reason}</small></div><button onClick={()=>onNavigate(item.area==="learning"?"learning":"learners")}>Review</button></div>)}</div></section>:null}
   <section className="quick-grid" style={{marginTop:14}}>
    <article className="quick-card"><ClipboardCheck/><span>MARKING</span><h3>{pending.length} waiting</h3><p>Review submitted or late work without leaving your teaching workspace.</p><button onClick={()=>onNavigate("learning")}>Review work</button></article>
    <article className="quick-card"><GraduationCap/><span>LEARNERS</span><h3>Class context</h3><p>Open attendance, work and learner support only for the classes you teach.</p><button onClick={()=>onNavigate("learners")}>Open learners</button></article>
