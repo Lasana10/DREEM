@@ -81,3 +81,37 @@ export function buildOperationalPulse(
   });
   return actions;
 }
+
+
+export interface SchoolTodayInsight {
+  id:string;
+  title:string;
+  explanation:string;
+  owner:string;
+  action:string;
+  severity:"critical"|"warning"|"info"|"positive";
+  evidenceCount:number;
+}
+
+export function buildSchoolTodayInsights(
+  learners:LearnerSummary[],
+  finance:FinanceSummary,
+  signals:CommunitySignal[],
+  cases:StudentCaseSummary[]=[],
+):SchoolTodayInsight[]{
+  const insights:SchoolTodayInsight[]=[];
+  const urgentCare=cases.filter(item=>!["resolved","closed"].includes(item.status)&&["urgent","critical"].includes(item.priority));
+  if(urgentCare.length)insights.push({id:"care-now",title:urgentCare.length+" serious learner concern"+(urgentCare.length===1?"":"s"),explanation:"These cases need leadership attention now.",owner:"Principal",action:"Open learner care",severity:"critical",evidenceCount:urgentCare.length});
+  const attendance=learners.filter(item=>item.attendance<80);
+  const learning=learners.filter(item=>item.mastery<60);
+  const combined=learners.filter(item=>item.attendance<80&&item.mastery<60);
+  if(combined.length)insights.push({id:"attendance-learning",title:combined.length+" learner"+(combined.length===1?"":"s")+" need a closer look",explanation:"Both attendance and learning results are low for the same learners.",owner:"Academic team",action:"Review learners",severity:"warning",evidenceCount:combined.length});
+  else if(attendance.length)insights.push({id:"attendance",title:attendance.length+" learner"+(attendance.length===1?"":"s")+" have low attendance",explanation:"Recent attendance is below the school attention level.",owner:"Student affairs",action:"Check attendance",severity:"warning",evidenceCount:attendance.length});
+  else if(learning.length)insights.push({id:"learning",title:learning.length+" learner"+(learning.length===1?"":"s")+" may need learning support",explanation:"Recent learning results are below the school attention level.",owner:"Academic team",action:"Review learning",severity:"warning",evidenceCount:learning.length});
+  if(finance.openExceptions>0)insights.push({id:"money-check",title:finance.openExceptions+" payment difference"+(finance.openExceptions===1?"":"s")+" to check",explanation:finance.openExceptionValue.toLocaleString("fr-FR")+" FCFA needs an accountant to verify.",owner:"Accountant",action:"Check payments",severity:"critical",evidenceCount:finance.openExceptions});
+  if(finance.cashAwaitingDeposit>0)insights.push({id:"money-confirm",title:finance.cashAwaitingDeposit.toLocaleString("fr-FR")+" FCFA not yet confirmed by the school",explanation:"This money has been collected but the final school confirmation is still pending.",owner:"Finance",action:"Confirm money received",severity:"warning",evidenceCount:1});
+  const urgentMessages=signals.filter(item=>!["resolved","closed"].includes(item.status)&&["urgent","safeguarding"].includes(item.severity));
+  if(urgentMessages.length)insights.push({id:"urgent-messages",title:urgentMessages.length+" urgent school message"+(urgentMessages.length===1?"":"s"),explanation:"A parent, learner or staff message needs prompt follow-up.",owner:"School office",action:"Open messages",severity:"critical",evidenceCount:urgentMessages.length});
+  if(!insights.length)insights.push({id:"all-clear",title:"Nothing urgent needs attention",explanation:"Current school records do not show an urgent learner, money or communication issue.",owner:"Leadership",action:"Continue school day",severity:"positive",evidenceCount:learners.length});
+  return insights;
+}
