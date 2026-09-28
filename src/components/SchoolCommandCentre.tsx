@@ -18,8 +18,6 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const learnerOverlap=workspace.learners.filter(item=>item.attendance<80&&item.mastery<60).length;
  const can=(view:ViewKey)=>canOpenView(viewer,view);
  const priority=financeExceptions+urgentCare+urgentSignals+delayedTrips;
- const attentionTotal=priority+learnerOverlap+brokenFlow;
- const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
  const todayInsights=buildSchoolTodayInsights(workspace.learners,workspace.finance,workspace.signals,workspace.cases);
  const policyActions=evaluateRecommendedPolicies({
    learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
@@ -30,6 +28,8 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
    admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
  });
  const brokenFlow=flowHealth.filter(item=>item.status==="broken").length;
+ const attentionTotal=priority+learnerOverlap+brokenFlow;
+ const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
  const all:QueueItem[]=[
   {id:"admissions",view:"admissions",title:"Admissions waiting",detail:"Applications that need review, decision or enrolment.",count:admissionPending,tone:admissionPending?"attention":"normal",owner:"Admissions",icon:<UserPlus/>},
   {id:"academic",view:"academics",title:"Teaching reviews",detail:(lessonReview+assessmentReview)+" academic item(s) awaiting review.",count:lessonReview+assessmentReview,tone:lessonReview+assessmentReview?"attention":"normal",owner:"Academics",icon:<BookOpenCheck/>},
