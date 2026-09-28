@@ -20,6 +20,15 @@ describe("School Studio branding",()=>{
     await waitFor(()=>expect(onSave).toHaveBeenCalledWith(expect.objectContaining({primaryColor:"#173f70",accentColor:"#f0c75e",studentIdPrefix:"GRASCHOO"})));
   });
 
+  it("publishes custom school colours, not only preset palettes",async()=>{
+    const onSave=vi.fn().mockResolvedValue(undefined);
+    render(<SchoolStudioView brand={brand} setup={setup} onSave={onSave} onSaveSetup={vi.fn()} onUploadLogo={vi.fn()}/>);
+    fireEvent.change(screen.getByLabelText("Primary colour value"),{target:{value:"#075d5b"}});
+    fireEvent.change(screen.getByLabelText("Accent colour value"),{target:{value:"#a7e0d2"}});
+    fireEvent.click(screen.getByRole("button",{name:/save and publish identity/i}));
+    await waitFor(()=>expect(onSave).toHaveBeenCalledWith(expect.objectContaining({primaryColor:"#075d5b",accentColor:"#a7e0d2"})));
+  });
+
   it("uploads a logo version before publishing it",async()=>{
     const onUploadLogo=vi.fn().mockResolvedValue("https://assets.example/logo.png");
     render(<SchoolStudioView brand={brand} setup={setup} onSave={vi.fn()} onSaveSetup={vi.fn()} onUploadLogo={onUploadLogo}/>);

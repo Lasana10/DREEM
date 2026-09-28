@@ -6,6 +6,12 @@ import { demoBrand } from "../domain/demo";
 import Shell from "./Shell";
 
 describe("shell navigation",()=>{
+  it("binds the active school theme to the DREEM shell",()=>{
+    const {container}=render(<Shell brand={{...demoBrand,primaryColor:"#6f1d2c",accentColor:"#f2cf72"}} viewer={{name:"Principal",email:"principal@example.test",role:"principal"}} view="command" onView={vi.fn()} signalCount={0} onFeedback={vi.fn()}><div>School pulse</div></Shell>);
+    const shell=container.querySelector(".shell") as HTMLElement;
+    expect(shell.style.getPropertyValue("--brand")).toBe("#6f1d2c");
+    expect(shell.style.getPropertyValue("--accent")).toBe("#f2cf72");
+  });
   afterEach(cleanup);
   it("keeps School settings reachable for leadership on compact navigation",()=>{
     const onView=vi.fn();

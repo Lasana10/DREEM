@@ -158,10 +158,7 @@ export default function OperationalWorkflowsView({
   }
 
   return <div className="content">
-    <section className="page-intro">
-      <div><span>DREEM OPERATING WORKFLOW</span><h2>Run the school day from verified actions.</h2><p>Every action writes to Supabase through controlled commands with audit and domain events.</p></div>
-      <button className="primary" onClick={() => run(async () => { await onRefresh(); return "Workspace refreshed."; })}><RefreshCw/>Refresh</button>
-    </section>
+    <section className="role-hero"><div><span className="eyebrow">SCHOOL OPERATIONS · TODAY</span><h2>{workspace.operations.memberships.filter(item=>item.status==="pending").length?workspace.operations.memberships.filter(item=>item.status==="pending").length+" access request"+(workspace.operations.memberships.filter(item=>item.status==="pending").length===1?"":"s")+" need review":"Daily administration"}</h2><p>People, access and exception workflows. Classroom teaching stays in the Teacher workspace.</p></div><button className="primary" onClick={() => run(async () => { await onRefresh(); return "Workspace refreshed."; })}><RefreshCw/>Refresh</button></section>
     {status.message ? <div className={`form-status ${status.tone === "error" ? "error" : "success"}`}><BadgeCheck/>{status.message}</div> : null}
     <div className="ops-grid">
       <form className="panel settings-form" onSubmit={invite}>
