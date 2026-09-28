@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildOperationalPulse, canApproveClosure, cashVariance, derivePrefix, normalizeSlug, paymentMethodForRail, requirePositiveAmount, routeSignal } from "./rules";
+import { buildOperationalPulse, buildSchoolTodayInsights, canApproveClosure, cashVariance, derivePrefix, normalizeSlug, paymentMethodForRail, requirePositiveAmount, routeSignal } from "./rules";
 
 describe("operational controls", () => {
   it("routes safeguarding directly to the principal", () => expect(routeSignal("Safeguarding")).toBe("principal"));
@@ -46,5 +46,20 @@ describe("operational pulse", () => {
     const pulse = buildOperationalPulse([], { expectedToday:0,collectedToday:0,reconciledToday:0,openExceptions:0,openExceptionValue:0,nextDeposit:0,cashCollected:0,cashAwaitingDeposit:0,digitalConfirmed:0,parentConfirmationsPending:0 }, []);
     expect(pulse).toHaveLength(1);
     expect(pulse[0].severity).toBe("positive");
+  });
+});
+
+
+describe("School Today insights",()=>{
+  it("explains combined attendance and learning concern in plain language",()=>{
+    const insights=buildSchoolTodayInsights(
+      [{id:"l1",matricule:"D-1",name:"Learner",className:"Class 5",mastery:52,attendance:72,engagement:70,wellbeing:80,trend:-2,nextAction:"Review",idStatus:"active"}],
+      {expectedToday:0,collectedToday:0,reconciledToday:0,openExceptions:0,openExceptionValue:0,nextDeposit:0,cashCollected:0,cashAwaitingDeposit:0,digitalConfirmed:0,parentConfirmationsPending:0},[],[]);
+    expect(insights[0].title).toMatch(/need a closer look/i);
+    expect(insights[0].explanation).toMatch(/attendance and learning/i);
+  });
+  it("makes unconfirmed school money understandable",()=>{
+    const insights=buildSchoolTodayInsights([], {expectedToday:0,collectedToday:50000,reconciledToday:0,openExceptions:0,openExceptionValue:0,nextDeposit:0,cashCollected:50000,cashAwaitingDeposit:50000,digitalConfirmed:0,parentConfirmationsPending:0},[],[]);
+    expect(insights.some(item=>/not yet confirmed by the school/i.test(item.title))).toBe(true);
   });
 });
