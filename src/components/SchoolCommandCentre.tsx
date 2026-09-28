@@ -17,7 +17,6 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const attendanceConcern=workspace.learners.filter(item=>item.attendance<80).length,learningConcern=workspace.learners.filter(item=>item.mastery<60).length;
  const learnerOverlap=workspace.learners.filter(item=>item.attendance<80&&item.mastery<60).length;
  const can=(view:ViewKey)=>canOpenView(viewer,view);
- const priority=financeExceptions+urgentCare+urgentSignals+delayedTrips;
  const todayInsights=buildSchoolTodayInsights(workspace.learners,workspace.finance,workspace.signals,workspace.cases);
  const policyActions=evaluateRecommendedPolicies({
    learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
@@ -27,7 +26,8 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
    learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
    admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
  });
- const brokenFlow=flowHealth.filter(item=>item.status==="broken").length;
+ const priority=financeExceptions+urgentCare+urgentSignals+delayedTrips;
+ const brokenFlow=flowHealth.reduce((count,item)=>count+(item.status==="broken"?1:0),0);
  const attentionTotal=priority+learnerOverlap+brokenFlow;
  const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
  const all:QueueItem[]=[
