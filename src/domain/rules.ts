@@ -52,32 +52,32 @@ export function buildOperationalPulse(
   const criticalCases=cases.filter((item)=>!["resolved","closed"].includes(item.status)&&["urgent","critical"].includes(item.priority));
   if(criticalCases.length>0) actions.push({
     id:"critical-care-cases",category:"care",title:`${criticalCases.length} urgent learner care case${criticalCases.length===1?"":"s"}`,
-    explanation:"A time-sensitive learner support or safeguarding case requires authorised leadership action.",owner:"Principal",dueLabel:"Immediate review",severity:"critical",evidenceCount:criticalCases.length,
+    explanation:"A serious learner concern needs leadership attention now.",owner:"Principal",dueLabel:"Immediate review",severity:"critical",evidenceCount:criticalCases.length,
   });
   if (finance.openExceptions > 0) actions.push({
     id:"finance-exceptions", category:"finance",
-    title:`${finance.openExceptions} reconciliation exception${finance.openExceptions === 1 ? "" : "s"}`,
-    explanation:`${finance.openExceptionValue.toLocaleString("fr-FR")} FCFA requires independent review.`,
+    title:`${finance.openExceptions} payment difference to check${finance.openExceptions === 1 ? "" : "s"}`,
+    explanation:`${finance.openExceptionValue.toLocaleString("fr-FR")} FCFA needs an accountant to check it.`,
     owner:"Accountant", dueLabel:"Review required", severity:"critical", evidenceCount:finance.openExceptions,
   });
   const atRisk = learners.filter((learner)=>learner.mastery < 60 || learner.attendance < 80);
   if (atRisk.length > 0) actions.push({
     id:"learner-risk", category:"learning",
     title:`${atRisk.length} learner${atRisk.length === 1 ? "" : "s"} need support review`,
-    explanation:"Live mastery or attendance evidence is below the configured operating threshold.",
+    explanation:"Recent learning or attendance records show these learners may need support.",
     owner:"Academic Head", dueLabel:"Assign intervention", severity:"warning", evidenceCount:atRisk.length,
   });
   const openSignals = signals.filter((signal)=>!['resolved','closed'].includes(signal.status));
   if (openSignals.length > 0) actions.push({
     id:"community-signals", category:"feedback",
-    title:`${openSignals.length} community signal${openSignals.length === 1 ? "" : "s"} awaiting action`,
-    explanation:"Parent, learner and staff feedback still needs ownership or follow-up.",
-    owner:"Administrator", dueLabel:"Triage queue", severity:"info", evidenceCount:openSignals.length,
+    title:`${openSignals.length} message or concern${openSignals.length === 1 ? "" : "s"} awaiting action`,
+    explanation:"A parent, learner or staff message still needs someone to follow up.",
+    owner:"Administrator", dueLabel:"Follow up", severity:"info", evidenceCount:openSignals.length,
   });
   if (actions.length === 0) actions.push({
-    id:"operating-clear", category:"operations", title:"No urgent exception detected",
-    explanation:"DREEM has no unresolved finance, learner-risk or community-signal exception in the current data.",
-    owner:"Leadership", dueLabel:"Continue monitoring", severity:"positive", evidenceCount:learners.length + signals.length,
+    id:"operating-clear", category:"operations", title:"Nothing urgent detected",
+    explanation:"DREEM has not found an urgent money, learner-support or school-message issue in the current records.",
+    owner:"Leadership", dueLabel:"No action needed", severity:"positive", evidenceCount:learners.length + signals.length,
   });
   return actions;
 }
