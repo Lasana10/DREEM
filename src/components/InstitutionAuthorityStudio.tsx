@@ -24,7 +24,7 @@ const viewLabels:Record<WorkspaceView,string>={
   transport:"Transport & pickup",finance:"Finance & fees",signals:"Messages & feedback",studio:"School settings",
 };
 
-function errorText(reason:unknown){return reason instanceof Error?reason.message:"Institutional authority could not be updated.";}
+function errorText(reason:unknown){return reason instanceof Error?reason.message:"Staff access could not be updated.";}
 function hasSeparationConflict(scopes:AuthorityScope[]){return scopes.includes("finance_collection")&&scopes.includes("finance_approval");}
 
 export default function InstitutionAuthorityStudio({memberships,onChanged}:{memberships:AccessMembership[];onChanged?:()=>Promise<void>}){
