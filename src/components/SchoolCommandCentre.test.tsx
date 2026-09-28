@@ -18,7 +18,7 @@ describe("SchoolCommandCentre operational excellence",()=>{
   it("shows institution health and recommended follow-up in plain language",()=>{
     render(<SchoolCommandCentre workspace={workspace} onNavigate={vi.fn()}/>);
     expect(screen.getByText(/institution health/i)).toBeInTheDocument();
-    expect(screen.getByText(/core school hand-offs are connected/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:/core school hand-offs are connected/i})).toBeInTheDocument();
     expect(screen.getByText(/school today/i)).toBeInTheDocument();
     expect(screen.getByText(/what dreem noticed/i)).toBeInTheDocument();
   });
