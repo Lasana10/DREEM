@@ -3,6 +3,12 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { SchoolBrand, SchoolSetup } from "../domain/types";
+vi.mock("../lib/policyEngine",()=>({
+  loadPolicyRules:vi.fn().mockResolvedValue([]),
+  savePolicyRule:vi.fn(),
+  seedRecommendedPolicies:vi.fn().mockResolvedValue(3),
+  simulatePolicyRule:vi.fn().mockResolvedValue({affected:0,total:0}),
+}));
 import { SchoolStudioView } from "./SchoolStudioView";
 
 const brand:SchoolBrand={name:"Great Academy",shortName:"GRA",motto:"Learn well",address:"Douala",city:"Douala",subsystem:"bilingual",primaryColor:"#123b2c",accentColor:"#c9df83",receiptPrefix:"GRA",studentIdPrefix:"GRA",timezone:"Africa/Douala",currency:"XAF"};
