@@ -136,7 +136,11 @@ const backupTables = [
   "dreem_gate_offline_incidents",
   "dreem_school_positions",
   "dreem_position_assignments",
-  "dreem_user_active_school"
+  "dreem_user_active_school",
+  "dreem_policy_rules",
+  "dreem_policy_findings",
+  "dreem_policy_evaluation_queue",
+  "dreem_service_eligibility"
 ];
 
 const dependentBackupTables = [
@@ -1141,6 +1145,60 @@ async function handleRequest(request, response) {
       job: "b2-restore-test",
       provider: "backblaze-b2",
       requiredKeys: optionalIntegrationEnv.backblazeB2
+    });
+    return;
+  }
+
+  if (url.pathname === "/jobs/policy-engine") {
+    if (request.method === "GET") {
+      json(response, integrationReady(requiredServerEnv) ? 200 : 503, {
+        job: "policy-engine",
+        ready: integrationReady(requiredServerEnv),
+        accepted: false,
+        method: "POST",
+        protected: jobSecretConfigured(),
+        dispatcher: "supabase-edge-function:process-policy-engine",
+        message: "DREEM policy evaluation is processed server-side from the durable school policy queue."
+      });
+      return;
+    }
+
+    if (!isAuthorizedJobRequest(request)) {
+      json(response, 401, { error: "Missing or invalid DREEM worker job secret." });
+      return;
+    }
+    if (!integrationReady(requiredServerEnv)) {
+      json(response, 503, { job: "policy-engine", accepted: false, error: "Supabase worker credentials are not configured." });
+      return;
+    }
+    if (!supabaseProjectIsSafe()) {
+      json(response, 503, {
+        job: "policy-engine",
+        accepted: false,
+        error: "DREEM worker is connected to the wrong Supabase project.",
+        configuredProjectRef: configuredSupabaseProjectRef() || null,
+        expectedProjectRef: expectedSupabaseProjectRef
+      });
+      return;
+    }
+
+    const body = await readJsonBody(request);
+    const functionUrl = `${process.env.SUPABASE_URL.replace(/\/$/, "")}/functions/v1/process-policy-engine`;
+    const policyResponse = await fetch(functionUrl, {
+      method: "POST",
+      headers: {
+        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ limit: body.limit ?? 500 })
+    });
+    const result = await policyResponse.json().catch(() => ({}));
+    json(response, policyResponse.ok ? 202 : policyResponse.status, {
+      job: "policy-engine",
+      accepted: policyResponse.ok,
+      dispatcher: "supabase-edge-function:process-policy-engine",
+      ...result
     });
     return;
   }
