@@ -88,11 +88,21 @@ create policy dreem_policy_rules_read on public.dreem_policy_rules
 for select to authenticated
 using(private.dreem_is_member(school_id));
 
-drop policy if exists dreem_policy_rules_write on public.dreem_policy_rules;
-create policy dreem_policy_rules_write on public.dreem_policy_rules
-for all to authenticated
+drop policy if exists dreem_policy_rules_insert on public.dreem_policy_rules;
+create policy dreem_policy_rules_insert on public.dreem_policy_rules
+for insert to authenticated
+with check(public.dreem_has_authority(school_id,'school_configuration'));
+
+drop policy if exists dreem_policy_rules_update on public.dreem_policy_rules;
+create policy dreem_policy_rules_update on public.dreem_policy_rules
+for update to authenticated
 using(public.dreem_has_authority(school_id,'school_configuration'))
 with check(public.dreem_has_authority(school_id,'school_configuration'));
+
+drop policy if exists dreem_policy_rules_delete on public.dreem_policy_rules;
+create policy dreem_policy_rules_delete on public.dreem_policy_rules
+for delete to authenticated
+using(public.dreem_has_authority(school_id,'school_configuration'));
 
 drop policy if exists dreem_policy_findings_read on public.dreem_policy_findings;
 create policy dreem_policy_findings_read on public.dreem_policy_findings
@@ -279,9 +289,9 @@ revoke all on function private.dreem_evaluate_student_policies(uuid,uuid) from p
 create or replace function public.dreem_seed_recommended_policies(p_school_id uuid)
 returns integer
 language plpgsql
-security invoker
+security definer
 set search_path=''
-as $$
+as $
 declare v_count integer;
 begin
   if auth.uid() is null then raise exception 'Authentication is required.'; end if;
@@ -312,9 +322,9 @@ create or replace function public.dreem_upsert_policy_rule(
 )
 returns uuid
 language plpgsql
-security invoker
+security definer
 set search_path=''
-as $$
+as $
 declare v_id uuid;
 begin
   if auth.uid() is null then raise exception 'Authentication is required.'; end if;
@@ -372,9 +382,9 @@ grant execute on function public.dreem_upsert_policy_rule(uuid,text,text,text,js
 create or replace function public.dreem_run_policy_engine(p_school_id uuid,p_limit integer default 200)
 returns table(processed integer,open_findings integer,failed integer)
 language plpgsql
-security invoker
+security definer
 set search_path=''
-as $$
+as $
 declare
   q record;
   v_processed integer:=0;
@@ -419,9 +429,9 @@ grant execute on function public.dreem_run_policy_engine(uuid,integer) to authen
 create or replace function public.dreem_acknowledge_policy_finding(p_finding_id uuid,p_note text default null)
 returns boolean
 language plpgsql
-security invoker
+security definer
 set search_path=''
-as $$
+as $
 declare f public.dreem_policy_findings%rowtype;
 begin
   select * into f from public.dreem_policy_findings where id=p_finding_id;
@@ -451,9 +461,9 @@ create or replace function public.dreem_set_service_eligibility(
 )
 returns uuid
 language plpgsql
-security invoker
+security definer
 set search_path=''
-as $$
+as $
 declare
   v_school uuid;
   v_id uuid;
