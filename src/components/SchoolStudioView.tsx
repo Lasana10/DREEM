@@ -19,7 +19,7 @@ function contrast(hex:string){const value=hex.replace("#","");const rgb=[0,2,4].
 export function SchoolStudioView({brand,setup,memberships,onSave,onSaveSetup,onUploadLogo,onAuthorityChanged}:{brand:SchoolBrand;setup:SchoolSetup;memberships?:AccessMembership[];onSave:(brand:SchoolBrand)=>Promise<void>;onSaveSetup:(setup:SchoolSetup)=>Promise<void>;onUploadLogo:(file:File)=>Promise<string>;onAuthorityChanged?:()=>Promise<void>}){
   const [draft,setDraft]=useState(brand),[setupDraft,setSetupDraft]=useState(setup),[status,setStatus]=useState(""),[failed,setFailed]=useState(false),[uploading,setUploading]=useState(false);
   const [selectedPack,setSelectedPack]=useState<ClassPackId>("bilingual-primary");
-  const [advancedBrand,setAdvancedBrand]=useState(false),[policyPreview,setPolicyPreview]=useState(true);
+  const [advancedBrand,setAdvancedBrand]=useState(false);
   useEffect(()=>setDraft(brand),[brand]);
   useEffect(()=>setSetupDraft(setup),[setup]);
   const readable=useMemo(()=>Math.abs(contrast(draft.primaryColor)-contrast(draft.accentColor))>=.35,[draft.primaryColor,draft.accentColor]);
