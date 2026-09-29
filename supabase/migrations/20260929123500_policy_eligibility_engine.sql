@@ -343,12 +343,6 @@ begin
   ) then
     raise exception 'Unsupported policy owner scope.';
   end if;
-  if p_owner_scope not in(
-    'academics_approval','academics_delivery','admissions_decision','admissions_intake',
-    'audit','communications_approve','communications_publish','finance_approval',
-    'finance_collection','gate','institutional_leadership','safeguarding',
-    'school_configuration','staff_management','transport_management','transport_operation'
-  ) then raise exception 'Unsupported policy owner scope.'; end if;
   if p_code='attendance_followup' and (
     coalesce((p_condition->>'threshold')::numeric,-1)<0
     or coalesce((p_condition->>'threshold')::numeric,101)>100
@@ -451,7 +445,7 @@ begin
           and c.student_id=s.id
           and c.due_on is not null
           and c.due_on<current_date
-          and c.status not in('paid','waived','cancelled')
+          and c.status not in('paid','waived','written_off')
       )>=p_threshold;
   else
     raise exception 'Unsupported policy code.';
@@ -627,6 +621,33 @@ end;
 $$;
 revoke all on function public.dreem_set_service_eligibility(uuid,text,text,text,uuid) from public,anon;
 grant execute on function public.dreem_set_service_eligibility(uuid,text,text,text,uuid) to authenticated;
+
+create or replace function private.dreem_process_policy_queue_row()
+returns trigger
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+  v_open integer;
+begin
+  begin
+    v_open:=private.dreem_evaluate_student_policies(new.school_id,new.student_id);
+    delete from public.dreem_policy_evaluation_queue where id=new.id;
+  exception when others then
+    update public.dreem_policy_evaluation_queue
+    set attempts=attempts+1,last_error=left(sqlerrm,500),updated_at=now()
+    where id=new.id;
+  end;
+  return null;
+end;
+$;
+revoke all on function private.dreem_process_policy_queue_row() from public;
+
+drop trigger if exists dreem_process_policy_queue_row on public.dreem_policy_evaluation_queue;
+create trigger dreem_process_policy_queue_row
+after insert or update of reason,updated_at on public.dreem_policy_evaluation_queue
+for each row execute function private.dreem_process_policy_queue_row();
 
 create or replace function private.dreem_policy_queue_from_student()
 returns trigger
