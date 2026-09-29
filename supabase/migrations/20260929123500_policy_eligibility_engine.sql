@@ -103,6 +103,7 @@ using(
   public.dreem_has_authority(school_id,'institutional_leadership')
   or public.dreem_has_authority(school_id,'school_configuration')
   or public.dreem_has_authority(school_id,'safeguarding')
+  or private.dreem_can_view_student(school_id,student_id)
 );
 
 create or replace function private.dreem_enqueue_policy_student(
@@ -335,6 +336,14 @@ begin
     raise exception 'Policy name and owner are required.';
   end if;
   if p_owner_scope not in(
+    'academics_approval','academics_delivery','admissions_decision','admissions_intake','audit',
+    'communications_approve','communications_publish','finance_approval','finance_collection','gate',
+    'institutional_leadership','safeguarding','school_configuration','staff_management',
+    'transport_management','transport_operation'
+  ) then
+    raise exception 'Unsupported policy owner scope.';
+  end if;
+  if p_owner_scope not in(
     'academics_approval','academics_delivery','admissions_decision','admissions_intake',
     'audit','communications_approve','communications_publish','finance_approval',
     'finance_collection','gate','institutional_leadership','safeguarding',
@@ -381,6 +390,80 @@ end;
 $$;
 revoke all on function public.dreem_upsert_policy_rule(uuid,text,text,text,jsonb,text,text,text,boolean) from public,anon;
 grant execute on function public.dreem_upsert_policy_rule(uuid,text,text,text,jsonb,text,text,text,boolean) to authenticated;
+
+create or replace function public.dreem_simulate_policy_rule(
+  p_school_id uuid,
+  p_code text,
+  p_threshold numeric
+)
+returns table(affected_count integer,total_learners integer)
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+  v_affected integer:=0;
+  v_total integer:=0;
+begin
+  if auth.uid() is null then raise exception 'Authentication is required.'; end if;
+  if not public.dreem_has_authority(p_school_id,'school_configuration')
+     and not public.dreem_has_authority(p_school_id,'institutional_leadership') then
+    raise exception 'School configuration or institutional leadership authority is required.';
+  end if;
+  if p_threshold is null or p_threshold<0 then raise exception 'A valid threshold is required.'; end if;
+
+  select count(*) into v_total
+  from public.students s
+  where s.school_id=p_school_id and s.merged_into_student_id is null;
+
+  if p_code='attendance_followup' then
+    select count(*) into v_affected
+    from public.students s
+    where s.school_id=p_school_id and s.merged_into_student_id is null
+      and s.attendance_rate is not null and s.attendance_rate<p_threshold;
+
+  elsif p_code='missing_work_followup' then
+    select count(*) into v_affected
+    from public.students s
+    where s.school_id=p_school_id and s.merged_into_student_id is null
+      and (
+        select count(*)
+        from public.dreem_assignments a
+        join public.dreem_classes c on c.id=a.class_id and c.school_id=a.school_id
+        where a.school_id=p_school_id
+          and a.status='published'
+          and a.due_at<now()
+          and lower(c.name)=lower(coalesce(s.class_name,''))
+          and not exists(
+            select 1 from public.dreem_assignment_submissions sub
+            where sub.assignment_id=a.id and sub.student_id=s.id
+          )
+      )>=p_threshold;
+
+  elsif p_code='fee_overdue_followup' then
+    select count(*) into v_affected
+    from public.students s
+    where s.school_id=p_school_id and s.merged_into_student_id is null
+      and (
+        select count(*)
+        from public.dreem_student_fee_charges c
+        where c.school_id=p_school_id
+          and c.student_id=s.id
+          and c.due_on is not null
+          and c.due_on<current_date
+          and c.status not in('paid','waived','cancelled')
+      )>=p_threshold;
+  else
+    raise exception 'Unsupported policy code.';
+  end if;
+
+  affected_count:=v_affected;
+  total_learners:=v_total;
+  return next;
+end;
+$;
+revoke all on function public.dreem_simulate_policy_rule(uuid,text,numeric) from public,anon;
+grant execute on function public.dreem_simulate_policy_rule(uuid,text,numeric) to authenticated;
 
 create or replace function public.dreem_run_policy_engine(p_school_id uuid,p_limit integer default 200)
 returns table(processed integer,open_findings integer,failed integer)
