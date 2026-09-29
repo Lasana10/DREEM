@@ -150,7 +150,7 @@ begin
   select p_school_id,s.id,'recommended_policy_seeded'
   from public.students s
   where s.school_id=p_school_id
-  on conflict(school_id,student_id) do update set updated_at=now();
+  on conflict(school_id,student_id) do update set reason='recommended_policy_seeded',updated_at=now();
 end;
 $$;
 revoke all on function private.dreem_seed_recommended_policy_rules(uuid,uuid) from public;
@@ -646,7 +646,7 @@ revoke all on function private.dreem_process_policy_queue_row() from public;
 
 drop trigger if exists dreem_process_policy_queue_row on public.dreem_policy_evaluation_queue;
 create trigger dreem_process_policy_queue_row
-after insert or update of reason,updated_at on public.dreem_policy_evaluation_queue
+after insert or update of reason on public.dreem_policy_evaluation_queue
 for each row execute function private.dreem_process_policy_queue_row();
 
 create or replace function private.dreem_policy_queue_from_student()
