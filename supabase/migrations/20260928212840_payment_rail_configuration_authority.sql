@@ -1,20 +1,12 @@
--- DREEM finance rail configuration under institutional authority.
--- Provider secrets remain server-side; schools configure only public merchant identity and enablement.
-
-drop policy if exists dreem_payment_rails_insert on public.dreem_payment_rails;
-drop policy if exists dreem_payment_rails_update on public.dreem_payment_rails;
-
-create policy dreem_payment_rails_insert
+alter policy dreem_payment_rails_insert
 on public.dreem_payment_rails
-for insert to authenticated
 with check (
   public.dreem_has_authority(school_id,'finance_approval')
   and public.dreem_has_authority(school_id,'school_configuration')
 );
 
-create policy dreem_payment_rails_update
+alter policy dreem_payment_rails_update
 on public.dreem_payment_rails
-for update to authenticated
 using (
   public.dreem_has_authority(school_id,'finance_approval')
   and public.dreem_has_authority(school_id,'school_configuration')
@@ -63,8 +55,15 @@ begin
     else 'other'
   end;
 
-  insert into public.dreem_payment_rails(school_id,rail_code,display_name,rail_type,merchant_reference,enabled,priority,configuration)
-  values(p_school_id,p_rail_code,trim(p_display_name),v_type,nullif(trim(coalesce(p_merchant_reference,'')),''),case when p_rail_code='cash' then true else coalesce(p_enabled,false) end,p_priority,'{}'::jsonb)
+  insert into public.dreem_payment_rails(
+    school_id,rail_code,display_name,rail_type,merchant_reference,enabled,priority,configuration
+  )
+  values(
+    p_school_id,p_rail_code,trim(p_display_name),v_type,
+    nullif(trim(coalesce(p_merchant_reference,'')),''),
+    case when p_rail_code='cash' then true else coalesce(p_enabled,false) end,
+    p_priority,'{}'::jsonb
+  )
   on conflict(school_id,rail_code) do update
     set display_name=excluded.display_name,
         rail_type=excluded.rail_type,
@@ -75,8 +74,14 @@ begin
   returning id into v_id;
 
   insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail)
-  values(p_school_id,(select auth.uid()),'finance.payment_rail_configured','payment_rail',v_id,
-    jsonb_build_object('rail_code',p_rail_code,'enabled',case when p_rail_code='cash' then true else coalesce(p_enabled,false) end,'priority',p_priority));
+  values(
+    p_school_id,(select auth.uid()),'finance.payment_rail_configured','payment_rail',v_id,
+    jsonb_build_object(
+      'rail_code',p_rail_code,
+      'enabled',case when p_rail_code='cash' then true else coalesce(p_enabled,false) end,
+      'priority',p_priority
+    )
+  );
 
   return v_id;
 end;
