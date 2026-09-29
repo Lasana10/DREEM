@@ -81,28 +81,11 @@ alter table public.dreem_service_eligibility enable row level security;
 
 revoke all on public.dreem_policy_rules, public.dreem_policy_findings, public.dreem_policy_evaluation_queue, public.dreem_service_eligibility from anon;
 grant select on public.dreem_policy_rules, public.dreem_policy_findings, public.dreem_service_eligibility to authenticated;
-grant insert,update,delete on public.dreem_policy_rules to authenticated;
 
 drop policy if exists dreem_policy_rules_read on public.dreem_policy_rules;
 create policy dreem_policy_rules_read on public.dreem_policy_rules
 for select to authenticated
 using(private.dreem_is_member(school_id));
-
-drop policy if exists dreem_policy_rules_insert on public.dreem_policy_rules;
-create policy dreem_policy_rules_insert on public.dreem_policy_rules
-for insert to authenticated
-with check(public.dreem_has_authority(school_id,'school_configuration'));
-
-drop policy if exists dreem_policy_rules_update on public.dreem_policy_rules;
-create policy dreem_policy_rules_update on public.dreem_policy_rules
-for update to authenticated
-using(public.dreem_has_authority(school_id,'school_configuration'))
-with check(public.dreem_has_authority(school_id,'school_configuration'));
-
-drop policy if exists dreem_policy_rules_delete on public.dreem_policy_rules;
-create policy dreem_policy_rules_delete on public.dreem_policy_rules
-for delete to authenticated
-using(public.dreem_has_authority(school_id,'school_configuration'));
 
 drop policy if exists dreem_policy_findings_read on public.dreem_policy_findings;
 create policy dreem_policy_findings_read on public.dreem_policy_findings
@@ -351,6 +334,20 @@ begin
   if nullif(trim(p_name),'') is null or nullif(trim(p_owner_scope),'') is null then
     raise exception 'Policy name and owner are required.';
   end if;
+  if p_owner_scope not in(
+    'academics_approval','academics_delivery','admissions_decision','admissions_intake',
+    'audit','communications_approve','communications_publish','finance_approval',
+    'finance_collection','gate','institutional_leadership','safeguarding',
+    'school_configuration','staff_management','transport_management','transport_operation'
+  ) then raise exception 'Unsupported policy owner scope.'; end if;
+  if p_code='attendance_followup' and (
+    coalesce((p_condition->>'threshold')::numeric,-1)<0
+    or coalesce((p_condition->>'threshold')::numeric,101)>100
+  ) then raise exception 'Attendance threshold must be between 0 and 100.'; end if;
+  if p_code in('missing_work_followup','fee_overdue_followup')
+     and coalesce((p_condition->>'threshold')::numeric,0)<1 then
+    raise exception 'Policy threshold must be at least 1.';
+  end if;
 
   insert into public.dreem_policy_rules(
     school_id,code,name,domain,condition,action_level,target_service,owner_scope,enabled,recommended,created_by
@@ -368,6 +365,12 @@ begin
   insert into public.dreem_policy_evaluation_queue(school_id,student_id,reason)
   select p_school_id,s.id,'policy_rule_changed' from public.students s where s.school_id=p_school_id
   on conflict(school_id,student_id) do update set reason='policy_rule_changed',updated_at=now();
+
+  if not coalesce(p_enabled,true) then
+    update public.dreem_policy_findings
+    set state='resolved',resolved_at=now(),last_seen_at=now()
+    where rule_id=v_id and state<>'resolved';
+  end if;
 
   insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail)
   values(p_school_id,auth.uid(),'policy.rule_configured','policy_rule',v_id,
@@ -426,6 +429,41 @@ $$;
 revoke all on function public.dreem_run_policy_engine(uuid,integer) from public,anon;
 grant execute on function public.dreem_run_policy_engine(uuid,integer) to authenticated;
 
+create or replace function public.dreem_run_policy_engine_system(p_limit integer default 500)
+returns table(processed integer,open_findings integer,failed integer)
+language plpgsql
+security definer
+set search_path=''
+as $
+declare
+  q record;
+  v_processed integer:=0;
+  v_open integer:=0;
+  v_failed integer:=0;
+  v_limit integer:=greatest(1,least(coalesce(p_limit,500),2000));
+begin
+  for q in
+    select id,school_id,student_id from public.dreem_policy_evaluation_queue
+    order by queued_at
+    limit v_limit
+  loop
+    begin
+      v_open:=v_open+private.dreem_evaluate_student_policies(q.school_id,q.student_id);
+      delete from public.dreem_policy_evaluation_queue where id=q.id;
+      v_processed:=v_processed+1;
+    exception when others then
+      update public.dreem_policy_evaluation_queue
+      set attempts=attempts+1,last_error=left(sqlerrm,500),updated_at=now()
+      where id=q.id;
+      v_failed:=v_failed+1;
+    end;
+  end loop;
+  processed:=v_processed;open_findings:=v_open;failed:=v_failed;return next;
+end;
+$;
+revoke all on function public.dreem_run_policy_engine_system(integer) from public,anon,authenticated;
+grant execute on function public.dreem_run_policy_engine_system(integer) to service_role;
+
 create or replace function public.dreem_acknowledge_policy_finding(p_finding_id uuid,p_note text default null)
 returns boolean
 language plpgsql
@@ -468,6 +506,7 @@ declare
   v_school uuid;
   v_id uuid;
 begin
+  if auth.uid() is null then raise exception 'Authentication is required.'; end if;
   select school_id into v_school from public.students where id=p_student_id and merged_into_student_id is null;
   if v_school is null then raise exception 'Learner not found.'; end if;
   if not public.dreem_has_authority(v_school,'institutional_leadership')
@@ -493,7 +532,7 @@ begin
 
   insert into public.dreem_domain_events(school_id,aggregate_type,aggregate_id,event_type,idempotency_key,payload)
   values(v_school,'student',p_student_id,'student.service_eligibility_changed',
-    'service-eligibility:'||p_student_id::text||':'||p_service_code||':'||extract(epoch from clock_timestamp())::bigint::text,
+    'service-eligibility:'||p_student_id::text||':'||p_service_code||':'||gen_random_uuid()::text,
     jsonb_build_object('service_code',p_service_code,'state',p_state,'reason',nullif(trim(coalesce(p_reason,'')),''),'finding_id',p_finding_id));
 
   insert into public.audit_events(school_id,actor_id,action,entity_type,entity_id,detail)
