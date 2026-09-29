@@ -6,8 +6,9 @@ for(const token of ["--dreem-blue","#1769e0","#1257ba","#0d2341"])if(text.includ
 const css=fs.readFileSync("src/experience-v2.css","utf8");
 for(const required of ["var(--brand","#f3f6f3","@media(max-width:680px)","font-size:16px","env(safe-area-inset-bottom)"])if(!css.includes(required))failures.push("Missing UX contract: "+required);
 const studio=fs.readFileSync("src/components/SchoolStudioView.tsx","utf8");
+const policyStudio=fs.readFileSync("src/components/PolicyStudio.tsx","utf8");
 if(!studio.includes("School theme"))failures.push("School theme control missing");
-if(!studio.includes("DREEM RECOMMENDED"))failures.push("Recommended school policy layer missing");
+if(!studio.includes("<PolicyStudio/>")||!policyStudio.includes("DREEM RECOMMENDED")||!policyStudio.includes("Preview impact"))failures.push("Live recommended school policy layer missing");
 const command=fs.readFileSync("src/components/SchoolCommandCentre.tsx","utf8");
 if(!command.includes("SCHOOL TODAY"))failures.push("Plain-language School Today missing");
 if(!command.includes("INSTITUTION HEALTH"))failures.push("Institution health surface missing");
