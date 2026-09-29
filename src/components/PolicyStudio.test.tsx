@@ -60,7 +60,8 @@ describe("PolicyStudio",()=>{
     fireEvent.click(screen.getByRole("button",{name:/advanced policy controls/i}));
     const responseSelect=screen.getAllByLabelText("School response")[0];
     fireEvent.change(responseSelect,{target:{value:"restrict_specific_service"}});
-    expect(screen.getAllByLabelText("Specific service")[0]).toBeInTheDocument();
+    expect(screen.getByText("Specific service")).toBeInTheDocument();
+    expect(screen.getAllByRole("combobox").length).toBeGreaterThan(3);
     expect(screen.getByText(/institutional leadership \+ school configuration authority/i)).toBeInTheDocument();
   });
 });
