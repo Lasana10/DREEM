@@ -226,7 +226,7 @@ begin
         and c.student_id=p_student_id
         and c.due_on is not null
         and c.due_on<current_date
-        and c.status not in('paid','waived','cancelled');
+        and c.status not in('paid','waived','written_off');
       v_met:=v_count>=v_threshold;
       v_title:=v_student.full_name||' has an overdue fee item';
       v_explanation:=v_count::text||' fee charge(s) are past due and still open.';
