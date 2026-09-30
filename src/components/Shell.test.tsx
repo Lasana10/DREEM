@@ -19,7 +19,7 @@ describe("shell navigation",()=>{
     fireEvent.click(screen.getByRole("button",{name:"Settings"}));
     expect(onView).toHaveBeenCalledWith("studio");
   });
-  it("does not expose School settings to teachers",()=>{
+  it("searches real school records and routes to their workspace",()=>{\n    const onView=vi.fn();\n    render(<Shell brand={demoBrand} viewer={{name:"Principal",email:"principal@example.test",role:"principal"}} view="command" onView={onView} signalCount={0} onFeedback={vi.fn()} searchItems={[{id:"learner:1",kind:"learner",title:"Maya Nkom",subtitle:"DRM-001 · Form 3",keywords:"maya nkom drm-001 form 3 learner",view:"learners"}]}><div>Command</div></Shell>);\n    fireEvent.change(screen.getByPlaceholderText(/find a workspace or task/i),{target:{value:"Maya"}});\n    fireEvent.click(screen.getByRole("button",{name:/Maya Nkom/i}));\n    expect(onView).toHaveBeenCalledWith("learners");\n  });\n  it("does not expose School settings to teachers",()=>{
     render(<Shell brand={demoBrand} viewer={{name:"Teacher",email:"teacher@example.test",role:"teacher"}} view="operations" onView={vi.fn()} signalCount={0} onFeedback={vi.fn()}><div>Teacher content</div></Shell>);
     expect(screen.queryByRole("button",{name:"Settings"})).not.toBeInTheDocument();
   });
