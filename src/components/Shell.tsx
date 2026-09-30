@@ -88,7 +88,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,c
     <nav className="role-nav">
       <div className="nav-context"><small>YOUR WORK</small><strong>{viewer.positionTitle||roleLabel(viewer.role)}</strong></div>
       <div className="nav-primary">{desktopPrimary.map(item=><NavButton key={item.id} item={item}/>)}</div>
-      {desktopSecondary.length?<details className="nav-more" defaultOpen={desktopSecondary.some(item=>item.id===view)}><summary><Menu size={17}/><span>More school work</span><small>{desktopSecondary.length}</small></summary><div>{desktopSecondary.map(item=><NavButton key={item.id} item={item}/>)}</div></details>:null}
+      {desktopSecondary.length?<details className="nav-more" open={desktopSecondary.some(item=>item.id===view)?true:undefined}><summary><Menu size={17}/><span>More school work</span><small>{desktopSecondary.length}</small></summary><div>{desktopSecondary.map(item=><NavButton key={item.id} item={item}/>)}</div></details>:null}
     </nav>
     <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>{connectivity}</strong><small>Audit trail active</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{viewer.positionTitle||roleLabel(viewer.role)}</small></span></div></div>
   </aside>
