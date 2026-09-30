@@ -10,16 +10,23 @@ import { allowedWorkspaceViews } from "../lib/access";
 import { pendingOfflineCount } from "../lib/offlineOutbox";
 
 export type ViewKey = "command"|"admissions"|"operations"|"academics"|"learning"|"learners"|"credentials"|"teachers"|"care"|"transport"|"finance"|"signals"|"studio";
-type NavItem={id:ViewKey;label:string;icon:typeof BarChart3};
+type NavItem={id:ViewKey;label:string;icon:typeof BarChart3;keywords?:string};
 const nav:NavItem[]=[
-  {id:"command",label:"Today",icon:BarChart3},{id:"admissions",label:"Admissions",icon:UserPlus},
-  {id:"operations",label:"Operations",icon:ClipboardCheck},{id:"academics",label:"Academics",icon:BookOpenCheck},
-  {id:"learning",label:"Learning",icon:ClipboardCheck},{id:"learners",label:"People",icon:GraduationCap},
-  {id:"credentials",label:"ID cards",icon:IdCard},{id:"teachers",label:"Teaching team",icon:BookOpenCheck},
-  {id:"care",label:"Care",icon:FolderHeart},{id:"transport",label:"Transport",icon:BusFront},
-  {id:"finance",label:"Finance",icon:ReceiptText},{id:"signals",label:"Messages",icon:MessageSquareMore},
-  {id:"studio",label:"Settings",icon:Settings2},
+  {id:"command",label:"Today",icon:BarChart3,keywords:"home dashboard pulse attention"},
+  {id:"admissions",label:"Admissions",icon:UserPlus,keywords:"applications enrolment applicant"},
+  {id:"operations",label:"Operations",icon:ClipboardCheck,keywords:"staff access attendance school operations"},
+  {id:"academics",label:"Academics",icon:BookOpenCheck,keywords:"curriculum timetable teaching outcomes"},
+  {id:"learning",label:"Learning",icon:ClipboardCheck,keywords:"assignments assessment submissions lessons"},
+  {id:"learners",label:"People",icon:GraduationCap,keywords:"learners families staff guardians records"},
+  {id:"credentials",label:"ID cards",icon:IdCard,keywords:"identity credential badge qr"},
+  {id:"teachers",label:"Teaching team",icon:BookOpenCheck,keywords:"teachers workload coaching"},
+  {id:"care",label:"Care",icon:FolderHeart,keywords:"support safeguarding wellbeing cases"},
+  {id:"transport",label:"Transport",icon:BusFront,keywords:"routes buses drivers stops trips"},
+  {id:"finance",label:"Finance",icon:ReceiptText,keywords:"fees payments receipts reconciliation money"},
+  {id:"signals",label:"Messages",icon:MessageSquareMore,keywords:"communication feedback announcements inbox"},
+  {id:"studio",label:"Settings",icon:Settings2,keywords:"school configuration policy branding setup"},
 ];
+
 const primaryMobileViews:Partial<Record<Role,ViewKey[]>>={
  platform_founder:["command","admissions","academics","finance"],school_owner:["command","admissions","academics","finance"],principal:["command","admissions","academics","learners"],
  administrator:["command","admissions","operations","learners"],academic_head:["command","academics","learning","teachers"],
@@ -27,6 +34,24 @@ const primaryMobileViews:Partial<Record<Role,ViewKey[]>>={
  parent:["learning","transport","signals"],student:["learning","transport","signals"],bursar:["finance","learners"],
  accountant:["finance","command"],transport_manager:["transport","command","signals"],driver:["transport"],security_guard:["transport"],auditor:["command","finance","learners"]
 };
+
+const primaryDesktopViews:Partial<Record<Role,ViewKey[]>>={
+ platform_founder:["command","admissions","academics","learners","finance","signals"],
+ school_owner:["command","admissions","academics","learners","finance","signals"],
+ principal:["command","admissions","academics","learners","finance","signals"],
+ administrator:["command","admissions","operations","learners","signals"],
+ academic_head:["command","academics","learning","learners","teachers","signals"],
+ teacher:["command","operations","learning","learners","signals"],
+ tutor:["learning","learners","care","signals"],
+ parent:["learning","learners","transport","signals"],
+ student:["learning","learners","transport","signals"],
+ bursar:["finance","learners","signals"],
+ accountant:["command","finance","signals"],
+ transport_manager:["command","transport","signals"],
+ driver:["transport"],security_guard:["transport"],
+ auditor:["command","finance","learners"]
+};
+
 const roleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>={
  teacher:{command:"Today",operations:"My classes",learning:"Assignments",learners:"Learners",care:"Support",signals:"Messages"},
  tutor:{learning:"My teaching",learners:"Learners",care:"Support",signals:"Messages"},
@@ -41,7 +66,11 @@ function labelFor(role:Role,id:ViewKey){return roleViewLabels[role]?.[id]??nav.f
 
 export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,children}:{brand:SchoolBrand;viewer:{id?:string;name:string;email:string;role:Role;positionTitle?:string;authorityScopes?:AuthorityScope[]};view:ViewKey;onView:(view:ViewKey)=>void;signalCount:number;onFeedback:()=>void;children:ReactNode}){
  const allowed=allowedWorkspaceViews(viewer) as ViewKey[];
- const canOpenStudio=allowed.includes("studio"),visibleNav=nav.filter(item=>allowed.includes(item.id)&&item.id!=="studio");
+ const canOpenStudio=allowed.includes("studio");
+ const visibleNav=nav.filter(item=>allowed.includes(item.id)&&item.id!=="studio");
+ const desktopPrimaryIds=primaryDesktopViews[viewer.role]??visibleNav.slice(0,6).map(item=>item.id);
+ const desktopPrimary=desktopPrimaryIds.map(id=>visibleNav.find(item=>item.id===id)).filter((item):item is NavItem=>Boolean(item));
+ const desktopSecondary=visibleNav.filter(item=>!desktopPrimaryIds.includes(item.id));
  const primaryIds=primaryMobileViews[viewer.role]??visibleNav.slice(0,4).map(item=>item.id);
  const mobilePrimary=primaryIds.map(id=>visibleNav.find(item=>item.id===id)).filter((item):item is NavItem=>Boolean(item));
  const mobileMore=visibleNav.filter(item=>!primaryIds.includes(item.id));
@@ -49,18 +78,24 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,c
  useEffect(()=>{let active=true;const refresh=()=>{if(viewer.id)pendingOfflineCount({actorId:viewer.id}).then(value=>active&&setPending(value)).catch(()=>{});};const connect=()=>{setOnline(true);refresh();},disconnect=()=>setOnline(false);window.addEventListener("online",connect);window.addEventListener("offline",disconnect);window.addEventListener("dreem:outbox-changed",refresh);refresh();return()=>{active=false;window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect);window.removeEventListener("dreem:outbox-changed",refresh);};},[viewer.id]);
  const connectivity=!online?(pending?("Offline · "+pending+" queued"):"Offline"):(pending?(pending+" pending sync"):"Synced");
  const normalizedQuery=query.trim().toLowerCase();
- const results=normalizedQuery?visibleNav.filter(item=>labelFor(viewer.role,item.id).toLowerCase().includes(normalizedQuery)||item.label.toLowerCase().includes(normalizedQuery)).slice(0,6):[];
+ const results=normalizedQuery?visibleNav.filter(item=>[labelFor(viewer.role,item.id),item.label,item.keywords??""].join(" ").toLowerCase().includes(normalizedQuery)).slice(0,8):[];
+ const open=(id:ViewKey)=>{onView(id);setQuery("");};
+ const NavButton=({item}:{item:NavItem})=><button key={item.id} className={view===item.id?"active":""} onClick={()=>open(item.id)}><item.icon size={18}/><span>{labelFor(viewer.role,item.id)}</span>{item.id==="signals"&&signalCount>0?<b>{signalCount}</b>:null}</button>;
  return <main className="shell" style={{"--brand":brand.primaryColor,"--accent":brand.accentColor} as React.CSSProperties}>
   <aside className="sidebar">
     <div className="brand"><span>D</span><div><strong>DREEM</strong><small>School Operating System</small></div></div>
     <div className="school"><span>{brand.logoUrl?<img src={brand.logoUrl} alt=""/>:brand.shortName}</span><div><strong>{brand.name}</strong><small><Building2 size={11}/>{brand.city} · {brand.subsystem}</small></div></div>
-    <nav><small>YOUR WORK</small>{visibleNav.map(item=><button key={item.id} className={view===item.id?"active":""} onClick={()=>onView(item.id)}><item.icon size={18}/><span>{labelFor(viewer.role,item.id)}</span>{item.id==="signals"&&signalCount>0?<b>{signalCount}</b>:null}</button>)}</nav>
+    <nav className="role-nav">
+      <div className="nav-context"><small>YOUR WORK</small><strong>{viewer.positionTitle||roleLabel(viewer.role)}</strong></div>
+      <div className="nav-primary">{desktopPrimary.map(item=><NavButton key={item.id} item={item}/>)}</div>
+      {desktopSecondary.length?<details className="nav-more" defaultOpen={desktopSecondary.some(item=>item.id===view)}><summary><Menu size={17}/><span>More school work</span><small>{desktopSecondary.length}</small></summary><div>{desktopSecondary.map(item=><NavButton key={item.id} item={item}/>)}</div></details>:null}
+    </nav>
     <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>{connectivity}</strong><small>Audit trail active</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{viewer.positionTitle||roleLabel(viewer.role)}</small></span></div></div>
   </aside>
   <section className="workspace"><header>
     <div><span>{brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?"School settings":labelFor(viewer.role,view)}</h1></div>
     <div>
-      <div className="dreem-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Search DREEM workspaces…"/>{results.length?<div className="dreem-search-results">{results.map(item=><button key={item.id} onClick={()=>{onView(item.id);setQuery("");}}><strong>{labelFor(viewer.role,item.id)}</strong></button>)}</div>:null}</div>
+      <div className="dreem-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find a workspace or task…"/>{results.length?<div className="dreem-search-results">{results.map(item=><button key={item.id} onClick={()=>open(item.id)}><item.icon size={16}/><span><strong>{labelFor(viewer.role,item.id)}</strong><small>{item.label===labelFor(viewer.role,item.id)?item.keywords:item.label}</small></span></button>)}</div>:null}</div>
       <span className={"connectivity "+(online?"online":"offline")}>{connectivity}</span>
       <button className="language">EN / FR</button>
       {canOpenStudio&&view!=="studio"?<button className="feedback" onClick={()=>onView("studio")}><Settings2 size={15}/>Settings</button>:null}
