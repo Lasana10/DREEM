@@ -4,6 +4,7 @@ import { buildSchoolTodayInsights } from "../domain/rules";
 import { buildInstitutionFlowHealth, evaluateRecommendedPolicies } from "../domain/operationalExcellence";
 import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
+import ActionCentre from "./ActionCentre";
 type QueueItem={id:string;view:ViewKey;title:string;detail:string;count:number;tone:"urgent"|"attention"|"normal";owner:string;icon:React.ReactNode};
 
 export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:WorkspaceData;onNavigate:(view:ViewKey)=>void}){
@@ -44,6 +45,7 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  if(!canOpenView(viewer,"command"))return null;
  return <div className="content role-workspace command-today">
   <section className="role-hero"><div><span className="eyebrow">{ownerView?(viewer.positionTitle||"Leadership")+" · TODAY":"MY SCHOOL WORK · TODAY"}</span><h2>{ownerView?operatingSummary:"What needs your attention now?"}</h2><p>{ownerView?"A live view of the school. Open only what needs a decision or closer look.":"DREEM shows only the work enabled by your current authority."}</p></div><div className="role-hero-status"><span className={"status-pill "+(priority?"attention":"") }><ShieldCheck size={14}/>{priority?priority+" priority":"All clear"}</span></div></section>
+  <ActionCentre workspace={workspace} onNavigate={onNavigate}/>
   <section className="visual-stats">
    <article className="visual-stat amber"><div className="icon"><CircleDollarSign/></div><div><span>CASH AWAITING CONFIRMATION</span><strong>{cashAwaiting.toLocaleString("fr-FR")}</strong><small>FCFA</small></div></article>
    <article className="visual-stat"><div className="icon"><ClipboardCheck/></div><div><span>ADMISSIONS</span><strong>{admissionPending}</strong><small>in progress</small></div></article>
