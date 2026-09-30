@@ -9,7 +9,8 @@ function errorText(reason:unknown){return reason instanceof Error?reason.message
 
 export default function TransportManagerWorkspace({workspace,onRefresh}:{workspace:WorkspaceData;onRefresh:()=>Promise<void>}){
  const t=workspace.transport;
- const [tab,setTab]=useState<Tab>("Network"),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");\n const [routeStops,setRouteStops]=useState([{id:crypto.randomUUID(),name:"",landmark:"",pickupTime:""},{id:crypto.randomUUID(),name:"",landmark:"",pickupTime:""}]);
+ const [tab,setTab]=useState<Tab>("Network"),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
+ const [routeStops,setRouteStops]=useState([{id:crypto.randomUUID(),name:"",landmark:"",pickupTime:""},{id:crypto.randomUUID(),name:"",landmark:"",pickupTime:""}]);
  const [routeId,setRouteId]=useState(t.routes.find(x=>x.status==="active")?.id??t.routes[0]?.id??""),[tripId,setTripId]=useState(t.trips.find(x=>!["completed","cancelled"].includes(x.status))?.id??"");
  const route=t.routes.find(x=>x.id===routeId),trip=t.trips.find(x=>x.id===tripId);
  const driverMembers=workspace.operations.memberships.filter(x=>x.status==="approved"&&x.role==="driver");
