@@ -9,6 +9,7 @@ import type { AuthorityScope } from "../lib/authority";
 import { allowedWorkspaceViews } from "../lib/access";
 import { pendingOfflineCount } from "../lib/offlineOutbox";
 import { searchWorkspace, type WorkspaceSearchItem } from "../lib/workspaceSearch";
+import { roleAppIdentity } from "../lib/roleApp";
 
 export type ViewKey = "command"|"admissions"|"operations"|"academics"|"learning"|"learners"|"credentials"|"teachers"|"care"|"transport"|"finance"|"signals"|"studio";
 type NavItem={id:ViewKey;label:string;icon:typeof BarChart3;keywords?:string};
@@ -66,6 +67,7 @@ function roleLabel(role:Role){return role.replaceAll("_"," ").replace(/\b\w/g,l=
 function labelFor(role:Role,id:ViewKey){return roleViewLabels[role]?.[id]??nav.find(item=>item.id===id)?.label??"Workspace";}
 
 export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,searchItems=[],children}:{brand:SchoolBrand;viewer:{id?:string;name:string;email:string;role:Role;positionTitle?:string;authorityScopes?:AuthorityScope[]};view:ViewKey;onView:(view:ViewKey)=>void;signalCount:number;onFeedback:()=>void;searchItems?:WorkspaceSearchItem[];children:ReactNode}){
+ const appIdentity=roleAppIdentity(viewer.role);
  const allowed=allowedWorkspaceViews(viewer) as ViewKey[];
  const canOpenStudio=allowed.includes("studio");
  const visibleNav=nav.filter(item=>allowed.includes(item.id)&&item.id!=="studio");
@@ -85,7 +87,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,s
  const NavButton=({item}:{item:NavItem})=><button key={item.id} className={view===item.id?"active":""} onClick={()=>open(item.id)}><item.icon size={18}/><span>{labelFor(viewer.role,item.id)}</span>{item.id==="signals"&&signalCount>0?<b>{signalCount}</b>:null}</button>;
  return <main className="shell" style={{"--brand":brand.primaryColor,"--accent":brand.accentColor} as React.CSSProperties}>
   <aside className="sidebar">
-    <div className="brand"><span>D</span><div><strong>DREEM</strong><small>School Operating System</small></div></div>
+    <div className="brand"><span>D</span><div><strong>{appIdentity.name}</strong><small>{appIdentity.description}</small></div></div>
     <div className="school"><span>{brand.logoUrl?<img src={brand.logoUrl} alt=""/>:brand.shortName}</span><div><strong>{brand.name}</strong><small><Building2 size={11}/>{brand.city} · {brand.subsystem}</small></div></div>
     <nav className="role-nav">
       <div className="nav-context"><small>YOUR WORK</small><strong>{viewer.positionTitle||roleLabel(viewer.role)}</strong></div>
@@ -95,7 +97,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,s
     <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>{connectivity}</strong><small>Audit trail active</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{viewer.positionTitle||roleLabel(viewer.role)}</small></span></div></div>
   </aside>
   <section className="workspace"><header>
-    <div><span>{brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?"School settings":labelFor(viewer.role,view)}</h1></div>
+    <div><span>{appIdentity.shortName} · {brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?"School settings":labelFor(viewer.role,view)}</h1></div>
     <div>
       <div className="dreem-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find a workspace or task…"/>{navResults.length||recordResults.length?<div className="dreem-search-results">{recordResults.length?<><small className="search-section-label">SCHOOL RECORDS</small>{recordResults.map(item=><button key={item.id} onClick={()=>open(item.view as ViewKey)}><Search size={16}/><span><strong>{item.title}</strong><small>{item.subtitle}</small></span><em>{item.kind.replaceAll("_"," ")}</em></button>)}</>:null}{navResults.length?<><small className="search-section-label">WORKSPACES</small>{navResults.map(item=><button key={item.id} onClick={()=>open(item.id)}><item.icon size={16}/><span><strong>{labelFor(viewer.role,item.id)}</strong><small>{item.label===labelFor(viewer.role,item.id)?item.keywords:item.label}</small></span></button>)}</>:null}</div>:normalizedQuery?<div className="dreem-search-results empty-search"><small>No matching school record or workspace.</small></div>:null}</div>
       <span className={"connectivity "+(online?"online":"offline")}>{connectivity}</span>
