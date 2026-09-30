@@ -427,3 +427,31 @@ body{background:var(--dreem-bg);color:var(--dreem-text)}
   .nav-context{padding-inline:5px}
   .nav-more>summary{grid-template-columns:1fr;place-items:center;padding:10px 8px}
 }
+
+/* Ordered transport route builder */
+.route-builder{display:grid;gap:16px}
+.route-basics{grid-template-columns:minmax(120px,.45fr) minmax(220px,1fr) minmax(140px,.45fr)}
+.ordered-stops{display:grid;gap:8px;padding:12px;border:1px solid var(--dreem-border);border-radius:13px;background:#fbfcfb}
+.ordered-stops-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:1px 2px 5px}
+.ordered-stops-heading>div{display:grid;gap:2px}
+.ordered-stops-heading small{font-size:9px;font-weight:800;letter-spacing:.1em;color:var(--dreem-muted)}
+.ordered-stops-heading strong{font-size:13px;color:var(--dreem-text)}
+.ordered-stops-heading button{display:inline-flex;align-items:center;gap:6px;border:1px solid #d7e0da;background:white;color:var(--dreem-primary);border-radius:9px;padding:8px 10px;font-weight:800}
+.ordered-stop{display:grid;grid-template-columns:32px minmax(180px,1fr) minmax(160px,.85fr) minmax(116px,.42fr) auto;gap:9px;align-items:end;padding:9px;border:1px solid #e5ebe6;border-radius:11px;background:white}
+.stop-order{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;background:color-mix(in srgb,var(--dreem-primary) 9%,white);color:var(--dreem-primary);font-size:11px;font-weight:900;align-self:center}
+.stop-actions{display:flex;gap:4px;align-items:center;padding-bottom:2px}
+.stop-actions button{width:34px;height:34px;display:grid;place-items:center;border:1px solid #dde5df;background:#fff;color:#66776d;border-radius:8px}
+.stop-actions button:hover:not(:disabled){background:#f5f8f6;color:var(--dreem-primary)}
+.stop-actions button:disabled{opacity:.35}
+@media(max-width:900px){
+ .route-basics{grid-template-columns:1fr}
+ .ordered-stop{grid-template-columns:30px 1fr 1fr}
+ .ordered-stop>label:nth-of-type(3){grid-column:2/4}
+ .stop-actions{grid-column:2/4}
+}
+@media(max-width:680px){
+ .ordered-stops{padding:9px}
+ .ordered-stops-heading{align-items:flex-start;flex-direction:column}
+ .ordered-stop{grid-template-columns:28px 1fr;padding:8px}
+ .ordered-stop>label,.ordered-stop>label:nth-of-type(3),.stop-actions{grid-column:2}
+}
