@@ -399,3 +399,31 @@ body{background:var(--dreem-bg);color:var(--dreem-text)}
 .policy-actions{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
 @media(max-width:1000px){.policy-rule-grid{grid-template-columns:1fr}}
 @media(max-width:680px){.policy-rule-card{padding:10px}.policy-actions{display:grid;grid-template-columns:1fr 1fr}.policy-actions button{width:100%}}
+
+
+/* Experience Architecture V3: calmer hierarchy and progressive disclosure */
+.role-nav{display:flex;flex-direction:column;min-height:0;gap:8px}
+.nav-context{display:grid;gap:3px;padding:0 10px 6px}
+.nav-context small{color:rgba(255,255,255,.48);font-size:9px;font-weight:800;letter-spacing:.12em}
+.nav-context strong{color:rgba(255,255,255,.92);font-size:12px;font-weight:700}
+.nav-primary{display:grid;gap:2px}
+.nav-more{margin-top:5px;border-top:1px solid rgba(255,255,255,.1);padding-top:8px}
+.nav-more>summary{list-style:none;display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:7px;color:rgba(255,255,255,.66);font-size:11px;font-weight:800;padding:9px 10px;border-radius:10px;cursor:pointer}
+.nav-more>summary::-webkit-details-marker{display:none}
+.nav-more>summary:hover{background:rgba(255,255,255,.07);color:white}
+.nav-more>summary small{display:grid;place-items:center;min-width:20px;height:20px;border-radius:999px;background:rgba(255,255,255,.09);font-size:9px}
+.nav-more[open]>summary{color:white;background:rgba(255,255,255,.055)}
+.nav-more>div{display:grid;gap:2px;padding-top:4px}
+.dreem-search-results button{display:flex;gap:9px;align-items:center}
+.dreem-search-results button>svg{color:var(--dreem-primary);flex:none}
+.dreem-search-results button>span{display:grid;gap:2px}
+.dreem-search-results button small{font-size:9px;color:var(--dreem-muted);font-weight:500;line-height:1.25}
+.command-today .focus-card{box-shadow:none}
+.command-today .action-row{border-radius:10px}
+.command-today .action-row>button{transition:background .15s ease,border-color .15s ease}
+.command-today .action-row>button:hover{background:color-mix(in srgb,var(--dreem-primary) 7%,white);border-color:color-mix(in srgb,var(--dreem-primary) 28%,white)}
+@media(max-width:1000px){
+  .nav-context strong,.nav-more>summary span,.nav-more>summary small{display:none}
+  .nav-context{padding-inline:5px}
+  .nav-more>summary{grid-template-columns:1fr;place-items:center;padding:10px 8px}
+}
