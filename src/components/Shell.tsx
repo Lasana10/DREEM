@@ -8,6 +8,7 @@ import type { Role, SchoolBrand } from "../domain/types";
 import type { AuthorityScope } from "../lib/authority";
 import { allowedWorkspaceViews } from "../lib/access";
 import { pendingOfflineCount } from "../lib/offlineOutbox";
+import { searchWorkspace, type WorkspaceSearchItem } from "../lib/workspaceSearch";
 
 export type ViewKey = "command"|"admissions"|"operations"|"academics"|"learning"|"learners"|"credentials"|"teachers"|"care"|"transport"|"finance"|"signals"|"studio";
 type NavItem={id:ViewKey;label:string;icon:typeof BarChart3;keywords?:string};
@@ -64,7 +65,7 @@ const roleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>={
 function roleLabel(role:Role){return role.replaceAll("_"," ").replace(/\b\w/g,l=>l.toUpperCase());}
 function labelFor(role:Role,id:ViewKey){return roleViewLabels[role]?.[id]??nav.find(item=>item.id===id)?.label??"Workspace";}
 
-export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,children}:{brand:SchoolBrand;viewer:{id?:string;name:string;email:string;role:Role;positionTitle?:string;authorityScopes?:AuthorityScope[]};view:ViewKey;onView:(view:ViewKey)=>void;signalCount:number;onFeedback:()=>void;children:ReactNode}){
+export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,searchItems=[],children}:{brand:SchoolBrand;viewer:{id?:string;name:string;email:string;role:Role;positionTitle?:string;authorityScopes?:AuthorityScope[]};view:ViewKey;onView:(view:ViewKey)=>void;signalCount:number;onFeedback:()=>void;searchItems?:WorkspaceSearchItem[];children:ReactNode}){
  const allowed=allowedWorkspaceViews(viewer) as ViewKey[];
  const canOpenStudio=allowed.includes("studio");
  const visibleNav=nav.filter(item=>allowed.includes(item.id)&&item.id!=="studio");
@@ -78,7 +79,8 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,c
  useEffect(()=>{let active=true;const refresh=()=>{if(viewer.id)pendingOfflineCount({actorId:viewer.id}).then(value=>active&&setPending(value)).catch(()=>{});};const connect=()=>{setOnline(true);refresh();},disconnect=()=>setOnline(false);window.addEventListener("online",connect);window.addEventListener("offline",disconnect);window.addEventListener("dreem:outbox-changed",refresh);refresh();return()=>{active=false;window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect);window.removeEventListener("dreem:outbox-changed",refresh);};},[viewer.id]);
  const connectivity=!online?(pending?("Offline · "+pending+" queued"):"Offline"):(pending?(pending+" pending sync"):"Synced");
  const normalizedQuery=query.trim().toLowerCase();
- const results=normalizedQuery?visibleNav.filter(item=>[labelFor(viewer.role,item.id),item.label,item.keywords??""].join(" ").toLowerCase().includes(normalizedQuery)).slice(0,8):[];
+ const navResults=normalizedQuery?visibleNav.filter(item=>[labelFor(viewer.role,item.id),item.label,item.keywords??""].join(" ").toLowerCase().includes(normalizedQuery)).slice(0,4):[];
+ const recordResults=normalizedQuery?searchWorkspace(searchItems.filter(item=>allowed.includes(item.view as ViewKey)),normalizedQuery,8):[];
  const open=(id:ViewKey)=>{onView(id);setQuery("");};
  const NavButton=({item}:{item:NavItem})=><button key={item.id} className={view===item.id?"active":""} onClick={()=>open(item.id)}><item.icon size={18}/><span>{labelFor(viewer.role,item.id)}</span>{item.id==="signals"&&signalCount>0?<b>{signalCount}</b>:null}</button>;
  return <main className="shell" style={{"--brand":brand.primaryColor,"--accent":brand.accentColor} as React.CSSProperties}>
@@ -95,7 +97,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,c
   <section className="workspace"><header>
     <div><span>{brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?"School settings":labelFor(viewer.role,view)}</h1></div>
     <div>
-      <div className="dreem-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find a workspace or task…"/>{results.length?<div className="dreem-search-results">{results.map(item=><button key={item.id} onClick={()=>open(item.id)}><item.icon size={16}/><span><strong>{labelFor(viewer.role,item.id)}</strong><small>{item.label===labelFor(viewer.role,item.id)?item.keywords:item.label}</small></span></button>)}</div>:null}</div>
+      <div className="dreem-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder="Find a workspace or task…"/>{navResults.length||recordResults.length?<div className="dreem-search-results">{recordResults.length?<><small className="search-section-label">SCHOOL RECORDS</small>{recordResults.map(item=><button key={item.id} onClick={()=>open(item.view as ViewKey)}><Search size={16}/><span><strong>{item.title}</strong><small>{item.subtitle}</small></span><em>{item.kind.replaceAll("_"," ")}</em></button>)}</>:null}{navResults.length?<><small className="search-section-label">WORKSPACES</small>{navResults.map(item=><button key={item.id} onClick={()=>open(item.id)}><item.icon size={16}/><span><strong>{labelFor(viewer.role,item.id)}</strong><small>{item.label===labelFor(viewer.role,item.id)?item.keywords:item.label}</small></span></button>)}</>:null}</div>:normalizedQuery?<div className="dreem-search-results empty-search"><small>No matching school record or workspace.</small></div>:null}</div>
       <span className={"connectivity "+(online?"online":"offline")}>{connectivity}</span>
       <button className="language">EN / FR</button>
       {canOpenStudio&&view!=="studio"?<button className="feedback" onClick={()=>onView("studio")}><Settings2 size={15}/>Settings</button>:null}
