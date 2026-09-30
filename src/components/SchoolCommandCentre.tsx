@@ -38,7 +38,8 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
   {id:"transport",view:"transport",title:"Transport today",detail:delayedTrips?delayedTrips+" delayed journey(s) need attention.":openTrips+" journey(s) currently open.",count:openTrips,tone:delayedTrips?"urgent":openTrips?"attention":"normal",owner:"Transport",icon:<BusFront/>},
   {id:"signals",view:"signals",title:"Messages to follow up",detail:urgentSignals?urgentSignals+" urgent message(s) need routing.":"Unresolved messages and feedback.",count:openSignals,tone:urgentSignals?"urgent":openSignals?"attention":"normal",owner:"School Office",icon:<MessageSquareMore/>}
  ];
- const insightView=(id:string):ViewKey|undefined=>({"care-now":"care","attendance-learning":"learners","attendance":"learners","learning":"learning","money-check":"finance","money-confirm":"finance","urgent-messages":"signals"} as Record<string,ViewKey>)[id];\n const candidates=all.filter(item=>can(item.view));
+ const insightView=(id:string):ViewKey|undefined=>({"care-now":"care","attendance-learning":"learners","attendance":"learners","learning":"learning","money-check":"finance","money-confirm":"finance","urgent-messages":"signals"} as Record<string,ViewKey>)[id];
+ const candidates=all.filter(item=>can(item.view));
  const active=candidates.filter(item=>item.count>0||item.id==="finance"&&cashAwaiting>0);
  if(!canOpenView(viewer,"command"))return null;
  return <div className="content role-workspace command-today">
