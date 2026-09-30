@@ -32,6 +32,7 @@ import { bootstrapSchool, enrolLearner, inviteStaff, issueStudentCredential, loa
 import { listApprovedSchoolContexts, resolveActiveSchoolContext, selectActiveSchoolContext, type SchoolMembershipContext } from "./lib/schoolContext";
 import { supabase } from "./lib/supabase";
 import { applyRoleAppIdentity } from "./lib/roleApp";
+import { buildWorkspaceSearchIndex } from "./lib/workspaceSearch";
 import { canAuthority, defaultWorkspaceView } from "./lib/access";
 
 function WorkspaceApp() {
@@ -91,7 +92,7 @@ function WorkspaceApp() {
   const isSchoolLeadership=canAuthority(workspace.viewer,"institutional_leadership")||canAuthority(workspace.viewer,"academics_approval")||canAuthority(workspace.viewer,"admissions_decision")||canAuthority(workspace.viewer,"finance_approval")||canAuthority(workspace.viewer,"transport_management");
 
   return <>
-    <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback}>
+    <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback} searchItems={buildWorkspaceSearchIndex(workspace)}>
       {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : isSchoolLeadership ? <SchoolCommandCentre workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
