@@ -31,14 +31,14 @@ function OneFile({data,learnerId,brand,role,authorityScopes,onClose}:{data:Learn
     {label:"Attendance",value:data.identity.attendanceRate+"%",tone:data.identity.attendanceRate<80?"attention":"good"},
     {label:"Published assessments",value:String(data.assessments.length),tone:data.assessments.length?"good":"neutral"},
     {label:"Open support",value:String(data.interventions.filter(item=>item.status!=="closed"&&item.status!=="resolved").length+data.cases.filter(item=>item.status!=="closed"&&item.status!=="resolved").length),tone:(data.interventions.some(item=>item.status!=="closed"&&item.status!=="resolved")||data.cases.some(item=>item.status!=="closed"&&item.status!=="resolved"))?"attention":"good"},
-    {label:"Fee balance",value:money(data.finance.balanceDue),tone:data.finance.balanceDue>0?"attention":"good"},
+    ...(!family?[{label:"Fee balance",value:money(data.finance.balanceDue),tone:data.finance.balanceDue>0?"attention":"good"}]:[]),
   ];
   const learnerStory=data.identity.riskLevel==="high"||data.identity.riskLevel==="critical"
     ? "This learner currently needs closer human review. DREEM is keeping identity, attendance, learning, support and operational evidence together so the next decision is made from the whole record."
     : data.identity.attendanceRate<80
       ? "Attendance is the clearest current concern. Review the pattern alongside learning evidence and guardian context before deciding on intervention."
       : recentAssessment
-        ? "The current record is stable enough to lead with learning progress. Attendance, support, finance and transport remain connected underneath."
+        ? "The current record is stable enough to lead with learning progress. Attendance, support and authorized school context remain connected underneath."
         : "The learner record is established, but more published learning evidence is needed before DREEM can present a stronger progress story.";
   const verifiedGuardians=identity?.guardians??[];
   const showVerifiedGuardians=verifiedGuardians.length>0;
