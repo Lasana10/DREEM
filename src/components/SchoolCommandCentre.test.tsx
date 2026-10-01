@@ -22,5 +22,7 @@ describe("SchoolCommandCentre operational excellence",()=>{
     expect(screen.getByRole("heading",{name:/core school hand-offs are connected/i})).toBeInTheDocument();
     expect(screen.getByText(/school today/i)).toBeInTheDocument();
     expect(screen.getByText(/what dreem noticed/i)).toBeInTheDocument();
+    expect(screen.getByText(/live school evidence/i)).toBeInTheDocument();
+    expect(screen.getByText(/close the money loop|protect people first|repair the hand-off|learner attention|school status/i)).toBeInTheDocument();
   });
 });

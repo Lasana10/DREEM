@@ -27,9 +27,30 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
    admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
  }).filter(item=>item.learnerId&&learnerIds.has(item.learnerId)&&["learner","learning"].includes(item.area));
  const learnersNeedingFollowUp=new Set(policyActions.map(item=>item.learnerId)).size;
+ const primaryTeacherAction=next
+   ? {eyebrow:"UP NEXT",title:next.className+" · "+next.subjectName,detail:next.startsAt+"–"+next.endsAt+(next.room?" · "+next.room:""),action:"Open class",view:"operations" as ViewKey}
+   : pending.length
+     ? {eyebrow:"READY FOR YOU",title:pending.length+" submission"+(pending.length===1?"":"s")+" waiting",detail:"Student work is already submitted and ready for your review.",action:"Review work",view:"learning" as ViewKey}
+     : policyActions.length
+       ? {eyebrow:"LEARNER FOLLOW-UP",title:policyActions[0].title,detail:policyActions[0].reason,action:"Review learner",view:(policyActions[0].area==="learning"?"learning":"learners") as ViewKey}
+       : {eyebrow:"YOU'RE CLEAR",title:"No urgent teaching action is waiting",detail:"Your current timetable, submissions and learner evidence do not show an immediate exception.",action:"Open my classes",view:"operations" as ViewKey};
+ const teacherEvidence=[
+   todayPeriods.length+" scheduled class"+(todayPeriods.length===1?"":"es")+" today",
+   pending.length+" submitted item"+(pending.length===1?"":"s")+" awaiting review",
+   learnersNeedingFollowUp+" learner"+(learnersNeedingFollowUp===1?"":"s")+" flagged by current attendance or learning evidence",
+ ];
 
  return <div className="content teacher-home role-workspace">
   <section className="role-hero"><div><span className="eyebrow">DREEM TEACHER · TODAY</span><h2>Good day, {workspace.viewer.name.split(" ")[0]}</h2><p>{todayPeriods.length} classes today · {pending.length} submissions waiting · {learnerIds.size} learners in your classes</p></div><div className="role-hero-status"><span className="status-pill info"><CalendarClock size={14}/>{today}</span></div></section>
+  <section className="intelligence-brief teacher-intelligence-brief">
+   <div className="intelligence-brief-main">
+    <span>{primaryTeacherAction.eyebrow}</span>
+    <h3>{primaryTeacherAction.title}</h3>
+    <p>{primaryTeacherAction.detail}</p>
+    <button className="primary" onClick={()=>onNavigate(primaryTeacherAction.view)}>{primaryTeacherAction.action}</button>
+   </div>
+   <aside className="intelligence-evidence"><small>WHY DREEM IS SHOWING THIS</small>{teacherEvidence.map(item=><div key={item}><span></span><p>{item}</p></div>)}</aside>
+  </section>
   <section className="visual-stats">
    <article className="visual-stat"><div className="icon"><CalendarClock/></div><div><span>CLASSES TODAY</span><strong>{todayPeriods.length}</strong><small>{completed} completed · {upcoming} ahead</small></div></article>
    <article className="visual-stat green"><div className="icon"><ClipboardCheck/></div><div><span>TO REVIEW</span><strong>{pending.length}</strong><small>student submissions waiting</small></div></article>
