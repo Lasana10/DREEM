@@ -27,7 +27,6 @@ function OneFile({data,learnerId,brand,role,authorityScopes,onClose}:{data:Learn
   async function photoChange(file?:File){if(!file)return;setUploading(true);setIdentityError("");try{await uploadLearnerPhoto(learnerId,file);await refreshIdentity()}catch(reason){setIdentityError(readableError(reason))}finally{setUploading(false)}}
   const displayName=identity?.name??data.identity.name;
   const recentAssessment=data.assessments[0];
-  const recentAttendance=data.attendance[0];
   const evidenceSignals=[
     {label:"Attendance",value:data.identity.attendanceRate+"%",tone:data.identity.attendanceRate<80?"attention":"good"},
     {label:"Published assessments",value:String(data.assessments.length),tone:data.assessments.length?"good":"neutral"},
