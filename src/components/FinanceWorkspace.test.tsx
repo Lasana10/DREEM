@@ -24,7 +24,7 @@ describe("role-specific finance workspaces",()=>{
   it("gives accountants review controls without collection",async()=>{
     render(<FinanceWorkspace finance={demoFinance} learners={demoLearners} setup={demoSetup} role="accountant" onRecorded={async()=>undefined}/>);
     expect(screen.queryByRole("button",{name:/collect payment/i})).not.toBeInTheDocument();
-    expect(await screen.findByRole("heading",{name:/reconcile cashier closures/i})).toBeInTheDocument();
+    expect(await screen.findByRole("heading",{name:/check cashier closing totals/i})).toBeInTheDocument();
     expect(screen.getByRole("heading",{name:/confirm the school received the money/i})).toBeInTheDocument();
     expect(screen.queryByText(/fee structure studio/i)).not.toBeInTheDocument();
   });
