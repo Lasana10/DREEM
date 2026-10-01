@@ -31,6 +31,15 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const brokenFlow=flowHealth.filter(item=>item.status==="broken").length;
  const attentionTotal=priority+learnerOverlap+brokenFlow;
  const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
+ const leadershipFocus=urgentCare||urgentSignals
+   ? {eyebrow:"PROTECT PEOPLE FIRST",title:(urgentCare+urgentSignals)+" urgent learner/community signal"+(urgentCare+urgentSignals===1?"":"s")+" need ownership",detail:"Current care and communication evidence contains urgent items. DREEM is surfacing these before routine administration.",view:(urgentCare?"care":"signals") as ViewKey}
+   : financeExceptions||cashAwaiting
+     ? {eyebrow:"CLOSE THE MONEY LOOP",title:financeExceptions?financeExceptions+" finance exception"+(financeExceptions===1?"":"s")+" need independent review":cashAwaiting.toLocaleString("fr-FR")+" FCFA awaits institutional confirmation",detail:"Collections are not considered complete until custody, reconciliation and school confirmation agree.",view:"finance" as ViewKey}
+     : brokenFlow
+       ? {eyebrow:"REPAIR THE HAND-OFF",title:brokenFlow+" institutional hand-off"+(brokenFlow===1?"":"s")+" stopped",detail:"A school process has evidence at one stage without the expected downstream record. DREEM is exposing the break instead of hiding it in separate modules.",view:"command" as ViewKey}
+       : learnerOverlap
+         ? {eyebrow:"LEARNER ATTENTION",title:learnerOverlap+" learner"+(learnerOverlap===1?"":"s")+" show both attendance and learning concern",detail:"These learners have overlapping evidence, so they deserve a closer human review before routine metrics.",view:"learners" as ViewKey}
+         : {eyebrow:"SCHOOL STATUS",title:"No critical institutional exception is visible",detail:"Current admissions, academic, finance, care, transport and communication evidence does not show a critical break.",view:"command" as ViewKey};
  const all:QueueItem[]=[
   {id:"admissions",view:"admissions",title:"Admissions waiting",detail:"Applications that need review, decision or enrolment.",count:admissionPending,tone:admissionPending?"attention":"normal",owner:"Admissions",icon:<UserPlus/>},
   {id:"academic",view:"academics",title:"Teaching reviews",detail:(lessonReview+assessmentReview)+" academic item(s) awaiting review.",count:lessonReview+assessmentReview,tone:lessonReview+assessmentReview?"attention":"normal",owner:"Academics",icon:<BookOpenCheck/>},
@@ -45,6 +54,18 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  if(!canOpenView(viewer,"command"))return null;
  return <div className="content role-workspace command-today">
   <section className="role-hero"><div><span className="eyebrow">{ownerView?(viewer.positionTitle||"Leadership")+" · TODAY":"MY SCHOOL WORK · TODAY"}</span><h2>{ownerView?operatingSummary:"What needs your attention now?"}</h2><p>{ownerView?"A live view of the school. Open only what needs a decision or closer look.":"DREEM shows only the work enabled by your current authority."}</p></div><div className="role-hero-status"><span className={"status-pill "+(priority?"attention":"") }><ShieldCheck size={14}/>{priority?priority+" priority":"All clear"}</span></div></section>
+  <section className="intelligence-brief leadership-intelligence-brief">
+   <div className="intelligence-brief-main">
+    <span>{leadershipFocus.eyebrow}</span><h3>{leadershipFocus.title}</h3><p>{leadershipFocus.detail}</p>
+    {leadershipFocus.view!=="command"?<button className="primary" onClick={()=>onNavigate(leadershipFocus.view)}>Open priority work</button>:null}
+   </div>
+   <aside className="intelligence-evidence"><small>LIVE SCHOOL EVIDENCE</small>
+    <div><span></span><p>{admissionPending} admission{admissionPending===1?"":"s"} in progress</p></div>
+    <div><span></span><p>{lessonReview+assessmentReview} academic review{lessonReview+assessmentReview===1?"":"s"} waiting</p></div>
+    <div><span></span><p>{financeExceptions} finance exception{financeExceptions===1?"":"s"} · {cashAwaiting.toLocaleString("fr-FR")} FCFA awaiting confirmation</p></div>
+    <div><span></span><p>{learnerOverlap} learner{learnerOverlap===1?"":"s"} with overlapping attendance + mastery concern</p></div>
+   </aside>
+  </section>
   <ActionCentre workspace={workspace} onNavigate={onNavigate}/>
   <section className="visual-stats">
    <article className="visual-stat amber"><div className="icon"><CircleDollarSign/></div><div><span>CASH AWAITING CONFIRMATION</span><strong>{cashAwaiting.toLocaleString("fr-FR")}</strong><small>FCFA</small></div></article>
