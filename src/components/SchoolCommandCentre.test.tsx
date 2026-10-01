@@ -15,14 +15,14 @@ const workspace:WorkspaceData={
 };
 
 describe("SchoolCommandCentre operational excellence",()=>{
-  it("shows institution health and recommended follow-up in plain language",()=>{
+  it("shows school flow and follow-up in plain language",()=>{
     render(<SchoolCommandCentre workspace={workspace} onNavigate={vi.fn()}/>);
     expect(screen.getByText(/your action centre/i)).toBeInTheDocument();
-    expect(screen.getByText(/institution health/i)).toBeInTheDocument();
-    expect(screen.getByRole("heading",{name:/core school hand-offs are connected/i})).toBeInTheDocument();
+    expect(screen.getByText(/school flow/i)).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:/core school processes are connected/i})).toBeInTheDocument();
     expect(screen.getByText(/school today/i)).toBeInTheDocument();
     expect(screen.getByText(/what dreem noticed/i)).toBeInTheDocument();
-    expect(screen.getByText(/live school evidence/i)).toBeInTheDocument();
-    expect(screen.getByText(/close the money loop|protect people first|repair the hand-off|learner attention|school status/i)).toBeInTheDocument();
+    expect(screen.getByText(/what this is based on/i)).toBeInTheDocument();
+    expect(screen.getByText(/close the money loop|protect people first|fix the broken step|learner attention|school status/i)).toBeInTheDocument();
   });
 });

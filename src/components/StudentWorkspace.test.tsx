@@ -14,7 +14,7 @@ afterEach(cleanup);
 beforeEach(() => submit.mockReset().mockResolvedValue({ submissionId: "saved" }));
 it("requires one linked learner instead of choosing an arbitrary record", () => {
   render(<StudentWorkspace workspace={{...base, learners:[learner,{...learner,id:"other"}]}} onRefresh={vi.fn()}/>);
-  expect(screen.getByText("Learner access needs attention")).toBeInTheDocument();
+  expect(screen.getByText("Your account is not linked yet")).toBeInTheDocument();
   expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
 });
 it("validates work and distinguishes a successful save from a failed refresh", async () => {

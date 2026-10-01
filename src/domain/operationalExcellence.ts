@@ -115,14 +115,14 @@ export function evaluateRecommendedPolicies(
     id:"finance-difference",area:"finance",severity:"critical",
     title:evidence.finance.openExceptions+" payment difference"+(evidence.finance.openExceptions===1?"":"s")+" need checking",
     reason:evidence.finance.openExceptionValue.toLocaleString("fr-FR")+" FCFA is currently unresolved.",
-    owner:"Accountant",nextAction:"Compare the payment evidence and record the independent decision.",
+    owner:"Accountant",nextAction:"Compare the payment records and record the independent decision.",
     evidenceCount:evidence.finance.openExceptions,automaticAction:"none",
   });
   if(evidence.finance.cashAwaitingDeposit>0)actions.push({
     id:"finance-cash",area:"finance",severity:"warning",
     title:evidence.finance.cashAwaitingDeposit.toLocaleString("fr-FR")+" FCFA still needs school confirmation",
-    reason:"The money has been collected but the controlled deposit/confirmation chain is not complete.",
-    owner:"Bursar + accountant",nextAction:"Complete the deposit and independent confirmation.",
+    reason:"The money has been collected but the deposit and school confirmation are not complete.",
+    owner:"Bursar + accountant",nextAction:"Complete the deposit and have it confirmed.",
     evidenceCount:1,automaticAction:"none",
   });
 
@@ -152,8 +152,8 @@ export function evaluateRecommendedPolicies(
   if(urgentCases.length)actions.push({
     id:"urgent-care",area:"care",severity:"critical",
     title:urgentCases.length+" serious learner care case"+(urgentCases.length===1?"":"s"),
-    reason:"These protected cases are still open and time-sensitive.",
-    owner:"Principal / authorised care role",nextAction:"Open the protected case and record the next authorised action.",
+    reason:"These learner-care cases are still open and time-sensitive.",
+    owner:"Principal / authorised care role",nextAction:"Open the case and record the next action.",
     evidenceCount:urgentCases.length,automaticAction:"none",
   });
 
@@ -162,7 +162,7 @@ export function evaluateRecommendedPolicies(
     id:"urgent-signals",area:"communication",severity:"critical",
     title:urgentSignals.length+" urgent school message"+(urgentSignals.length===1?"":"s")+" need follow-up",
     reason:"A parent, learner or staff message is still unresolved.",
-    owner:"School office / authorised lead",nextAction:"Route the message to the right owner and record the follow-up.",
+    owner:"School office / lead",nextAction:"Route the message to the right owner and record the follow-up.",
     evidenceCount:urgentSignals.length,automaticAction:"notify_only",
   });
 
@@ -189,7 +189,7 @@ export function buildInstitutionFlowHealth(evidence:OperationalEvidence):FlowHea
 
   const brokenAdmissions=evidence.admissions.filter(item=>item.status==="enrolled"&&!!item.enrolledStudentId&&!learnerIds.has(item.enrolledStudentId));
   if(brokenAdmissions.length)items.push({
-    id:"admission-learner-link",status:"broken",title:"Enrolment hand-off needs repair",
+    id:"admission-learner-link",status:"broken",title:"Enrolment did not finish",
     detail:brokenAdmissions.length+" enrolled admission record"+(brokenAdmissions.length===1?" points":"s point")+" to a learner that is not present in the current school record.",
     owner:"Admissions / school admin",evidenceCount:brokenAdmissions.length,
   });
@@ -201,21 +201,21 @@ export function buildInstitutionFlowHealth(evidence:OperationalEvidence):FlowHea
   });
   if(enrolledWithoutFinance.length)items.push({
     id:"enrolment-finance-link",status:"broken",title:"Enrolment did not reach learner finance",
-    detail:enrolledWithoutFinance.length+" enrolled learner"+(enrolledWithoutFinance.length===1?" is":"s are")+" missing the expected fee-account hand-off.",
+    detail:enrolledWithoutFinance.length+" enrolled learner"+(enrolledWithoutFinance.length===1?" is":"s are")+" missing the expected fee account.",
     owner:"Admissions / finance admin",evidenceCount:enrolledWithoutFinance.length,
   });
 
   const brokenTransport=evidence.transport.assignments.filter(item=>item.status==="active"&&!learnerIds.has(item.studentId));
   if(brokenTransport.length)items.push({
-    id:"transport-learner-link",status:"broken",title:"Transport hand-off needs repair",
+    id:"transport-learner-link",status:"broken",title:"Transport link needs fixing",
     detail:brokenTransport.length+" active transport assignment"+(brokenTransport.length===1?" references":"s reference")+" a learner missing from the current school record.",
     owner:"Transport manager / school admin",evidenceCount:brokenTransport.length,
   });
 
   const brokenSubmissions=evidence.academics.assignmentSubmissions.filter(item=>!learnerIds.has(item.studentId)||!assignmentIds.has(item.assignmentId));
   if(brokenSubmissions.length)items.push({
-    id:"learning-submission-link",status:"broken",title:"Learning evidence hand-off needs repair",
-    detail:brokenSubmissions.length+" submission record"+(brokenSubmissions.length===1?" is":"s are")+" missing its learner or assignment link.",
+    id:"learning-submission-link",status:"broken",title:"School work link needs fixing",
+    detail:brokenSubmissions.length+" submitted work record"+(brokenSubmissions.length===1?" is":"s are")+" missing its learner or school-work link.",
     owner:"Academic admin",evidenceCount:brokenSubmissions.length,
   });
 
@@ -229,13 +229,13 @@ export function buildInstitutionFlowHealth(evidence:OperationalEvidence):FlowHea
   const accepted=evidence.admissions.filter(item=>item.status==="accepted"&&!item.enrolledStudentId);
   if(accepted.length)items.push({
     id:"admission-ready",status:"attention",title:"Accepted admissions waiting for enrolment",
-    detail:accepted.length+" applicant"+(accepted.length===1?" is":"s are")+" accepted and ready for the learner-record hand-off.",
+    detail:accepted.length+" applicant"+(accepted.length===1?" is":"s are")+" accepted and ready to become a learner record.",
     owner:"Admissions",evidenceCount:accepted.length,
   });
 
   if(!items.some(item=>item.status==="broken"))items.push({
-    id:"core-links-healthy",status:"healthy",title:"Core school hand-offs are connected",
-    detail:"No broken admission, learner, transport, assignment or published-report link is visible in the current workspace data.",
+    id:"core-links-healthy",status:"healthy",title:"Core school processes are connected",
+    detail:"Admissions, learner records, transport, school work and reports are currently connected.",
     owner:"DREEM",evidenceCount:evidence.learners.length,
   });
   return items;

@@ -16,16 +16,16 @@ describe("role-specific finance workspaces",()=>{
   it("gives the bursar collection and custody controls",async()=>{
     render(<FinanceWorkspace finance={demoFinance} learners={demoLearners} setup={demoSetup} role="bursar" onRecorded={async()=>undefined}/>);
     expect(screen.getByRole("button",{name:/collect payment/i})).toBeInTheDocument();
-    expect(await screen.findByRole("heading",{name:/count and submit the open till/i})).toBeInTheDocument();
-    expect(screen.queryByRole("heading",{name:/reconcile cashier closures/i})).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading",{name:/count today's cash/i})).toBeInTheDocument();
+    expect(screen.queryByRole("heading",{name:/check cashier closing totals/i})).not.toBeInTheDocument();
     expect(screen.queryByText(/fee structure studio/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/leadership-controlled activation/i)).not.toBeInTheDocument();
   });
   it("gives accountants review controls without collection",async()=>{
     render(<FinanceWorkspace finance={demoFinance} learners={demoLearners} setup={demoSetup} role="accountant" onRecorded={async()=>undefined}/>);
     expect(screen.queryByRole("button",{name:/collect payment/i})).not.toBeInTheDocument();
-    expect(await screen.findByRole("heading",{name:/reconcile cashier closures/i})).toBeInTheDocument();
-    expect(screen.getByRole("heading",{name:/confirm money reached the institution/i})).toBeInTheDocument();
+    expect(await screen.findByRole("heading",{name:/check cashier closing totals/i})).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:/confirm the school received the money/i})).toBeInTheDocument();
     expect(screen.queryByText(/fee structure studio/i)).not.toBeInTheDocument();
   });
   it("shows fee policy only to an authority that can both configure the school and approve finance",async()=>{
@@ -36,6 +36,6 @@ describe("role-specific finance workspaces",()=>{
     render(<FinanceWorkspace finance={demoFinance} learners={demoLearners} setup={demoSetup} role="auditor" onRecorded={async()=>undefined}/>);
     expect(await screen.findByRole("heading",{name:/independent audit view/i})).toBeInTheDocument();
     expect(screen.queryByRole("button",{name:/collect payment/i})).not.toBeInTheDocument();
-    expect(screen.queryByRole("button",{name:/record independent decision/i})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:/save decision/i})).not.toBeInTheDocument();
   });
 });

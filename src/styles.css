@@ -2214,3 +2214,70 @@ strong {
 .learner-story{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(300px,.8fr);gap:18px;margin:16px 0;padding:20px 22px;border:1px solid #dce6df;border-radius:17px;background:linear-gradient(135deg,#f8fbf9,#f0f6f2)}.learner-story>div>span{color:#638071;font-size:8px;font-weight:900;letter-spacing:.15em}.learner-story h3{margin:6px 0 7px;color:#1f3a2d;font-size:19px}.learner-story p{margin:0;color:#62736a;font-size:11px;line-height:1.6}.learner-story aside{display:grid;grid-template-columns:1fr 1fr;gap:8px}.learner-story article{padding:12px;border:1px solid #dce5df;border-radius:11px;background:#fff}.learner-story article.attention{border-color:#efd6a4;background:#fffaf0}.learner-story article.good{border-color:#cfe2d4;background:#f5fbf6}.learner-story article small,.learner-story article strong{display:block}.learner-story article small{color:#75857d;font-size:8px;text-transform:uppercase;letter-spacing:.08em}.learner-story article strong{margin-top:5px;color:#274333;font-size:13px}
 @media(max-width:850px){.intelligence-brief,.learner-story{grid-template-columns:1fr}.intelligence-evidence{border-left:0;border-top:1px solid #ffffff20}.learner-story aside{grid-template-columns:1fr 1fr}}
 @media(max-width:560px){.intelligence-brief{border-radius:15px}.intelligence-brief-main{padding:22px 19px}.intelligence-brief-main h3{font-size:23px}.intelligence-evidence{padding:18px 19px}.learner-story{padding:16px}.learner-story aside{grid-template-columns:1fr}}
+
+
+/* October de-boxing pass: keep structure, reduce the nested-card feel on deep workspaces. */
+.teacher-classroom>.panel,
+.teacher-classroom .teacher-class-grid>.panel,
+.student-workspace>.panel,
+.family-workspace>.panel,
+.family-workspace .focus-grid>.panel,
+.finance-control-desk .transport-grid>.panel{
+  box-shadow:none;
+}
+.teacher-classroom>.panel,
+.teacher-classroom .teacher-class-grid,
+.student-workspace>.panel,
+.family-workspace>.panel,
+.finance-control-desk .transport-grid{
+  border-color:#e5ebe7;
+}
+.teacher-classroom .teacher-class-grid{
+  gap:0;
+  margin:18px 0 0;
+  border:1px solid #e1e8e3;
+  border-radius:18px;
+  overflow:hidden;
+  background:#fff;
+}
+.teacher-classroom .teacher-class-grid>.panel{
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:#fff;
+}
+.teacher-classroom .teacher-class-grid>.panel+ .panel{
+  border-left:1px solid #e5ebe7;
+}
+.finance-control-desk .transport-grid{
+  gap:0;
+  border:1px solid #e1e8e3;
+  border-radius:18px;
+  overflow:hidden;
+  background:#fff;
+}
+.finance-control-desk .transport-grid>.panel{
+  margin:0;
+  border:0;
+  border-radius:0;
+  background:#fff;
+}
+.finance-control-desk .transport-grid>.panel+ .panel{
+  border-left:1px solid #e5ebe7;
+}
+.student-workspace>.panel,
+.family-workspace>.panel{
+  border-radius:16px;
+  background:#fff;
+}
+.student-workspace .document-row,
+.family-workspace .document-row{
+  border-radius:0;
+  background:transparent;
+}
+@media(max-width:900px){
+  .teacher-classroom .teacher-class-grid,
+  .finance-control-desk .transport-grid{display:block}
+  .teacher-classroom .teacher-class-grid>.panel+ .panel,
+  .finance-control-desk .transport-grid>.panel+ .panel{border-left:0;border-top:1px solid #e5ebe7}
+}
