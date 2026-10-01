@@ -43,7 +43,7 @@ describe("Family app", () => {
   it("does not let Family impersonate the learner to submit schoolwork", () => {
     render(<FamilyLearningWorkspace workspace={{ ...base, learners: [demoLearners[0]] }} />);
     fireEvent.click(screen.getByRole("button", { name: "Learning" }));
-    expect(screen.getByText(/Assignments and submission status/i)).toBeInTheDocument();
+    expect(screen.getByText(/School work and progress/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Submit work" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Written response")).not.toBeInTheDocument();
   });
