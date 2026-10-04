@@ -1,0 +1,44 @@
+/* DREEM Product Consolidation V4
+   Object-first deep workspaces, less nested-card UI, calmer school language. */
+
+.operations-workspace,
+.teacher-growth-workspace,
+.communications-workspace .content,
+.credential-studio,
+.studio-workspace{--surface:#fff;--line:#dde6df;--muted:#6e7c74;--soft:#f5f8f5;}
+
+.operations-object,.teacher-growth-list,.school-rules-studio,.message-feed,.message-composer,.review-stack,.credential-control-bar,.feedback-strip,.studio-section{
+  background:var(--surface,#fff);border:1px solid var(--line,#dde6df);border-radius:18px;
+}
+.operations-object,.teacher-growth-list,.school-rules-studio,.message-feed,.message-composer,.review-stack,.studio-section{padding:22px;margin:16px 0;}
+.object-header,.operations-object>header,.message-composer>header{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;margin-bottom:18px}
+.object-header span,.operations-object>header span,.message-composer>header span,.teacher-growth-summary span,.studio-overview span{font-size:9px;font-weight:900;letter-spacing:.13em;color:#718078}
+.object-header h3,.operations-object>header h3,.message-composer>header h3{margin:5px 0 5px;font-size:20px;color:#1f3a2d}
+.object-header p,.operations-object>header p{margin:0;color:var(--muted,#6e7c74);font-size:12px;line-height:1.55;max-width:760px}
+.compact-action-form{padding:0!important;border:0!important;background:transparent!important}
+.people-review-list>article,.teacher-growth-row,.message-card{display:grid;align-items:center;gap:14px;border-top:1px solid #e8eee9;padding:15px 0}
+.people-review-list>article{grid-template-columns:1fr auto}
+.people-review-list strong,.people-review-list small{display:block}.people-review-list small{color:#77857d;margin-top:3px}
+.row-actions{display:flex;gap:8px;align-items:center}.row-actions button{border:1px solid #d7dfd9;background:#fff;border-radius:9px;padding:8px 11px;font-weight:700}.danger-link{color:#a4463c}
+.empty-copy{color:#7b8981;font-size:12px;margin:8px 0}
+.exception-drawer{margin:18px 0;border:1px dashed #d1ddd4;border-radius:15px;background:#fafcf9}.exception-drawer summary{display:flex;gap:12px;align-items:center;padding:16px 18px;cursor:pointer;list-style:none}.exception-drawer summary strong,.exception-drawer summary small{display:block}.exception-drawer summary small{color:#7b8981;margin-top:3px}.exception-drawer-body{padding:0 18px 18px}.exception-drawer-body>p{color:#68776f;font-size:12px}
+
+.school-rules-studio{padding:22px}.school-rules-studio .policy-rule-grid{margin-top:8px}.school-rules-studio .policy-rule-card{box-shadow:none;border-radius:14px;background:#fbfcfb}.recommended-start{padding:18px;border-radius:14px;background:#f2f7f3;margin:14px 0}.recommended-start small,.recommended-start strong{display:block}.recommended-start strong{font-size:18px;margin:5px 0}.recommended-start p{color:#68776f;max-width:680px}
+
+.teacher-growth-summary{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #dde6df;border-radius:18px;overflow:hidden;background:#fff;margin:16px 0}.teacher-growth-summary article{padding:18px;border-right:1px solid #e7ece8}.teacher-growth-summary article:last-child{border-right:0}.teacher-growth-summary strong{display:block;font-size:24px;margin:5px 0}.teacher-growth-summary small{color:#74827a}.teacher-growth-row{grid-template-columns:1.1fr .65fr .8fr .7fr 1.35fr}.teacher-growth-row>div span,.teacher-growth-row>div small{display:block;color:#7a8880;font-size:10px}.teacher-growth-person strong,.teacher-growth-support strong{display:block}.teacher-growth-support{display:flex;gap:9px;align-items:flex-start}.teacher-growth-support svg{width:17px;color:#6f8c35}.quiet-note{display:flex;gap:8px;align-items:center;color:#718078;font-size:11px;padding:10px 2px}
+
+.communications-layout{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(320px,.7fr);gap:18px;align-items:start}.message-feed{margin:0}.message-compose-column{display:flex;flex-direction:column;gap:16px}.message-compose-column>*{margin:0}.message-card{display:block}.message-card>header{display:flex;justify-content:space-between;gap:14px}.message-card>header strong,.message-card>header small{display:block}.message-card>header small{color:#74827a;margin-top:4px}.message-card p{color:#46564e;line-height:1.55}.message-card footer{font-size:10px;color:#869189}.review-stack>span{font-size:9px;letter-spacing:.12em;font-weight:900;color:#7a8880}.review-stack>article{border-top:1px solid #e8eee9;padding:14px 0}.review-stack>article:first-of-type{margin-top:8px}.review-stack p{font-size:12px;color:#65736c}.message-composer .settings-form{padding:0;border:0;background:transparent}.feedback-strip{margin-top:16px;padding:16px 18px;display:flex;justify-content:space-between;align-items:center}.feedback-strip>div{display:flex;gap:10px;align-items:center}.feedback-strip strong,.feedback-strip small{display:block}.feedback-strip small{color:#78867e;margin-top:3px}
+
+.credential-control-bar{display:flex;align-items:end;gap:12px;padding:16px 18px;margin-bottom:18px}.credential-control-bar>label{min-width:220px;flex:1}.credential-control-bar label{font-size:11px;font-weight:700;color:#596960}.credential-control-bar select,.credential-control-bar input{width:100%;margin-top:5px}.card-danger-menu{position:relative}.card-danger-menu summary{cursor:pointer;font-size:11px;font-weight:700;color:#87504a}.card-danger-menu[open]{padding:10px;border:1px solid #ead6d2;border-radius:10px;background:#fff9f8}
+
+.studio-overview{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #dde6df;border-radius:18px;overflow:hidden;background:#fff;margin:16px 0}.studio-overview article{padding:17px;border-right:1px solid #e7ece8}.studio-overview article:last-child{border-right:0}.studio-overview strong{display:block;font-size:18px;margin:5px 0}.studio-overview small{color:#78867e}.studio-identity-grid{align-items:start}.studio-section{margin-top:0;box-shadow:none}.studio-section.settings-form{background:#fff}.studio-stage{margin:16px 0;border:1px solid #dce5df;border-radius:18px;background:#fff;overflow:hidden}.studio-stage>summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;padding:17px 20px;background:#fbfcfb}.studio-stage>summary span{display:grid;grid-template-columns:26px auto;column-gap:9px;align-items:center}.studio-stage>summary span small{grid-row:1/3;display:grid;place-items:center;width:26px;height:26px;border-radius:9px;background:#edf4ef;color:#335943;font-weight:900}.studio-stage>summary strong{font-size:14px}.studio-stage>summary em{font-style:normal;color:#7a8880;font-size:10px}.studio-stage-body{padding:20px;border-top:1px solid #e8eee9}.studio-stage-body>.school-rules-studio{margin:0;border:0;padding:0}.studio-stage-body>.institution-authority-studio,.studio-stage-body>.panel{border:0!important;box-shadow:none!important;padding:0!important}.studio-stage .pack-builder{margin-top:0}.studio-stage .structure-columns{margin-top:18px}
+
+/* Admissions: make the existing two-column forms read like applicant work, not floating dashboard cards. */
+.care-grid{gap:0;border:1px solid #dde6df;border-radius:18px;overflow:hidden;background:#fff;margin:18px 0}.care-grid>.panel{border:0;border-radius:0;box-shadow:none;margin:0}.care-grid>.panel+.panel{border-left:1px solid #e6ece7}.case-register{box-shadow:none!important;border-radius:18px!important}.workflow-next{border-radius:12px!important;background:#f3f7f4!important}
+
+/* Academic / transport / finance configuration: reduce box-on-box depth without changing the workflows. */
+.academic-grid>.panel,.transport-grid>.panel,.finance-institution-controls>.panel,.dreem-policy-studio.panel{box-shadow:none}
+.depth-drawer>.panel{border-radius:0 0 14px 14px;box-shadow:none}.depth-drawer>summary{font-weight:700;color:#5d6c64}
+
+@media(max-width:980px){.teacher-growth-summary,.studio-overview{grid-template-columns:1fr 1fr}.communications-layout{grid-template-columns:1fr}.teacher-growth-row{grid-template-columns:1fr 1fr}.teacher-growth-support{grid-column:1/-1}.care-grid{display:block}.care-grid>.panel+.panel{border-left:0;border-top:1px solid #e6ece7}.credential-control-bar{flex-wrap:wrap}}
+@media(max-width:620px){.teacher-growth-summary,.studio-overview{grid-template-columns:1fr}.teacher-growth-summary article,.studio-overview article{border-right:0;border-bottom:1px solid #e7ece8}.teacher-growth-summary article:last-child,.studio-overview article:last-child{border-bottom:0}.teacher-growth-row{grid-template-columns:1fr}.credential-control-bar{display:block}.credential-control-bar>*{margin-top:10px}.feedback-strip{display:block}.feedback-strip>button{margin-top:12px}.studio-stage>summary span{grid-template-columns:26px 1fr}.studio-stage>summary em{grid-column:2}}
