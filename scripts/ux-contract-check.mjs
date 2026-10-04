@@ -8,7 +8,7 @@ for(const required of ["var(--brand","#f3f6f3","@media(max-width:680px)","font-s
 const studio=fs.readFileSync("src/components/SchoolStudioView.tsx","utf8");
 const policyStudio=fs.readFileSync("src/components/PolicyStudio.tsx","utf8");
 if(!studio.includes("School theme"))failures.push("School theme control missing");
-if(!studio.includes("<PolicyStudio/>")||!policyStudio.includes("DREEM RECOMMENDED")||!policyStudio.includes("Preview impact"))failures.push("Live recommended school policy layer missing");
+if(!studio.includes("<PolicyStudio/>")||!policyStudio.includes("SCHOOL RULES")||!policyStudio.includes("See who this affects"))failures.push("Live school-rules experience missing");
 const command=fs.readFileSync("src/components/SchoolCommandCentre.tsx","utf8");
 if(!command.includes("SCHOOL TODAY"))failures.push("Plain-language School Today missing");
 if(!command.includes("SCHOOL FLOW"))failures.push("School flow surface missing");
