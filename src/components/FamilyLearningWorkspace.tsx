@@ -4,6 +4,7 @@ import type { WorkspaceData } from "../lib/repository";
 import { loadLearnerFeeStatement, type LearnerFeeStatementRow } from "../lib/familyFinance";
 import { loadPickupCircle, type PickupCircleMember } from "../lib/pickupCircle";
 import { userFacingError } from "../lib/userFacingError";
+import PublishedReportCard from "./PublishedReportCard";
 
 type FamilyTab="Today"|"Learning"|"Fees"|"Transport";
 const messageFrom=(reason:unknown)=>userFacingError(reason,"Some family information could not be refreshed. Check your connection and try again.");
@@ -50,7 +51,7 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
    </div>
   </>:null}
 
-  {tab==="Learning"?<section className="panel"><div className="panel-title"><BookOpenCheck/><div><span>LEARNING</span><h3>School work and progress</h3></div></div>{assignments.map(item=><article className="document-row" key={item.id}><strong>{item.title}</strong><span>{item.subjectName} · due {new Date(item.dueAt).toLocaleString()}</span><small>{submittedAssignmentIds.has(item.id)?"Submitted":"Not submitted yet"}</small></article>)}{reportCards.map(item=><article className="document-row" key={item.id}><strong>{item.termName} report</strong><span>{typeof item.overallAverage==="number"?"Average "+item.overallAverage:"Average pending"}</span></article>)}{!assignments.length&&!reportCards.length?<p>No released learning item is visible yet.</p>:null}</section>:null}
+  {tab==="Learning"?<section className="panel"><div className="panel-title"><BookOpenCheck/><div><span>LEARNING</span><h3>School work and progress</h3></div></div>{assignments.map(item=><article className="document-row" key={item.id}><strong>{item.title}</strong><span>{item.subjectName} · due {new Date(item.dueAt).toLocaleString()}</span><small>{submittedAssignmentIds.has(item.id)?"Submitted":"Not submitted yet"}</small></article>)}{reportCards.map(item=><PublishedReportCard key={item.id} report={item} learner={learner} brand={workspace.brand}/>)}{!assignments.length&&!reportCards.length?<p>No released learning item is visible yet.</p>:null}</section>:null}
 
   {tab==="Fees"?<section className="panel"><div className="panel-title"><WalletCards/><div><span>FEES</span><h3>Installments, payments and receipts</h3></div></div>{familyLoading?<p>Refreshing fee information…</p>:null}{charges.map(item=><article className="document-row" key={item.entryId}><strong>{item.label}</strong><span>{money(Math.abs(item.amount))} · due {dateText(item.dueOn)} · {item.status.replaceAll("_"," ")}</span></article>)}{payments.map(item=><article className="document-row" key={item.entryId}><strong>{item.receiptNumber||item.label}</strong><span>{money(Math.abs(item.amount))} · {dateText(item.occurredOn)}</span><small>{item.status.replaceAll("_"," ")}</small></article>)}{!charges.length&&!payments.length&&!familyLoading?<p>No fee or payment record is available yet.</p>:null}</section>:null}
 
