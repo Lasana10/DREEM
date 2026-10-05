@@ -24,7 +24,7 @@ describe("Care and safeguarding workflow",()=>{
   beforeEach(()=>{vi.clearAllMocks();openStudentCase.mockResolvedValue({caseId:"case-2",caseNumber:"DCS-26-NEW",status:"assigned"});progressStudentCase.mockResolvedValue({caseId:"case-demo-1",status:"resolved"});});
   afterEach(()=>cleanup());
 
-  it("opens a protected learner case with an owner and review date",async()=>{
+  it("opens a learner support case with an owner and review date",async()=>{
     const onRefresh=vi.fn().mockResolvedValue(undefined);
     render(<CareView workspace={workspace} onRefresh={onRefresh}/>);
     fireEvent.change(screen.getByLabelText("Learner"),{target:{value:"2"}});
@@ -33,16 +33,16 @@ describe("Care and safeguarding workflow",()=>{
     fireEvent.change(screen.getAllByLabelText("Assign to")[0],{target:{value:"staff-1"}});
     fireEvent.change(screen.getByLabelText("Case title"),{target:{value:"Immediate learner welfare review"}});
     fireEvent.change(screen.getByLabelText("Factual summary"),{target:{value:"A dated concern was reported and immediate leadership review is required."}});
-    fireEvent.click(screen.getByRole("button",{name:/open protected case/i}));
+    fireEvent.click(screen.getByRole("button",{name:/open support case/i}));
     await waitFor(()=>expect(openStudentCase).toHaveBeenCalledWith(expect.objectContaining({studentId:"2",category:"safeguarding",priority:"urgent",assignedTo:"staff-1"})));
     expect(await screen.findByText(/DCS-26-NEW/)).toBeInTheDocument();
     expect(onRefresh).toHaveBeenCalled();
   });
 
-  it("requires an evidence note when progressing a case",async()=>{
+  it("requires an action note when progressing a case",async()=>{
     render(<CareView workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)}/>);
     fireEvent.change(screen.getByLabelText("Next state"),{target:{value:"resolved"}});
-    fireEvent.change(screen.getByLabelText("Evidence / action / outcome"),{target:{value:"Support action completed and the learner response was reviewed."}});
+    fireEvent.change(screen.getByLabelText("Action / outcome"),{target:{value:"Support action completed and the learner response was reviewed."}});
     fireEvent.click(screen.getByRole("button",{name:/record case action/i}));
     await waitFor(()=>expect(progressStudentCase).toHaveBeenCalledWith(expect.objectContaining({caseId:"case-demo-1",targetStatus:"resolved"})));
   });
