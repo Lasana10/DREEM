@@ -8,7 +8,7 @@ vi.mock("../lib/reportCards",()=>({loadPublishedReportCardDetail:(...args:unknow
 import PublishedReportCard from "./PublishedReportCard";
 
 const brand:SchoolBrand={name:"Great Academy",shortName:"GRA",motto:"Learn well",address:"Mendong",city:"Yaoundé",subsystem:"bilingual",primaryColor:"#123b2c",accentColor:"#c9df83",receiptPrefix:"GRA",studentIdPrefix:"GRA",timezone:"Africa/Douala",currency:"XAF"};
-const learner:LearnerSummary={id:"s1",name:"Nadia Learner",matricule:"GRA-1001",className:"Form 4A",attendance:94,mastery:76,risk:"low",feeBalance:0,nextAction:"Keep learning",credential:{status:"active",validUntil:"2027-07-31"}};
+const learner:LearnerSummary={id:"s1",name:"Nadia Learner",matricule:"GRA-1001",className:"Form 4A",attendance:94,mastery:76,engagement:81,wellbeing:88,trend:4,feeBalance:0,nextAction:"Keep learning",idStatus:"active"};
 const report:ReportCardSummary={id:"r1",studentId:"s1",studentName:"Nadia Learner",termId:"t1",termName:"Term 1",status:"published",revision:2,overallAverage:78.5,evidenceCount:6,generatedBy:"u1",generatedAt:"2026-09-20T10:00:00Z",publishedAt:"2026-09-21T10:00:00Z"};
 
 describe("PublishedReportCard",()=>{
