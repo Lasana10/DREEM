@@ -26,6 +26,6 @@ it("validates work and distinguishes a successful save from a failed refresh", a
   fireEvent.change(screen.getByLabelText("Written response"),{target:{value:"My answer"}});
   fireEvent.click(screen.getByRole("button",{name:"Submit work"}));
   await waitFor(() => expect(submit).toHaveBeenCalledWith({assignmentId:assignment.id,studentId:learner.id,responseText:"My answer",file:undefined}));
-  await screen.findByText(/Your work was saved, but the list could not refresh/);
+  await screen.findByText(/Your work was saved, but the page could not refresh/);
   expect(screen.getByRole("status")).toHaveTextContent("Your work was saved by the school.");
 });

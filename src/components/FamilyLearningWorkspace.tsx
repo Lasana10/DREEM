@@ -3,9 +3,10 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceData } from "../lib/repository";
 import { loadLearnerFeeStatement, type LearnerFeeStatementRow } from "../lib/familyFinance";
 import { loadPickupCircle, type PickupCircleMember } from "../lib/pickupCircle";
+import { userFacingError } from "../lib/userFacingError";
 
 type FamilyTab="Today"|"Learning"|"Fees"|"Transport";
-function messageFrom(reason:unknown){return reason instanceof Error?reason.message:reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"?reason.message:"The family record could not be loaded.";}
+const messageFrom=(reason:unknown)=>userFacingError(reason,"Some family information could not be refreshed. Check your connection and try again.");
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 const dateText=(value:string|undefined)=>value?new Date(value).toLocaleDateString():"—";
 
@@ -33,7 +34,7 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
    {(["Today","Learning","Fees","Transport"] as FamilyTab[]).map(item=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{item}</button>)}
   </nav>
 
-  {familyError?<div className="form-status error" role="alert">Some information could not be refreshed: {familyError}</div>:null}
+  {familyError?<div className="form-status error" role="alert">{familyError}</div>:null}
 
   {tab==="Today"?<>
    <section className="role-hero"><div><span className="eyebrow">{learner.className}</span><h2>{learner.name}</h2><p>{learner.matricule}</p></div></section>

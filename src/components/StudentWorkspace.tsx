@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { submitAssignment, type WorkspaceData } from "../lib/repository";
+import { userFacingError } from "../lib/userFacingError";
 import "./StudentWorkspace.css";
 
 const tabs = ["Today", "Classes", "Work", "Results", "Transport"] as const;
@@ -45,8 +46,10 @@ export default function StudentWorkspace({ workspace, onRefresh }: { workspace: 
       await submitAssignment({ assignmentId: assignment.id, studentId: learner.id, responseText, file });
       form.reset();
       setMessage("Your work was saved by the school.");
-      try { await onRefresh(); } catch { setError("Your work was saved, but the list could not refresh. Refresh the page to see it."); }
-    } catch (reason) { setError(reason instanceof Error ? reason.message : "Submission failed. Your entered work has been kept; try again."); }
+      try { await onRefresh(); } catch { setError("Your work was saved, but the page could not refresh. Open this page again to see the latest status."); }
+    } catch (reason) {
+      setError(userFacingError(reason,"Your work could not be submitted. Nothing has been assumed saved, and the text you entered is still on this screen. Check your connection and try again."));
+    }
     finally { setBusy(false); }
   }
 
