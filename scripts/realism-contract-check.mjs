@@ -14,7 +14,7 @@ for(const file of mustExist)if(!fs.existsSync(file))failures.push(`Missing produ
 const main=fs.readFileSync("src/main.tsx","utf8");
 if(!main.includes("RuntimeBoundary"))failures.push("Runtime recovery boundary is not mounted");
 const errorUtility=fs.readFileSync("src/lib/userFacingError.ts","utf8");
-for(const token of ["TECHNICAL_PATTERN","Nothing has been assumed saved","row-level security","Failed to fetch"]){if(!errorUtility.includes(token))failures.push(`Safe-error behavior missing: ${token}`)}
+for(const token of ["TECHNICAL_PATTERN","Nothing has been assumed saved","row-level security","network|fetch|offline|connection"]){if(!errorUtility.includes(token))failures.push(`Safe-error behavior missing: ${token}`)}
 const shell=fs.readFileSync("src/components/Shell.tsx","utf8");
 for(const token of ["pendingOfflineCount","navigator.onLine","pending sync","mobile-nav"]){if(!shell.includes(token))failures.push(`Connectivity/mobile behavior missing: ${token}`)}
 const app=fs.readFileSync("src/App.tsx","utf8");
