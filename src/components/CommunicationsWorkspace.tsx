@@ -4,10 +4,11 @@ import type { CommunitySignal, Role } from "../domain/types";
 import type { AuthorityScope } from "../lib/authority";
 import { canAuthority } from "../lib/access";
 import { loadAnnouncementReviewQueue, loadAnnouncements, publishAnnouncement, reviewAnnouncement, type AnnouncementAudience, type AnnouncementCategory, type AnnouncementPriority, type AnnouncementReviewItem, type SchoolAnnouncement } from "../lib/announcements";
+import { userFacingError } from "../lib/userFacingError";
 import NotificationDeliveryPanel from "./NotificationDeliveryPanel";
 import { SignalsView } from "./Views";
 
-function errorText(reason:unknown){return reason instanceof Error?reason.message:"This message could not be completed.";}
+const errorText=(reason:unknown)=>userFacingError(reason,"This message could not be completed. Nothing has been assumed sent. Please try again.");
 type CommsViewer={role:Role;authorityScopes?:AuthorityScope[]};
 function categoriesFor(viewer:CommsViewer):AnnouncementCategory[]{if(canAuthority(viewer,"institutional_leadership"))return["general","administrative","academic","event","transport","finance","emergency"];const categories:AnnouncementCategory[]=["general"];if(canAuthority(viewer,"admissions_decision")||canAuthority(viewer,"staff_management"))categories.push("administrative","event");if(canAuthority(viewer,"academics_approval"))categories.push("academic","event");if(canAuthority(viewer,"transport_management"))categories.push("transport");if(canAuthority(viewer,"finance_approval"))categories.push("finance");return Array.from(new Set(categories));}
 function audiencesFor(viewer:CommsViewer):AnnouncementAudience[]{if(canAuthority(viewer,"institutional_leadership")||canAuthority(viewer,"academics_approval")||canAuthority(viewer,"admissions_decision"))return["all","staff","families","students"];if(canAuthority(viewer,"transport_management")||canAuthority(viewer,"communications_publish"))return["staff","families","students"];return[];}
