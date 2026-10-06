@@ -11,6 +11,7 @@ requireTokens("src/components/LearnerDirectoryWorkspace.tsx",["Search name, matr
 requireTokens("src/components/OperationalWorkflows.tsx",["ACTIVE STAFF","PAUSED ACCESS","\"suspended\"","Restore access","userFacingError"]);
 requireTokens("src/components/BursarCollectionWorkspace.tsx",["payment-receipt","Print receipt","receiptNumber","paymentReference","RemoteLearnerPicker","userFacingError"]);
 requireTokens("src/components/LearnersWorkspace.tsx",["Edit learner or guardian details","updateLearnerIdentity","updateGuardianProfile","userFacingError"]);
+requireTokens("src/components/PickupAuthorizationStudio.tsx",["RemoteLearnerPicker","Pickup Circle","userFacingError"]);
 requireTokens("src/components/AdmissionsView.tsx",["userFacingError","RECOMMENDED NEXT ACTION","Decision note"]);
 requireTokens("src/components/TeacherClassroomWorkspace.tsx",["Teach","Attendance","Assess","Resources","outcomeId","loadTeacherClassRoster","userFacingError"]);
 requireTokens("src/lib/curriculumLessonPlans.ts",["dreem_record_lesson_plan_with_outcomes","p_outcome_ids","Choose at least one curriculum outcome"]);
@@ -20,6 +21,8 @@ requireTokens("src/components/AcademicJourneyWorkspace.tsx",["RemoteLearnerPicke
 requireTokens("src/components/TransportManagerWorkspace.tsx",["Live journeys","RemoteLearnerPicker","userFacingError","TRANSPORT · TODAY"]);
 requireTokens("src/components/DriverWorkspace.tsx",["progressTransportTripResilient","Offline · saving locally","userFacingError"]);
 requireTokens("src/components/PaymentRailStudio.tsx",["PAYMENT METHODS","userFacingError"]);
+requireTokens("src/components/PaymentAcknowledgement.tsx",["One-time confirmation","userFacingError"]);
+requireTokens("src/components/InstitutionAuthorityStudio.tsx",["ACCESS PREVIEW","userFacingError"]);
 requireTokens("src/components/SchoolStudioView.tsx",["YearTransitionStudio","mergeStarter","userFacingError"]);
 requireTokens("src/components/YearTransitionStudio.tsx",["Preview transition","Apply transition","userFacingError"]);
 requireTokens("src/lib/yearTransition.ts",["dreem_preview_class_transition","dreem_apply_class_transition"]);
@@ -29,12 +32,14 @@ const reachableSafeErrorFiles=[
   "src/components/AdmissionsView.tsx",
   "src/components/OperationalWorkflows.tsx",
   "src/components/LearnersWorkspace.tsx",
+  "src/components/PickupAuthorizationStudio.tsx",
   "src/components/CredentialCardStudio.tsx",
   "src/components/PolicyStudio.tsx",
   "src/components/NotificationDeliveryPanel.tsx",
   "src/components/BursarCollectionWorkspace.tsx",
   "src/components/FinanceControlDesk.tsx",
   "src/components/PaymentRailStudio.tsx",
+  "src/components/PaymentAcknowledgement.tsx",
   "src/components/StudentWorkspace.tsx",
   "src/components/FamilyLearningWorkspace.tsx",
   "src/components/CommunicationsWorkspace.tsx",
@@ -43,6 +48,7 @@ const reachableSafeErrorFiles=[
   "src/components/AcademicJourneyWorkspace.tsx",
   "src/components/TransportManagerWorkspace.tsx",
   "src/components/DriverWorkspace.tsx",
+  "src/components/InstitutionAuthorityStudio.tsx",
   "src/components/SchoolStudioView.tsx",
   "src/components/YearTransitionStudio.tsx",
 ];
