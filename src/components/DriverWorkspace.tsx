@@ -2,8 +2,9 @@ import { BusFront, Clock3, MapPinned, UsersRound, Wifi, WifiOff } from "lucide-r
 import { useEffect, useMemo, useState } from "react";
 import { type WorkspaceData } from "../lib/repository";
 import { prepareDriverOfflineContext, progressTransportTripResilient, replayDriverOffline } from "../lib/driverOffline";
+import { userFacingError } from "../lib/userFacingError";
 
-function errorText(reason:unknown){return reason instanceof Error?reason.message:reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"?reason.message:"The journey update could not be recorded.";}
+const errorText=(reason:unknown)=>userFacingError(reason,"The journey update could not be recorded. Nothing has been assumed saved. Check your connection or access and try again.");
 
 export default function DriverWorkspace({workspace,onRefresh}:{workspace:WorkspaceData;onRefresh:()=>Promise<void>}){
  const driver=workspace.transport.drivers.find(item=>item.userId===workspace.viewer.id);

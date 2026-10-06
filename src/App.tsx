@@ -20,7 +20,7 @@ import { CommandView } from "./components/Views";
 import TeacherDevelopmentView from "./components/TeacherDevelopmentView";
 import { SchoolStudioView } from "./components/SchoolStudioView";
 import FinanceWorkspace from "./components/FinanceWorkspace";
-import LearnersWorkspace from "./components/LearnersWorkspace";
+import LearnerDirectoryWorkspace from "./components/LearnerDirectoryWorkspace";
 import TeacherClassroomWorkspace from "./components/TeacherClassroomWorkspace";
 import TeacherHome from "./components/TeacherHome";
 import LearningWorkspace from "./components/LearningWorkspace";
@@ -34,6 +34,7 @@ import { supabase } from "./lib/supabase";
 import { applyRoleAppIdentity } from "./lib/roleApp";
 import { buildWorkspaceSearchIndex } from "./lib/workspaceSearch";
 import { canAuthority, defaultWorkspaceView } from "./lib/access";
+import { userFacingError } from "./lib/userFacingError";
 
 function WorkspaceApp() {
   const [view, setView] = useState<ViewKey>("command");
@@ -56,21 +57,21 @@ function WorkspaceApp() {
         const data = await loadWorkspace();
         if (active) { applyRoleAppIdentity(data.viewer.role); setWorkspace(data); setView(defaultWorkspaceView(data.viewer)); setBootstrap(null); setError(""); }
       }catch(reason){
-        const message = reason instanceof Error ? reason.message : (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string" ? reason.message : "The school workspace could not be loaded.");
-        if(message==="DREEM_SCHOOL_SELECTION_REQUIRED"){
-          try{const contexts=await listApprovedSchoolContexts();if(active){setSchoolChoices(contexts.memberships);setError("");}}catch(inner){if(active)setError(inner instanceof Error?inner.message:"School choices could not be loaded.");}return;
+        const raw = reason instanceof Error ? reason.message : (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string" ? reason.message : "");
+        if(raw==="DREEM_SCHOOL_SELECTION_REQUIRED"){
+          try{const contexts=await listApprovedSchoolContexts();if(active){setSchoolChoices(contexts.memberships);setError("");}}catch(inner){if(active)setError(userFacingError(inner,"School choices could not be loaded. Check your connection and try again."));}return;
         }
-        if (/no approved school membership|active school membership|attached to an active school/i.test(message)) {
+        if (/no approved school membership|active school membership|attached to an active school/i.test(raw)) {
           try{
             const bootstrapState = await loadBootstrapStatus();
             if (active) { setBootstrap(bootstrapState); setError(""); }
             return;
           }catch(innerReason){
-            if (active) setError(innerReason instanceof Error ? innerReason.message : (innerReason && typeof innerReason === "object" && "message" in innerReason && typeof innerReason.message === "string" ? innerReason.message : message));
+            if (active) setError(userFacingError(innerReason,"DREEM could not check your school access. Check your connection and try again."));
             return;
           }
         }
-        if (active) setError(message);
+        if (active) setError(userFacingError(reason,"The school workspace could not be loaded. Check your connection and try again."));
       }
     }
     hydrate();
@@ -80,7 +81,7 @@ function WorkspaceApp() {
   if(schoolChoices)return <SchoolContextPicker memberships={schoolChoices} onChoose={async schoolId=>{await selectActiveSchoolContext(schoolId,schoolChoices);await enterWorkspace();}} onSignOut={async()=>{await supabase?.auth.signOut();}}/>;
   if (error) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><h1>Workspace unavailable</h1><p>{error}</p><button onClick={() => window.location.reload()}>Try again</button></div></div>;
   if (bootstrap) return <BootstrapView status={bootstrap} onSignOut={async()=>{await supabase?.auth.signOut();}} onBootstrap={async(payload)=>{await bootstrapSchool(payload);await enterWorkspace();}} />;
-  if (!workspace) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><p>Preparing the school operating picture…</p></div></div>;
+  if (!workspace) return <div className="auth-screen"><div className="auth-card"><strong>DREEM</strong><p>Preparing your school workspace…</p><small>Loading your role, school context and today’s work.</small></div></div>;
 
   const addSignal = (signal: CommunitySignal) => setWorkspace((current) => current ? { ...current, signals: [signal, ...current.signals] } : current);
   const saveBrand = async (brand: WorkspaceData["brand"]) => { const saved = await saveSchoolBrand(brand); setWorkspace((current) => current ? { ...current, brand:saved } : current); };
@@ -98,7 +99,7 @@ function WorkspaceApp() {
       {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
       {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
-      {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} />}
+      {view === "learners" && <LearnerDirectoryWorkspace initialLearners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} />}
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeacherDevelopmentView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}

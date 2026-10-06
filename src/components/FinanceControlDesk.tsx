@@ -4,17 +4,18 @@ import type { Role } from "../domain/types";
 import type { AuthorityScope } from "../lib/authority";
 import { canAuthority } from "../lib/access";
 import { createCashDepositBatch, loadFinanceControlDesk, reviewCashDepositBatch, reviewCashierSession, submitCashierSession, type FinanceControlDeskData } from "../lib/repository";
+import { userFacingError } from "../lib/userFacingError";
 
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
+const financeError=(reason:unknown)=>userFacingError(reason,"This finance action could not be completed. Nothing has been assumed saved. Check the school finance setup and try again.");
 
-function readableError(reason:unknown){if(reason instanceof Error&&reason.message)return reason.message;if(reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"){const item=reason as {message:string;details?:unknown;hint?:unknown;code?:unknown};return [item.message,item.details,item.hint?"Hint: "+item.hint:null,item.code?"Code: "+item.code:null].filter(Boolean).join(" ");}return "This finance action could not be completed. Check the school finance setup and your access.";}
 export default function FinanceControlDesk({role,authorityScopes,onChanged}:{role:Role;authorityScopes?:AuthorityScope[];onChanged:()=>Promise<void>}){
   const[data,setData]=useState<FinanceControlDeskData|null>(null),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState("");
   const viewer={role,authorityScopes};
   const isCashier=canAuthority(viewer,"finance_collection")&&!canAuthority(viewer,"finance_approval"),isReviewer=canAuthority(viewer,"finance_approval"),isReadOnly=canAuthority(viewer,"audit")&&!isReviewer&&!isCashier;
-  async function reload(){try{setData(await loadFinanceControlDesk())}catch(reason){setError(readableError(reason))}}
+  async function reload(){try{setData(await loadFinanceControlDesk())}catch(reason){setError(financeError(reason))}}
   useEffect(()=>{void reload()},[]);
-  async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await Promise.all([reload(),onChanged()]);setMessage(success)}catch(reason){setError(readableError(reason))}finally{setBusy(false)}}
+  async function run(action:()=>Promise<unknown>,success:string){setBusy(true);setError("");setMessage("");try{await action();await Promise.all([reload(),onChanged()]);setMessage(success)}catch(reason){setError(financeError(reason))}finally{setBusy(false)}}
   async function closeSession(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!data?.openSession)return;const f=new FormData(event.currentTarget);await run(()=>submitCashierSession({sessionId:data.openSession!.id,declaredCash:Number(f.get("declaredCash")),explanation:String(f.get("explanation")),evidenceReference:String(f.get("evidence"))}),"Cash count sent for review.")}
   async function reviewSession(event:FormEvent<HTMLFormElement>,reviewId:string){event.preventDefault();const f=new FormData(event.currentTarget);await run(()=>reviewCashierSession({reviewId,approved:String(f.get("decision"))==="approved",note:String(f.get("note")),evidenceReference:String(f.get("evidence"))}),"Cashier review saved.")}
   async function deposit(event:FormEvent<HTMLFormElement>){event.preventDefault();const f=new FormData(event.currentTarget);await run(()=>createCashDepositBatch({paymentIds:f.getAll("paymentIds").map(String),destinationRailId:String(f.get("railId")),depositReference:String(f.get("depositReference")),evidenceReference:String(f.get("evidence"))}),"Deposit sent for confirmation.")}

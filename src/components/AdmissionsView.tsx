@@ -8,6 +8,7 @@ import {
   type WorkspaceData,
 } from "../lib/repository";
 import { canAuthority } from "../lib/access";
+import { userFacingError } from "../lib/userFacingError";
 
 type State = { error: boolean; message: string };
 type TargetAdmissionStatus = Exclude<AdmissionStatus, "submitted">;
@@ -67,17 +68,7 @@ function displayOwner(owner?: string) {
   return /^[0-9a-f]{8}-[0-9a-f-]{27,}$/i.test(owner) ? "Assigned staff member" : owner;
 }
 
-function admissionErrorMessage(reason: unknown) {
-  if (reason instanceof Error && reason.message) return reason.message;
-  if (reason && typeof reason === "object" && "message" in reason && typeof reason.message === "string") {
-    const details =
-      "details" in reason && typeof reason.details === "string" && reason.details ? ` ${reason.details}` : "";
-    const hint = "hint" in reason && typeof reason.hint === "string" && reason.hint ? ` Hint: ${reason.hint}` : "";
-    const code = "code" in reason && typeof reason.code === "string" && reason.code ? ` [${reason.code}]` : "";
-    return `${reason.message}${details}${hint}${code}`.trim();
-  }
-  return "Admission action failed. Please retry or contact the school administrator.";
-}
+const admissionErrorMessage=(reason:unknown)=>userFacingError(reason,"The admission action could not be completed. Nothing has been assumed saved. Check your connection or access and try again.");
 
 export default function AdmissionsView({
   workspace,
@@ -124,7 +115,7 @@ export default function AdmissionsView({
     if (actionLock.current) return false;
     actionLock.current = true;
     setBusy(true);
-    setState({ error: false, message: "Saving admission evidence..." });
+    setState({ error: false, message: "Saving application…" });
     try {
       const message = await action();
       await onRefresh();
@@ -165,14 +156,14 @@ export default function AdmissionsView({
       const result = await recordAdmissionApplication(command);
       element.reset();
       setSelected(result.applicationId);
-      return `Application ${result.applicationNumber} submitted with required declarations.`;
+      return `Application ${result.applicationNumber} submitted.`;
     });
   }
 
   async function progress(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedApplicationId || !effectiveTargetStatus) {
-      setState({ error: true, message: "Choose an active application and a valid next state." });
+      setState({ error: true, message: "Choose an active application and a valid next action." });
       return;
     }
 
@@ -206,12 +197,12 @@ export default function AdmissionsView({
         <div>
           <span className="eyebrow">ADMISSIONS · TODAY</span>
           <h2>{canDecide ? active.length + " application" + (active.length === 1 ? "" : "s") + " in progress" : "New applications"}</h2>
-          <p>{canDecide ? "See the current status, make the next decision, and move on." : "Capture the learner and guardian once. DREEM routes the record to the right reviewer."}</p>
+          <p>{canDecide ? "Open an application, take the next valid action and keep the family moving." : "Capture the learner and guardian once. DREEM routes the application to the right reviewer."}</p>
         </div>
       </section>
 
       {state.message ? (
-        <div className={`form-status ${state.error ? "error" : "success"}`}>
+        <div className={`form-status ${state.error ? "error" : "success"}`} role={state.error?"alert":"status"}>
           {state.error ? <AlertTriangle /> : <BadgeCheck />}
           {state.message}
         </div>
@@ -221,22 +212,22 @@ export default function AdmissionsView({
         <article className="metric">
           <span>Applications</span>
           <strong>{workspace.admissions.length}</strong>
-          <small>Complete register</small>
+          <small>Current register</small>
         </article>
         <article className="metric blue">
-          <span>Under action</span>
+          <span>In progress</span>
           <strong>{active.length}</strong>
-          <small>Not terminal</small>
+          <small>Still needs action</small>
         </article>
         <article className="metric amber">
           <span>Offers / accepted</span>
           <strong>{workspace.admissions.filter(item => ["offered", "accepted"].includes(item.status)).length}</strong>
-          <small>Ready for decision</small>
+          <small>Close to enrolment</small>
         </article>
         <article className="metric">
           <span>Enrolled</span>
           <strong>{workspace.admissions.filter(item => item.status === "enrolled").length}</strong>
-          <small>OneFiles created</small>
+          <small>Learner records created</small>
         </article>
       </section>
 
@@ -245,7 +236,7 @@ export default function AdmissionsView({
           <div className="panel-title">
             <div>
               <span>NEW APPLICATION</span>
-              <h3>Applicant and guardian record</h3>
+              <h3>Learner and guardian</h3>
             </div>
             <UserPlus />
           </div>
@@ -303,7 +294,7 @@ export default function AdmissionsView({
               </select>
             </label>
             <label>
-              Assign reviewer
+              Reviewer
               <select name="assignedTo">
                 <option value="">Admissions queue</option>
                 {staff.map(item => (
@@ -335,8 +326,8 @@ export default function AdmissionsView({
         {canDecide ? <form className="panel settings-form" onSubmit={progress}>
           <div className="panel-title">
             <div>
-              <span>NEXT DECISION</span>
-              <h3>Choose an application and take the next action</h3>
+              <span>NEXT ACTION</span>
+              <h3>Choose an application</h3>
             </div>
             <ClipboardList />
           </div>
@@ -365,7 +356,7 @@ export default function AdmissionsView({
               <div className="action-icon"><ClipboardList /></div>
               <div>
                 <strong>{selectedApplication.learnerName}</strong>
-                <small>Current status: {admissionStatusLabels[selectedApplication.status]} · {selectedApplication.targetClassName}</small>
+                <small>{admissionStatusLabels[selectedApplication.status]} · {selectedApplication.targetClassName}</small>
               </div>
               <span className="status-pill info">{admissionStatusLabels[selectedApplication.status]}</span>
             </div>
@@ -374,7 +365,7 @@ export default function AdmissionsView({
             <div className="workflow-next">
               <small>RECOMMENDED NEXT ACTION</small>
               <strong>{admissionActionLabels[effectiveTargetStatus]}</strong>
-              <p>The current record is {selectedApplication ? admissionStatusLabels[selectedApplication.status].toLowerCase() : "not selected"}. This action will be saved to its evidence trail.</p>
+              <p>DREEM is suggesting the next valid step from the current status. Your decision is recorded in the application history.</p>
             </div>
           ) : null}
           <div className="form-grid">
@@ -420,8 +411,8 @@ export default function AdmissionsView({
             </div>
           ) : null}
           <label>
-            Decision / action evidence
-            <textarea name="note" required minLength={2} rows={4} placeholder="Record who confirmed the decision, the evidence checked, and any next condition." />
+            Decision note
+            <textarea name="note" required minLength={2} rows={4} placeholder="What was confirmed, what is still needed, or why this decision was made." />
           </label>
           <button className="primary" type="submit" disabled={busy || !selectedApplicationId || !availableStatuses.length}>
             <ClipboardList />
@@ -435,7 +426,7 @@ export default function AdmissionsView({
         <div className="panel-title">
           <div>
             <span>APPLICATIONS</span>
-            <h3>All current records</h3>
+            <h3>Current records</h3>
           </div>
         </div>
         {workspace.admissions.map(item => (

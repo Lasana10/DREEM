@@ -3,9 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { WorkspaceData } from "../lib/repository";
 import { loadLearnerFeeStatement, type LearnerFeeStatementRow } from "../lib/familyFinance";
 import { loadPickupCircle, type PickupCircleMember } from "../lib/pickupCircle";
+import { userFacingError } from "../lib/userFacingError";
+import PublishedReportCard from "./PublishedReportCard";
 
 type FamilyTab="Today"|"Learning"|"Fees"|"Transport";
-function messageFrom(reason:unknown){return reason instanceof Error?reason.message:reason&&typeof reason==="object"&&"message" in reason&&typeof reason.message==="string"?reason.message:"The family record could not be loaded.";}
+const messageFrom=(reason:unknown)=>userFacingError(reason,"Some family information could not be refreshed. Check your connection and try again.");
 const money=(value:number)=>new Intl.NumberFormat("fr-FR").format(value)+" FCFA";
 const dateText=(value:string|undefined)=>value?new Date(value).toLocaleDateString():"—";
 
@@ -33,7 +35,7 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
    {(["Today","Learning","Fees","Transport"] as FamilyTab[]).map(item=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{item}</button>)}
   </nav>
 
-  {familyError?<div className="form-status error" role="alert">Some information could not be refreshed: {familyError}</div>:null}
+  {familyError?<div className="form-status error" role="alert">{familyError}</div>:null}
 
   {tab==="Today"?<>
    <section className="role-hero"><div><span className="eyebrow">{learner.className}</span><h2>{learner.name}</h2><p>{learner.matricule}</p></div></section>
@@ -49,7 +51,7 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
    </div>
   </>:null}
 
-  {tab==="Learning"?<section className="panel"><div className="panel-title"><BookOpenCheck/><div><span>LEARNING</span><h3>School work and progress</h3></div></div>{assignments.map(item=><article className="document-row" key={item.id}><strong>{item.title}</strong><span>{item.subjectName} · due {new Date(item.dueAt).toLocaleString()}</span><small>{submittedAssignmentIds.has(item.id)?"Submitted":"Not submitted yet"}</small></article>)}{reportCards.map(item=><article className="document-row" key={item.id}><strong>{item.termName} report</strong><span>{typeof item.overallAverage==="number"?"Average "+item.overallAverage:"Average pending"}</span></article>)}{!assignments.length&&!reportCards.length?<p>No released learning item is visible yet.</p>:null}</section>:null}
+  {tab==="Learning"?<section className="panel"><div className="panel-title"><BookOpenCheck/><div><span>LEARNING</span><h3>School work and progress</h3></div></div>{assignments.map(item=><article className="document-row" key={item.id}><strong>{item.title}</strong><span>{item.subjectName} · due {new Date(item.dueAt).toLocaleString()}</span><small>{submittedAssignmentIds.has(item.id)?"Submitted":"Not submitted yet"}</small></article>)}{reportCards.map(item=><PublishedReportCard key={item.id} report={item} learner={learner} brand={workspace.brand}/>)}{!assignments.length&&!reportCards.length?<p>No released learning item is visible yet.</p>:null}</section>:null}
 
   {tab==="Fees"?<section className="panel"><div className="panel-title"><WalletCards/><div><span>FEES</span><h3>Installments, payments and receipts</h3></div></div>{familyLoading?<p>Refreshing fee information…</p>:null}{charges.map(item=><article className="document-row" key={item.entryId}><strong>{item.label}</strong><span>{money(Math.abs(item.amount))} · due {dateText(item.dueOn)} · {item.status.replaceAll("_"," ")}</span></article>)}{payments.map(item=><article className="document-row" key={item.entryId}><strong>{item.receiptNumber||item.label}</strong><span>{money(Math.abs(item.amount))} · {dateText(item.occurredOn)}</span><small>{item.status.replaceAll("_"," ")}</small></article>)}{!charges.length&&!payments.length&&!familyLoading?<p>No fee or payment record is available yet.</p>:null}</section>:null}
 

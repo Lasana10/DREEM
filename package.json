@@ -8,9 +8,11 @@
     "build": "tsc -b && vite build",
     "lint": "eslint src --max-warnings 0",
     "test": "vitest run",
-    "check": "npm run lint && npm run test && npm run check:ux && npm run build",
+    "check": "npm run lint && npm run test && npm run check:ux && npm run check:realism && npm run check:convergence && npm run build",
     "deploy:cloudflare": "npm run build && npx wrangler deploy",
-    "check:ux": "node scripts/ux-contract-check.mjs"
+    "check:ux": "node scripts/ux-contract-check.mjs",
+    "check:realism": "node scripts/realism-contract-check.mjs",
+    "check:convergence": "node scripts/convergence-contract-check.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "2.90.1",
