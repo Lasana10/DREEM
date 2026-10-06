@@ -1,0 +1,40 @@
+import fs from "node:fs";
+
+const failures=[];
+const read=(file)=>fs.readFileSync(file,"utf8");
+const requireFile=(file)=>{if(!fs.existsSync(file))failures.push(`Missing convergence behavior: ${file}`);return fs.existsSync(file)?read(file):"";};
+const requireTokens=(file,tokens)=>{const source=requireFile(file);for(const token of tokens)if(!source.includes(token))failures.push(`${file} is missing required product behavior: ${token}`);};
+
+requireTokens("src/App.tsx",["LearnerDirectoryWorkspace","initialLearners={workspace.learners}"]);
+requireTokens("src/lib/learnerDirectory.ts",["count:\"exact\"",".range(from,to)","full_name.ilike","matricule.ilike","class_name.ilike"]);
+requireTokens("src/components/LearnerDirectoryWorkspace.tsx",["Search name, matricule or class","Previous","Next","of {total}"]);
+requireTokens("src/components/OperationalWorkflows.tsx",["ACTIVE STAFF","PAUSED ACCESS","\"suspended\"","Restore access","userFacingError"]);
+requireTokens("src/components/BursarCollectionWorkspace.tsx",["payment-receipt","Print receipt","receiptNumber","paymentReference","userFacingError"]);
+requireTokens("src/components/LearnersWorkspace.tsx",["Edit learner or guardian details","updateLearnerIdentity","updateGuardianProfile","userFacingError"]);
+requireTokens("src/components/AdmissionsView.tsx",["userFacingError","RECOMMENDED NEXT ACTION","Decision note"]);
+
+const reachableSafeErrorFiles=[
+  "src/components/AdmissionsView.tsx",
+  "src/components/OperationalWorkflows.tsx",
+  "src/components/LearnersWorkspace.tsx",
+  "src/components/CredentialCardStudio.tsx",
+  "src/components/PolicyStudio.tsx",
+  "src/components/NotificationDeliveryPanel.tsx",
+  "src/components/BursarCollectionWorkspace.tsx",
+  "src/components/FinanceControlDesk.tsx",
+  "src/components/StudentWorkspace.tsx",
+  "src/components/FamilyLearningWorkspace.tsx",
+  "src/components/CommunicationsWorkspace.tsx",
+  "src/components/CareView.tsx",
+];
+for(const file of reachableSafeErrorFiles){
+  const source=requireFile(file);
+  if(!source.includes("userFacingError"))failures.push(`Safe user error contract missing from ${file}`);
+  for(const pattern of ["details?:unknown",'"Hint: "+','"Code: "+'])if(source.includes(pattern))failures.push(`Raw backend error construction returned in ${file}: ${pattern}`);
+}
+
+const oldLearnerCap=read("src/lib/repository.ts");
+if(oldLearnerCap.includes('.from("students")')&&!read("src/App.tsx").includes("LearnerDirectoryWorkspace"))failures.push("People still depends only on the initial workspace learner snapshot");
+
+if(failures.length){console.error(failures.join("\n"));process.exit(1)}
+console.log("DREEM product convergence contract passed.");
