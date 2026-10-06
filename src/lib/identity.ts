@@ -122,6 +122,24 @@ export async function loadLearnerIdentity(studentId: string): Promise<LearnerIde
   };
 }
 
+export async function updateLearnerIdentity(input:{studentId:string;fullName:string;className:string;dateOfBirth?:string;sex?:string}){
+  const client=requireClient(),fullName=input.fullName.trim(),className=input.className.trim();
+  if(fullName.length<3)throw new Error("Enter the learner's full name.");
+  if(!className)throw new Error("Choose or enter the learner's class.");
+  const {error}=await client.from("students").update({full_name:fullName,class_name:className,date_of_birth:input.dateOfBirth||null,sex:input.sex||null,updated_at:new Date().toISOString()}).eq("id",input.studentId);
+  if(error)throw error;
+}
+
+export async function updateGuardianProfile(input:{studentId:string;guardianId:string;fullName:string;phone?:string;email?:string;relationship:string}){
+  const client=requireClient(),fullName=input.fullName.trim(),relationship=input.relationship.trim()||"guardian";
+  if(fullName.length<3)throw new Error("Enter the guardian's full name.");
+  const [profile,link]=await Promise.all([
+    client.from("dreem_guardians").update({full_name:fullName,phone:input.phone?.trim()||null,email:input.email?.trim()||null,updated_at:new Date().toISOString()}).eq("id",input.guardianId),
+    client.from("dreem_student_guardians").update({relationship}).eq("student_id",input.studentId).eq("guardian_id",input.guardianId),
+  ]);
+  if(profile.error)throw profile.error;if(link.error)throw link.error;
+}
+
 async function uploadPrivateIdentityImage(studentId: string, file: File, prefix: string) {
   const client = requireClient();
   validateIdentityImage(file);
