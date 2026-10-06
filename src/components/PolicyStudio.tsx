@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { BadgeCheck, Eye, ShieldAlert, ShieldCheck } from "lucide-react";
 import {loadPolicyRules,savePolicyRule,seedRecommendedPolicies,simulatePolicyRule,type PolicyActionLevel,type PolicyCode,type PolicyRule,type PolicyService} from "../lib/policyEngine";
+import { userFacingError } from "../lib/userFacingError";
 
 const labels:Record<PolicyCode,{title:string;help:string;unit:string;domain:string;ownerScope:string}>={
  attendance_followup:{title:"Attendance follow-up",help:"Show learners for follow-up when attendance falls below this level.",unit:"%",domain:"attendance",ownerScope:"academics_delivery"},
@@ -8,7 +9,7 @@ const labels:Record<PolicyCode,{title:string;help:string;unit:string;domain:stri
  fee_overdue_followup:{title:"Overdue fees",help:"Show overdue fees to the finance team without automatically blocking the learner.",unit:" overdue item(s)",domain:"finance",ownerScope:"finance_collection"},
 };
 const services:PolicyService[]=["exam","report","trip","renewal","graduation","transport","boarding","library","activity","document"];
-function errorText(reason:unknown){return reason instanceof Error?reason.message:"School rules could not be updated.";}
+const errorText=(reason:unknown)=>userFacingError(reason,"School rules could not be updated. Nothing has been assumed saved. Check your connection or access and try again.");
 
 export default function PolicyStudio(){
  const[rules,setRules]=useState<PolicyRule[]>([]),[busy,setBusy]=useState(""),[message,setMessage]=useState(""),[error,setError]=useState(""),[advanced,setAdvanced]=useState(false),[impact,setImpact]=useState<Record<string,string>>({});
