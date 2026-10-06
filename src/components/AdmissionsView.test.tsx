@@ -33,7 +33,7 @@ describe("Admissions workflow", () => {
 
   it("captures required guardian declarations with the application", async () => {
     render(<AdmissionsView workspace={intakeWorkspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
-    expect(screen.queryByRole("heading",{name:/review, offer, accept and enrol/i})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:/approve and send offer/i})).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Learner full name"), { target: { value: "Applicant Learner" } });
     fireEvent.change(screen.getByLabelText("Target class"), { target: { value: "Form 1" } });
     fireEvent.change(screen.getByLabelText("Guardian full name"), { target: { value: "Applicant Guardian" } });
@@ -47,7 +47,7 @@ describe("Admissions workflow", () => {
     render(<AdmissionsView workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
     expect(screen.queryByRole("button",{name:/submit application/i})).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /approve and send offer/i })).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Decision / action evidence"), { target: { value: "Leadership approved the evidence." } });
+    fireEvent.change(screen.getByLabelText("Decision note"), { target: { value: "Leadership approved the application." } });
     fireEvent.click(screen.getByRole("button", { name: /approve and send offer/i }));
     await waitFor(() => expect(progressAdmissionApplication).toHaveBeenCalledWith(expect.objectContaining({ applicationId: "admission-demo-1", targetStatus: "offered" })));
   });
@@ -59,12 +59,12 @@ describe("Admissions workflow", () => {
     expect(screen.queryByLabelText("Opening fee balance")).not.toBeInTheDocument();
   });
 
-  it("enrols an accepted applicant, creates the OneFile and opens learners", async () => {
+  it("enrols an accepted applicant, creates the learner record and opens People", async () => {
     progressAdmissionApplication.mockResolvedValue({ applicationId: "admission-demo-1", status: "enrolled", matricule: "DRM-26-ABCDE", enrolledStudentId: "student-1" });
     const onOpenLearners = vi.fn();
     render(<AdmissionsView workspace={acceptedWorkspace} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenLearners={onOpenLearners} />);
     expect(screen.getByLabelText("Opening fee balance")).toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("Decision / action evidence"), { target: { value: "Acceptance and enrolment documents verified." } });
+    fireEvent.change(screen.getByLabelText("Decision note"), { target: { value: "Acceptance and enrolment documents verified." } });
     fireEvent.click(screen.getByRole("button", { name: /enrol and create learner onefile/i }));
     await waitFor(() => expect(onOpenLearners).toHaveBeenCalled());
   });
