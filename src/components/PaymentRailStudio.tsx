@@ -1,19 +1,21 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { BadgeCheck, CreditCard, ShieldCheck } from "lucide-react";
 import { loadPaymentRails, savePaymentRail, type PaymentRailConfig } from "../lib/paymentRails";
+import { userFacingError } from "../lib/userFacingError";
 
 const label=(code:PaymentRailConfig["code"])=>({cash:"Cash desk",wave:"Wave",mtn_momo:"MTN MoMo",orange_money:"Orange Money",bank:"Bank / merchant account",card:"Card",cheque:"Cheque",other:"Other"}[code]);
+const safeError=(reason:unknown,fallback:string)=>userFacingError(reason,`${fallback} Nothing has been assumed saved. Check your connection or access and try again.`);
 
 export default function PaymentRailStudio(){
   const[rails,setRails]=useState<PaymentRailConfig[]>([]),[busy,setBusy]=useState(""),[message,setMessage]=useState(""),[error,setError]=useState("");
   async function reload(){setRails(await loadPaymentRails())}
-  useEffect(()=>{void reload().catch(reason=>setError(reason instanceof Error?reason.message:"Payment methods could not be loaded."))},[]);
+  useEffect(()=>{void reload().catch(reason=>setError(safeError(reason,"Payment methods could not be loaded.")))},[]);
   async function save(event:FormEvent<HTMLFormElement>,rail:PaymentRailConfig){
     event.preventDefault();const form=new FormData(event.currentTarget);setBusy(rail.id);setError("");setMessage("");
     try{
       await savePaymentRail({code:rail.code,name:String(form.get("name")??rail.name),merchantReference:String(form.get("merchantReference")??""),enabled:rail.code==="cash"?true:form.get("enabled")==="on",priority:Number(form.get("priority")??rail.priority)});
       await reload();setMessage(`${label(rail.code)} saved.`);
-    }catch(reason){setError(reason instanceof Error?reason.message:"Payment method could not be saved.");}
+    }catch(reason){setError(safeError(reason,"Payment method could not be saved."));}
     finally{setBusy("")}
   }
   return <section className="panel payment-rail-studio">
