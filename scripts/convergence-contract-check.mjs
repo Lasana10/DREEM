@@ -12,6 +12,10 @@ requireTokens("src/components/OperationalWorkflows.tsx",["ACTIVE STAFF","PAUSED 
 requireTokens("src/components/BursarCollectionWorkspace.tsx",["payment-receipt","Print receipt","receiptNumber","paymentReference","userFacingError"]);
 requireTokens("src/components/LearnersWorkspace.tsx",["Edit learner or guardian details","updateLearnerIdentity","updateGuardianProfile","userFacingError"]);
 requireTokens("src/components/AdmissionsView.tsx",["userFacingError","RECOMMENDED NEXT ACTION","Decision note"]);
+requireTokens("src/components/TeacherClassroomWorkspace.tsx",["Teach","Attendance","Assess","Resources","outcomeId","loadTeacherClassRoster","userFacingError"]);
+requireTokens("src/lib/curriculumLessonPlans.ts",["dreem_record_lesson_plan_with_outcomes","p_outcome_ids","Choose at least one curriculum outcome"]);
+requireTokens("src/lib/teacherOffline.ts",["recordCurriculumLessonPlan","CurriculumLessonPlanCommand"]);
+requireTokens("supabase/migrations/20261006144903_link_teacher_lesson_plans_to_curriculum.sql",["dreem_lesson_plan_outcomes","p_outcome_ids","grant execute"]);
 
 const reachableSafeErrorFiles=[
   "src/components/AdmissionsView.tsx",
@@ -26,6 +30,7 @@ const reachableSafeErrorFiles=[
   "src/components/FamilyLearningWorkspace.tsx",
   "src/components/CommunicationsWorkspace.tsx",
   "src/components/CareView.tsx",
+  "src/components/TeacherClassroomWorkspace.tsx",
 ];
 for(const file of reachableSafeErrorFiles){
   const source=requireFile(file);
@@ -33,8 +38,7 @@ for(const file of reachableSafeErrorFiles){
   for(const pattern of ["details?:unknown",'"Hint: "+','"Code: "+'])if(source.includes(pattern))failures.push(`Raw backend error construction returned in ${file}: ${pattern}`);
 }
 
-const oldLearnerCap=read("src/lib/repository.ts");
-if(oldLearnerCap.includes('.from("students")')&&!read("src/App.tsx").includes("LearnerDirectoryWorkspace"))failures.push("People still depends only on the initial workspace learner snapshot");
+if(!read("src/App.tsx").includes("LearnerDirectoryWorkspace"))failures.push("People still depends only on the initial workspace learner snapshot");
 
 if(failures.length){console.error(failures.join("\n"));process.exit(1)}
 console.log("DREEM product convergence contract passed.");
