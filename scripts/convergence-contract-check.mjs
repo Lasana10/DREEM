@@ -16,6 +16,10 @@ requireTokens("src/components/TeacherClassroomWorkspace.tsx",["Teach","Attendanc
 requireTokens("src/lib/curriculumLessonPlans.ts",["dreem_record_lesson_plan_with_outcomes","p_outcome_ids","Choose at least one curriculum outcome"]);
 requireTokens("src/lib/teacherOffline.ts",["recordCurriculumLessonPlan","CurriculumLessonPlanCommand"]);
 requireTokens("supabase/migrations/20261006144903_link_teacher_lesson_plans_to_curriculum.sql",["dreem_lesson_plan_outcomes","p_outcome_ids","grant execute"]);
+requireTokens("src/components/TransportManagerWorkspace.tsx",["Live journeys","RemoteLearnerPicker","userFacingError","TRANSPORT · TODAY"]);
+requireTokens("src/components/YearTransitionStudio.tsx",["Preview transition","Apply transition","userFacingError"]);
+requireTokens("src/lib/yearTransition.ts",["dreem_preview_class_transition","dreem_apply_class_transition"]);
+requireTokens("supabase/migrations/20261006151337_audited_learner_year_transitions.sql",["dreem_student_placement_history","dreem_preview_class_transition","dreem_apply_class_transition"]);
 
 const reachableSafeErrorFiles=[
   "src/components/AdmissionsView.tsx",
@@ -31,6 +35,8 @@ const reachableSafeErrorFiles=[
   "src/components/CommunicationsWorkspace.tsx",
   "src/components/CareView.tsx",
   "src/components/TeacherClassroomWorkspace.tsx",
+  "src/components/TransportManagerWorkspace.tsx",
+  "src/components/YearTransitionStudio.tsx",
 ];
 for(const file of reachableSafeErrorFiles){
   const source=requireFile(file);
