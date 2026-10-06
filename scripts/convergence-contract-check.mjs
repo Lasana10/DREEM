@@ -9,7 +9,7 @@ requireTokens("src/App.tsx",["LearnerDirectoryWorkspace","initialLearners={works
 requireTokens("src/lib/learnerDirectory.ts",["count:\"exact\"",".range(from,to)","full_name.ilike","matricule.ilike","class_name.ilike"]);
 requireTokens("src/components/LearnerDirectoryWorkspace.tsx",["Search name, matricule or class","Previous","Next","of {total}"]);
 requireTokens("src/components/OperationalWorkflows.tsx",["ACTIVE STAFF","PAUSED ACCESS","\"suspended\"","Restore access","userFacingError"]);
-requireTokens("src/components/BursarCollectionWorkspace.tsx",["payment-receipt","Print receipt","receiptNumber","paymentReference","userFacingError"]);
+requireTokens("src/components/BursarCollectionWorkspace.tsx",["payment-receipt","Print receipt","receiptNumber","paymentReference","RemoteLearnerPicker","userFacingError"]);
 requireTokens("src/components/LearnersWorkspace.tsx",["Edit learner or guardian details","updateLearnerIdentity","updateGuardianProfile","userFacingError"]);
 requireTokens("src/components/AdmissionsView.tsx",["userFacingError","RECOMMENDED NEXT ACTION","Decision note"]);
 requireTokens("src/components/TeacherClassroomWorkspace.tsx",["Teach","Attendance","Assess","Resources","outcomeId","loadTeacherClassRoster","userFacingError"]);
@@ -18,6 +18,8 @@ requireTokens("src/lib/teacherOffline.ts",["recordCurriculumLessonPlan","Curricu
 requireTokens("supabase/migrations/20261006144903_link_teacher_lesson_plans_to_curriculum.sql",["dreem_lesson_plan_outcomes","p_outcome_ids","grant execute"]);
 requireTokens("src/components/AcademicJourneyWorkspace.tsx",["RemoteLearnerPicker","userFacingError","Authorised publisher"]);
 requireTokens("src/components/TransportManagerWorkspace.tsx",["Live journeys","RemoteLearnerPicker","userFacingError","TRANSPORT · TODAY"]);
+requireTokens("src/components/DriverWorkspace.tsx",["progressTransportTripResilient","Offline · saving locally","userFacingError"]);
+requireTokens("src/components/PaymentRailStudio.tsx",["PAYMENT METHODS","userFacingError"]);
 requireTokens("src/components/SchoolStudioView.tsx",["YearTransitionStudio","mergeStarter","userFacingError"]);
 requireTokens("src/components/YearTransitionStudio.tsx",["Preview transition","Apply transition","userFacingError"]);
 requireTokens("src/lib/yearTransition.ts",["dreem_preview_class_transition","dreem_apply_class_transition"]);
@@ -32,6 +34,7 @@ const reachableSafeErrorFiles=[
   "src/components/NotificationDeliveryPanel.tsx",
   "src/components/BursarCollectionWorkspace.tsx",
   "src/components/FinanceControlDesk.tsx",
+  "src/components/PaymentRailStudio.tsx",
   "src/components/StudentWorkspace.tsx",
   "src/components/FamilyLearningWorkspace.tsx",
   "src/components/CommunicationsWorkspace.tsx",
@@ -39,6 +42,7 @@ const reachableSafeErrorFiles=[
   "src/components/TeacherClassroomWorkspace.tsx",
   "src/components/AcademicJourneyWorkspace.tsx",
   "src/components/TransportManagerWorkspace.tsx",
+  "src/components/DriverWorkspace.tsx",
   "src/components/SchoolStudioView.tsx",
   "src/components/YearTransitionStudio.tsx",
 ];
