@@ -20,7 +20,7 @@ import { CommandView } from "./components/Views";
 import TeacherDevelopmentView from "./components/TeacherDevelopmentView";
 import { SchoolStudioView } from "./components/SchoolStudioView";
 import FinanceWorkspace from "./components/FinanceWorkspace";
-import LearnersWorkspace from "./components/LearnersWorkspace";
+import LearnerDirectoryWorkspace from "./components/LearnerDirectoryWorkspace";
 import TeacherClassroomWorkspace from "./components/TeacherClassroomWorkspace";
 import TeacherHome from "./components/TeacherHome";
 import LearningWorkspace from "./components/LearningWorkspace";
@@ -99,7 +99,7 @@ function WorkspaceApp() {
       {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
       {view === "learning" && (workspace.viewer.role === "student" ? <StudentWorkspace workspace={workspace} onRefresh={refreshWorkspace}/> : familyLearning ? <FamilyLearningWorkspace workspace={workspace}/> : <LearningWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>)}
-      {view === "learners" && <LearnersWorkspace learners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} />}
+      {view === "learners" && <LearnerDirectoryWorkspace initialLearners={workspace.learners} brand={workspace.brand} role={workspace.viewer.role} authorityScopes={workspace.viewer.authorityScopes} />}
       {view === "credentials" && <CredentialCardStudio workspace={workspace} onRefresh={refreshWorkspace} />}
       {view === "teachers" && <TeacherDevelopmentView teachers={workspace.teachers} />}
       {view === "care" && <CareView workspace={workspace} onRefresh={refreshWorkspace} />}
