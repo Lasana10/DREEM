@@ -24,9 +24,9 @@ requireTokens("src/components/PaymentRailStudio.tsx",["PAYMENT METHODS","userFac
 requireTokens("src/components/PaymentAcknowledgement.tsx",["One-time confirmation","userFacingError"]);
 requireTokens("src/components/InstitutionAuthorityStudio.tsx",["ACCESS PREVIEW","userFacingError"]);
 requireTokens("src/components/SchoolStudioView.tsx",["YearTransitionStudio","mergeStarter","userFacingError"]);
-requireTokens("src/components/YearTransitionStudio.tsx",["Preview transition","Apply transition","userFacingError"]);
-requireTokens("src/lib/yearTransition.ts",["dreem_preview_class_transition","dreem_apply_class_transition"]);
-requireTokens("supabase/migrations/20261006151337_audited_learner_year_transitions.sql",["dreem_student_placement_history","dreem_preview_class_transition","dreem_apply_class_transition"]);
+requireTokens("src/components/YearTransitionStudio.tsx",["Preview transition","Move ${preview.affectedLearners}","userFacingError"]);
+requireTokens("src/lib/yearTransition.ts",["dreem_preview_class_transition","dreem_execute_class_transition"]);
+requireTokens("supabase/migrations/20261006151337_audited_learner_year_transitions.sql",["dreem_learner_placements","dreem_preview_class_transition","dreem_execute_class_transition"]);
 
 const reachableSafeErrorFiles=[
   "src/components/AdmissionsView.tsx",
