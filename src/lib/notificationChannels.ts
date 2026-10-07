@@ -4,6 +4,7 @@ import { isSupabaseConfigured, supabase } from "./supabase";
 export type NotificationChannel="email"|"sms"|"whatsapp"|"push";
 export type NotificationEndpoint={id:string;channel:NotificationChannel;endpoint:string;enabled:boolean;verified:boolean};
 export type DeliverySummary={announcementId:string;channel:string;status:string;deliveries:number;lastUpdatedAt:string};
+export type MyNotificationDelivery={id:string;announcementId:string;channel:string;status:string;title:string;body:string;priority:string;category:string;queuedAt:string;sentAt?:string;deliveredAt?:string;acknowledgedAt?:string};
 
 export async function loadMyNotificationEndpoints():Promise<NotificationEndpoint[]>{
  if(!isSupabaseConfigured||!supabase)return[];const context=await resolveActiveSchoolContext();
@@ -21,4 +22,16 @@ export async function loadDeliverySummary():Promise<DeliverySummary[]>{
 }
 export async function dispatchQueuedNotifications(){
  if(!isSupabaseConfigured||!supabase)return{processed:0,sent:0,failed:0,waitingForProvider:0};const context=await resolveActiveSchoolContext();const{data,error}=await supabase.functions.invoke("dispatch-notifications",{body:{schoolId:context.schoolId,limit:100}});if(error)throw error;return data as{processed:number;sent:number;failed:number;waitingForProvider:number};
+}
+
+export async function loadMyNotificationDeliveries():Promise<MyNotificationDelivery[]>{
+ if(!isSupabaseConfigured||!supabase)return[];const context=await resolveActiveSchoolContext();
+ const{data,error}=await supabase.from("dreem_my_notification_deliveries").select("*").eq("school_id",context.schoolId).order("queued_at",{ascending:false}).limit(50);
+ if(error)throw error;return(data??[]).map(row=>({id:String(row.id),announcementId:String(row.announcement_id),channel:String(row.channel),status:String(row.status),title:String(row.title),body:String(row.body),priority:String(row.priority),category:String(row.category),queuedAt:String(row.queued_at),sentAt:row.sent_at?String(row.sent_at):undefined,deliveredAt:row.delivered_at?String(row.delivered_at):undefined,acknowledgedAt:row.acknowledged_at?String(row.acknowledged_at):undefined}));
+}
+export async function acknowledgeNotificationDelivery(deliveryId:string){
+ if(!deliveryId)throw new Error("Choose a notification delivery.");
+ if(!isSupabaseConfigured||!supabase)return"acknowledged";
+ const{data,error}=await supabase.rpc("dreem_acknowledge_notification_delivery",{p_delivery_id:deliveryId});
+ if(error)throw error;return String(data);
 }
