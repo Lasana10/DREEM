@@ -1,7 +1,6 @@
 import { useContext } from "react";
-import { LanguageContext } from "./languageContext";
+import { LanguageContext, type LanguageContextValue } from "./languageContext";
+const englishFallback:LanguageContextValue={language:"en",setLanguage:()=>undefined,toggle:()=>undefined,text:(en)=>en};
 export function useLanguage(){
-  const value=useContext(LanguageContext);
-  if(!value)throw new Error("DREEM language context is unavailable.");
-  return value;
+  return useContext(LanguageContext)??englishFallback;
 }
