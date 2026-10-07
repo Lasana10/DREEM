@@ -45,4 +45,14 @@ describe("authority-driven workspace access",()=>{
     expect(canOpenView({role:"teacher"},"operations")).toBe(true);
     expect(canOpenView({role:"parent"},"learning")).toBe(true);
   });
+  it("keeps IT technical authority separate from school operating authority",()=>{
+    const it={role:"it_admin" as const,authorityScopes:["technical_operations"] as import("./authority").AuthorityScope[]};
+    expect(defaultWorkspaceView(it)).toBe("command");
+    expect(allowedWorkspaceViews(it)).toEqual(["command"]);
+    expect(canOpenView(it,"finance")).toBe(false);
+    expect(canOpenView(it,"admissions")).toBe(false);
+    expect(canOpenView(it,"academics")).toBe(false);
+    expect(canOpenView(it,"care")).toBe(false);
+    expect(canOpenView(it,"studio")).toBe(false);
+  });
 });
