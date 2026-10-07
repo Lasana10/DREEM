@@ -10,6 +10,7 @@ import { allowedWorkspaceViews } from "../lib/access";
 import { pendingOfflineCount } from "../lib/offlineOutbox";
 import { searchWorkspace, type WorkspaceSearchItem } from "../lib/workspaceSearch";
 import { roleAppIdentity } from "../lib/roleApp";
+import { loadReleaseManifest, releaseAlignment, type DreemReleaseManifest } from "../lib/releaseManifest";
 
 export type ViewKey = "command"|"admissions"|"operations"|"academics"|"learning"|"learners"|"credentials"|"teachers"|"care"|"transport"|"finance"|"signals"|"studio";
 type NavItem={id:ViewKey;label:string;icon:typeof BarChart3;keywords?:string};
@@ -77,9 +78,11 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,s
  const primaryIds=primaryMobileViews[viewer.role]??visibleNav.slice(0,4).map(item=>item.id);
  const mobilePrimary=primaryIds.map(id=>visibleNav.find(item=>item.id===id)).filter((item):item is NavItem=>Boolean(item));
  const mobileMore=visibleNav.filter(item=>!primaryIds.includes(item.id));
- const[online,setOnline]=useState(navigator.onLine),[mobileMenuOpen,setMobileMenuOpen]=useState(false),[pending,setPending]=useState(0),[query,setQuery]=useState("");
+ const[online,setOnline]=useState(navigator.onLine),[mobileMenuOpen,setMobileMenuOpen]=useState(false),[pending,setPending]=useState(0),[query,setQuery]=useState(""),[release,setRelease]=useState<DreemReleaseManifest|null>(null);
+ useEffect(()=>{let active=true;loadReleaseManifest().then(value=>active&&setRelease(value)).catch(()=>active&&setRelease(null));return()=>{active=false;};},[]);
  useEffect(()=>{let active=true;const refresh=()=>{if(viewer.id)pendingOfflineCount({actorId:viewer.id}).then(value=>active&&setPending(value)).catch(()=>{});};const connect=()=>{setOnline(true);refresh();},disconnect=()=>setOnline(false);window.addEventListener("online",connect);window.addEventListener("offline",disconnect);window.addEventListener("dreem:outbox-changed",refresh);refresh();return()=>{active=false;window.removeEventListener("online",connect);window.removeEventListener("offline",disconnect);window.removeEventListener("dreem:outbox-changed",refresh);};},[viewer.id]);
  const connectivity=!online?(pending?("Offline · "+pending+" queued"):"Offline"):(pending?(pending+" pending sync"):"Synced");
+ const releaseState=releaseAlignment(release);
  const normalizedQuery=query.trim().toLowerCase();
  const navResults=normalizedQuery?visibleNav.filter(item=>[labelFor(viewer.role,item.id),item.label,item.keywords??""].join(" ").toLowerCase().includes(normalizedQuery)).slice(0,4):[];
  const recordResults=normalizedQuery?searchWorkspace(searchItems.filter(item=>allowed.includes(item.view as ViewKey)),normalizedQuery,8):[];
@@ -94,7 +97,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,s
       <div className="nav-primary">{desktopPrimary.map(item=><NavButton key={item.id} item={item}/>)}</div>
       {desktopSecondary.length?<details className="nav-more" open={desktopSecondary.some(item=>item.id===view)?true:undefined}><summary><Menu size={17}/><span>More school work</span><small>{desktopSecondary.length}</small></summary><div>{desktopSecondary.map(item=><NavButton key={item.id} item={item}/>)}</div></details>:null}
     </nav>
-    <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>{connectivity}</strong><small>Audit trail active</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{viewer.positionTitle||roleLabel(viewer.role)}</small></span></div></div>
+    <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>{connectivity}</strong><small>Audit trail active</small><small title={release?.databaseContract?`Database ${release.databaseContract}`:"Database release could not be verified"}>{releaseState.label}</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{viewer.positionTitle||roleLabel(viewer.role)}</small></span></div></div>
   </aside>
   <section className="workspace"><header>
     <div><span>{appIdentity.shortName} · {brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?"School settings":labelFor(viewer.role,view)}</h1></div>
