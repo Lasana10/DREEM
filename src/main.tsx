@@ -14,6 +14,7 @@ import "./consolidation-v4.css";
 import "./experience-grade-v5.css";
 import "./hardening-v6.css";
 import "./report-output-v7.css";
+import "./operating-loop-v11.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
