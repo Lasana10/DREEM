@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import RuntimeBoundary from "./components/RuntimeBoundary";
+import { LanguageProvider } from "./lib/language";
 import "./styles.css";
 import "./roleWorkspaces.css";
 import "./components/TransportManagerWorkspace.css";
@@ -17,9 +18,11 @@ import "./report-output-v7.css";
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RuntimeBoundary>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <LanguageProvider>
+        <BrowserRouter>
+          <App />
+        </BrowserRouter>
+      </LanguageProvider>
     </RuntimeBoundary>
   </StrictMode>,
 );
