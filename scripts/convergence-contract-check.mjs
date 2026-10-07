@@ -32,7 +32,8 @@ requireTokens("src/components/SecurityGateView.tsx",["DO NOT RELEASE","isRetryab
 requireTokens("src/lib/releaseManifest.ts",["dreem_release_manifest","frontendCommit","Release unverified"]);
 requireTokens("src/components/SchoolRecoveryPanel.tsx",["Download verified recovery bundle","Verify a recovery file","does not overwrite the live school"]);
 requireTokens("src/lib/schoolRecovery.ts",["dreem_export_school_snapshot","dreem_verify_school_snapshot"]);
-requireTokens("src/lib/languageContext.ts",["dreem-language","LanguageContext"]);\nrequireTokens("src/lib/LanguageProvider.tsx",["LanguageContext.Provider","localStorage.setItem"]);
+requireTokens("src/lib/languageContext.ts",["dreem-language","LanguageContext"]);
+requireTokens("src/lib/LanguageProvider.tsx",["LanguageContext.Provider","localStorage.setItem"]);
 requireTokens("src/components/Shell.tsx",["useLanguage","Passer en anglais","Trouver un espace ou une tâche"]);
 
 requireTokens("supabase/migrations/20261006151337_audited_learner_year_transitions.sql",["dreem_learner_placements","dreem_preview_class_transition","dreem_execute_class_transition"]);
