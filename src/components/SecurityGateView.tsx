@@ -3,6 +3,7 @@ import { Camera, ScanLine, ShieldCheck, UserCheck, Wifi, WifiOff, XCircle } from
 import { resolveIdentityMedia } from "../lib/identity";
 import { prepareGateOfflineContext, queueOfflineGateDenial, replayGateOffline } from "../lib/gateOffline";
 import { verifyLearnerRelease, type WorkspaceData } from "../lib/repository";
+import { isRetryableRemoteFailure } from "../lib/offlineOutbox";
 import "./SecurityGateView.css";
 
 type ScanTarget = "learner" | "collector";
@@ -26,7 +27,25 @@ export default function SecurityGateView({workspace,onRefresh}:{workspace:Worksp
 
   async function submit(event:FormEvent<HTMLFormElement>){event.preventDefault();setBusy(true);setError("");setMessage("");setResult(null);stopScanner();try{if(!learnerToken.trim())throw new Error("Scan or enter the learner credential first.");if(!reason.trim())throw new Error("Record a gate verification note.");const idempotencyKey=`learner-release:${crypto.randomUUID()}`;
       if(!online){if(decision==="released")throw new Error("DO NOT RELEASE: DREEM is offline and cannot prove that this collector is still authorised. Choose Deny release or wait for reconnection.");await queueOfflineGateDenial({credentialToken:learnerToken,collectorToken,reason,idempotencyKey},workspace.viewer);setMessage("Release denied. Hashed gate evidence is saved safely on this device and will sync when DREEM reconnects.");setCollectorToken("");return;}
-      if(decision==="released"&&!collectorToken.trim())throw new Error("A valid collector credential is required before release.");const saved=await verifyLearnerRelease({credentialToken:learnerToken.trim(),collectorToken:collectorToken.trim(),decision,reason:reason.trim(),idempotencyKey});const collectorPhotoUrl=saved.collectorPhotoUrl?await resolveIdentityMedia(saved.collectorPhotoUrl):undefined;setResult({...saved,collectorPhotoUrl:collectorPhotoUrl??""});setMessage(saved.decision==="released"?"Release verified and written to the safeguarding audit trail.":"Release denied and written to the safeguarding audit trail.");await onRefresh();if(saved.decision==="released"){setLearnerToken("");setCollectorToken("");}}
+      if(decision==="released"&&!collectorToken.trim())throw new Error("A valid collector credential is required before release.");
+      try{
+        const saved=await verifyLearnerRelease({credentialToken:learnerToken.trim(),collectorToken:collectorToken.trim(),decision,reason:reason.trim(),idempotencyKey});
+        const collectorPhotoUrl=saved.collectorPhotoUrl?await resolveIdentityMedia(saved.collectorPhotoUrl):undefined;
+        setResult({...saved,collectorPhotoUrl:collectorPhotoUrl??""});
+        setMessage(saved.decision==="released"?"Release verified and written to the safeguarding audit trail.":"Release denied and written to the safeguarding audit trail.");
+        await onRefresh();
+        if(saved.decision==="released"){setLearnerToken("");setCollectorToken("");}
+      }catch(reasonValue){
+        if(decision==="released"&&isRetryableRemoteFailure(reasonValue)){
+          setDecision("denied");
+          const fallbackReason="Release blocked: DREEM could not re-verify collector authority with the school server.";
+          setReason(fallbackReason);
+          await queueOfflineGateDenial({credentialToken:learnerToken,collectorToken,reason:fallbackReason,idempotencyKey:`gate-denial:${crypto.randomUUID()}`},workspace.viewer);
+          setError("DO NOT RELEASE: verification could not be completed. The attempted handover was converted to a denial and queued for the safeguarding audit trail.");
+          return;
+        }
+        throw reasonValue;
+      }}
     catch(reasonValue){setError(errorText(reasonValue));}finally{setBusy(false);}}
 
   return <div className="content gate-app"><section className="role-hero"><div><span className="eyebrow">SECURE GATE</span><h2>Scan learner. Verify collector. Confirm handover.</h2><p>{online?"Release is available after both identities are verified.":"Offline safety mode: release stays blocked, but denial evidence can be saved."}</p></div><div className="role-hero-status"><span className={"status-pill "+(online?"":"danger")}>{online?<Wifi size={14}/>:<WifiOff size={14}/>} {online?"Connected":"Offline · release blocked"}</span></div></section>{error&&<div className="form-status error"><XCircle/>{error}</div>}{message&&<div className="form-status success"><ShieldCheck/>{message}</div>}<div className="gate-grid"><section className="panel gate-scanner"><div className="panel-title"><ScanLine/><div><span>CAMERA SCANNER</span><h3>{scanTarget?`Scanning ${scanTarget} QR…`:"Ready to scan"}</h3></div></div><div className={`gate-camera ${scanTarget?"active":""}`}><video ref={videoRef} muted playsInline aria-label="Gate QR camera preview"/>{!scanTarget&&<div><Camera/><span>Camera opens only when you tap Scan.</span></div>}</div><div className="gate-scan-actions"><button type="button" className="primary" onClick={()=>void startScanner("learner")}><ScanLine/>Scan learner card</button><button type="button" onClick={()=>void startScanner("collector")}><UserCheck/>Scan collector</button>{scanTarget&&<button type="button" onClick={stopScanner}>Stop camera</button>}</div></section><form className="panel settings-form" onSubmit={submit}><div className="panel-title"><ShieldCheck/><div><span>HANDOVER DECISION</span><h3>{online?"Confirm both identities":"Offline safety mode"}</h3></div></div><label>Learner credential<input value={learnerToken} onChange={event=>setLearnerToken(event.target.value)} autoComplete="off" placeholder="Scan or paste learner token"/></label><label>Collector credential<input value={collectorToken} onChange={event=>setCollectorToken(event.target.value)} autoComplete="off" placeholder="Required to release learner"/></label><label>Decision<select value={decision} onChange={event=>setDecision(event.target.value as "released"|"denied")}><option value="released" disabled={!online}>Release learner</option><option value="denied">Deny release</option></select></label><label>Verification note<textarea rows={3} value={reason} onChange={event=>setReason(event.target.value)}/></label><button className="primary" disabled={busy} type="submit"><ShieldCheck/>{busy?"Recording…":online?"Verify and record decision":"Record denial offline"}</button></form></div>{result&&<section className={`gate-result ${result.decision==="released"?"released":"denied"}`}>{result.collectorPhotoUrl&&<img src={result.collectorPhotoUrl} alt="Verified collector"/>}<div><span>{result.decision==="released"?"RELEASE AUTHORIZED":"DO NOT RELEASE"}</span><h3>{result.studentName}</h3><p>{result.matricule}</p><strong>{result.collectorName}</strong></div></section>}</div>;
