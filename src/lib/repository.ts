@@ -395,6 +395,14 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
       .order("created_at", { ascending: false })
       .limit(200);
   if (academicDocumentError) throw academicDocumentError;
+  const [curriculumProposalResult,curriculumProvenanceResult,curriculumFeedbackResult]=await Promise.all([
+    supabase.from("dreem_curriculum_proposals").select("*").eq("school_id",schoolId).order("created_at",{ascending:false}).limit(500),
+    supabase.from("dreem_curriculum_outcome_provenance").select("*").eq("school_id",schoolId).order("approved_at",{ascending:false}).limit(1000),
+    supabase.from("dreem_curriculum_suggestion_feedback").select("*").eq("school_id",schoolId).order("created_at",{ascending:false}).limit(500),
+  ]);
+  if(curriculumProposalResult.error)throw curriculumProposalResult.error;
+  if(curriculumProvenanceResult.error)throw curriculumProvenanceResult.error;
+  if(curriculumFeedbackResult.error)throw curriculumFeedbackResult.error;
   const [
     transportRouteResult,
     transportStopResult,
@@ -808,6 +816,25 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
         description: row.description ? String(row.description) : undefined,
         source: row.source,
         status: row.status,
+      })),
+      curriculumProposals:(curriculumProposalResult.data??[]).map((row)=>({
+        id:String(row.id),documentId:String(row.document_id),documentVersion:Number(row.document_version),academicYearId:String(row.academic_year_id),
+        classId:String(row.class_id),subjectId:String(row.subject_id),proposedCode:String(row.proposed_code),proposedTitleEn:String(row.proposed_title_en),
+        proposedTitleFr:row.proposed_title_fr?String(row.proposed_title_fr):undefined,proposedDescription:row.proposed_description?String(row.proposed_description):undefined,
+        sourcePageStart:row.source_page_start===null?undefined:Number(row.source_page_start),sourcePageEnd:row.source_page_end===null?undefined:Number(row.source_page_end),
+        sourceSection:row.source_section?String(row.source_section):undefined,sourceExcerpt:row.source_excerpt?String(row.source_excerpt):undefined,
+        confidence:row.confidence===null?undefined:Number(row.confidence),extractionProvider:String(row.extraction_provider),status:row.status,
+        reviewNote:row.review_note?String(row.review_note):undefined,createdAt:String(row.created_at),
+      })),
+      curriculumProvenance:(curriculumProvenanceResult.data??[]).map((row)=>({
+        outcomeId:String(row.outcome_id),proposalId:String(row.proposal_id),documentId:String(row.document_id),documentVersion:Number(row.document_version),
+        pageStart:row.page_start===null?undefined:Number(row.page_start),pageEnd:row.page_end===null?undefined:Number(row.page_end),
+        sectionLabel:row.section_label?String(row.section_label):undefined,sourceExcerpt:row.source_excerpt?String(row.source_excerpt):undefined,approvedAt:String(row.approved_at),
+      })),
+      curriculumFeedback:(curriculumFeedbackResult.data??[]).map((row)=>({
+        id:String(row.id),proposalId:row.proposal_id?String(row.proposal_id):undefined,outcomeId:row.outcome_id?String(row.outcome_id):undefined,
+        teacherUserId:String(row.teacher_user_id),preparationMinutesSaved:row.preparation_minutes_saved===null?undefined:Number(row.preparation_minutes_saved),
+        usefulness:Number(row.usefulness),note:row.note?String(row.note):undefined,createdAt:String(row.created_at),
       })),
       assignmentsForLearners: (learnerAssignmentResult.data ?? []).map((row) => ({
         id: String(row.id), teachingAssignmentId: String(row.teaching_assignment_id), termId: String(row.term_id),
