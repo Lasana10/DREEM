@@ -1,4 +1,4 @@
-export type OfflineOperationStatus = "pending" | "syncing" | "failed" | "tampered";
+export type OfflineOperationStatus = "pending" | "syncing" | "failed" | "blocked" | "conflict" | "tampered";
 
 export interface OfflineOperation<T = unknown> {
   id: string;
@@ -25,6 +25,27 @@ const DB = "dreem-offline-v1";
 const STORE = "operations";
 const DEVICE = "dreem-device-id";
 const MAX_ATTEMPTS = 8;
+
+const RETRYABLE_CODES = new Set(["PGRST000","PGRST002","08000","08003","08006","57P01","53300"]);
+const RETRYABLE_HTTP = new Set([408,425,429,500,502,503,504]);
+
+export function isRetryableRemoteFailure(reason: unknown, online = typeof navigator === "undefined" ? true : navigator.onLine) {
+  if (!online) return true;
+  const record = reason && typeof reason === "object" ? reason as Record<string, unknown> : {};
+  const code = String(record.code ?? "").toUpperCase();
+  const status = Number(record.status ?? record.statusCode ?? 0);
+  const message = String(record.message ?? reason ?? "").toLowerCase();
+  if (RETRYABLE_CODES.has(code) || RETRYABLE_HTTP.has(status)) return true;
+  return /failed to fetch|network(?:error| request| failure)?|connection (?:reset|refused|closed)|timed? ?out|timeout|temporar(?:y|ily) unavailable|service unavailable|gateway|backend unavailable|fetch failed/.test(message);
+}
+
+export type OfflineReplayReceipt = {
+  operationId: string;
+  command: string;
+  idempotencyKey: string;
+  syncedAt: string;
+  duplicate: boolean;
+};
 
 function db(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
@@ -120,8 +141,8 @@ async function integrityValid(operation:OfflineOperation){
 }
 
 export async function replayOffline(scope: { schoolId: string; actorId: string }, handlers: Record<string,(payload: unknown, operation: OfflineOperation)=>Promise<unknown>>) {
-  if (!navigator.onLine) return { synced: 0, failed: 0, tampered:0 };
-  const rows = await listOffline(scope); let synced=0, failed=0, tampered=0;
+  if (!navigator.onLine) return { synced: 0, failed: 0, tampered:0, receipts:[] as OfflineReplayReceipt[] };
+  const rows = await listOffline(scope); let synced=0, failed=0, tampered=0; const receipts:OfflineReplayReceipt[]=[];
   for (const operation of rows) {
     if(!(await integrityValid(operation))){operation.status="tampered";operation.lastError="Offline operation integrity check failed. The server action was not attempted.";await save(operation);tampered++;continue;}
     const due = !operation.nextAttemptAt || Date.parse(operation.nextAttemptAt) <= Date.now();
@@ -129,13 +150,29 @@ export async function replayOffline(scope: { schoolId: string; actorId: string }
     const handler = handlers[operation.command];
     if (!handler) { failed++; continue; }
     operation.status="syncing"; await save(operation);
-    try { await handler(operation.payload, operation); await remove(operation.id); synced++; }
+    try {
+      const handlerResult=await handler(operation.payload, operation);
+      const resultRecord=handlerResult && typeof handlerResult==="object" ? handlerResult as Record<string,unknown> : {};
+      const receipt:OfflineReplayReceipt={operationId:operation.id,command:operation.command,idempotencyKey:operation.idempotencyKey,syncedAt:new Date().toISOString(),duplicate:resultRecord.duplicate===true};
+      receipts.push(receipt);
+      window.dispatchEvent(new CustomEvent("dreem:outbox-replay-receipt",{detail:receipt}));
+      await remove(operation.id); synced++;
+    }
     catch (reason) {
-      operation.attempts += 1; operation.status="failed"; operation.lastError=reason instanceof Error?reason.message:"Sync failed";
-      const delay=Math.min(60_000, 1_000 * 2 ** operation.attempts);
-      operation.nextAttemptAt=new Date(Date.now()+delay).toISOString(); await save(operation); failed++;
+      const record=reason && typeof reason==="object" ? reason as Record<string,unknown> : {};
+      operation.lastError=reason instanceof Error?reason.message:String(record.message??"Sync failed");
+      if(record.retryable===false){
+        operation.status=record.conflict===true?"conflict":"blocked";
+        operation.nextAttemptAt=undefined;
+      }else{
+        operation.attempts += 1;
+        operation.status="failed";
+        const delay=Math.min(60_000, 1_000 * 2 ** operation.attempts);
+        operation.nextAttemptAt=new Date(Date.now()+delay).toISOString();
+      }
+      await save(operation); failed++;
     }
   }
   window.dispatchEvent(new CustomEvent("dreem:outbox-changed"));
-  return { synced, failed, tampered };
+  return { synced, failed, tampered, receipts };
 }

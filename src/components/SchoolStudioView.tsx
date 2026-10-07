@@ -4,6 +4,7 @@ import type { AccessMembership, SchoolBrand, SchoolSetup } from "../domain/types
 import InstitutionAuthorityStudio from "./InstitutionAuthorityStudio";
 import PolicyStudio from "./PolicyStudio";
 import YearTransitionStudio from "./YearTransitionStudio";
+import SchoolRecoveryPanel from "./SchoolRecoveryPanel";
 import { buildClassPack, classPacks, type ClassPackId } from "../domain/classPacks";
 import { userFacingError } from "../lib/userFacingError";
 
@@ -51,6 +52,7 @@ export function SchoolStudioView({brand,setup,memberships,onSave,onSaveSetup,onU
   <details className="studio-stage"><summary><span><small>3</small><strong>School rules</strong><em>Attendance, school work and fees</em></span><ShieldCheck/></summary><div className="studio-stage-body"><PolicyStudio/></div></details>
   {memberships?<details className="studio-stage"><summary><span><small>4</small><strong>Staff responsibilities</strong><em>Who can do what</em></span><ShieldCheck/></summary><div className="studio-stage-body"><InstitutionAuthorityStudio memberships={memberships} onChanged={onAuthorityChanged}/></div></details>:null}
   <details className="studio-stage"><summary><span><small>5</small><strong>Year transition</strong><em>Promote or move classes with history</em></span><ShieldCheck/></summary><div className="studio-stage-body"><YearTransitionStudio setup={setupDraft} onChanged={onAuthorityChanged}/></div></details>
+  <details className="studio-stage"><summary><span><small>6</small><strong>Recovery & export</strong><em>Verified school copy and integrity check</em></span><ShieldCheck/></summary><div className="studio-stage-body"><SchoolRecoveryPanel brand={draft}/></div></details>
  </div>;
 }
 

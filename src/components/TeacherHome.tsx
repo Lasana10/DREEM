@@ -2,10 +2,12 @@ import { BookOpenCheck, CalendarClock, ClipboardCheck, FolderHeart, GraduationCa
 import type { WorkspaceData } from "../lib/repository";
 import type { ViewKey } from "./Shell";
 import { evaluateRecommendedPolicies } from "../domain/operationalExcellence";
+import { useLanguage } from "../lib/useLanguage";
 
 function minutes(value:string){const [h,m]=value.slice(0,5).split(":").map(Number);return h*60+m;}
 
 export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceData;onNavigate:(view:ViewKey)=>void}){
+ const {text}=useLanguage();
  const teacherId=workspace.viewer.id;
  const mine=workspace.academics.assignments.filter(item=>item.status==="active"&&!!teacherId&&item.teacherUserId===teacherId);
  const mineIds=new Set(mine.map(item=>item.id));
@@ -28,12 +30,12 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
  }).filter(item=>item.learnerId&&learnerIds.has(item.learnerId)&&["learner","learning"].includes(item.area));
  const learnersNeedingFollowUp=new Set(policyActions.map(item=>item.learnerId)).size;
  const primaryTeacherAction=next
-   ? {eyebrow:"UP NEXT",title:next.className+" · "+next.subjectName,detail:next.startsAt+"–"+next.endsAt+(next.room?" · "+next.room:""),action:"Open class",view:"operations" as ViewKey}
+   ? {eyebrow:text("UP NEXT","À SUIVRE"),title:next.className+" · "+next.subjectName,detail:next.startsAt+"–"+next.endsAt+(next.room?" · "+next.room:""),action:text("Open class","Ouvrir la classe"),view:"operations" as ViewKey}
    : pending.length
-     ? {eyebrow:"READY FOR YOU",title:pending.length+" submission"+(pending.length===1?"":"s")+" waiting",detail:"Student work is ready for review.",action:"Review work",view:"learning" as ViewKey}
+     ? {eyebrow:text("READY FOR YOU","À CORRIGER"),title:pending.length+" "+text(pending.length===1?"submission waiting":"submissions waiting",pending.length===1?"travail à corriger":"travaux à corriger"),detail:text("Student work is ready for review.","Des travaux d’élèves sont prêts à être corrigés."),action:text("Review work","Corriger"),view:"learning" as ViewKey}
      : policyActions.length
-       ? {eyebrow:"CHECK IN",title:policyActions[0].title,detail:policyActions[0].reason,action:"Open learner",view:(policyActions[0].area==="learning"?"learning":"learners") as ViewKey}
-       : {eyebrow:"YOU'RE CLEAR",title:"Nothing urgent is waiting",detail:"Your classes, submitted work and learner follow-up are clear for now.",action:"Open my classes",view:"operations" as ViewKey};
+       ? {eyebrow:text("CHECK IN","À SUIVRE"),title:policyActions[0].title,detail:policyActions[0].reason,action:text("Open learner","Ouvrir l’élève"),view:(policyActions[0].area==="learning"?"learning":"learners") as ViewKey}
+       : {eyebrow:text("YOU'RE CLEAR","TOUT EST À JOUR"),title:text("Nothing urgent is waiting","Aucune urgence en attente"),detail:text("Your classes, submitted work and learner follow-up are clear for now.","Vos classes, corrections et suivis d’élèves sont à jour pour le moment."),action:text("Open my classes","Ouvrir mes classes"),view:"operations" as ViewKey};
  const teacherEvidence=[
    todayPeriods.length+" scheduled class"+(todayPeriods.length===1?"":"es")+" today",
    pending.length+" submitted item"+(pending.length===1?"":"s")+" waiting for review",

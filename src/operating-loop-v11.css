@@ -1,0 +1,71 @@
+/* DREEM operating-loop v11: mobile form and recovery hardening */
+:root{--dreem-touch-target:44px}
+
+button,
+[role="button"],
+input,
+select,
+textarea,
+.upload-button{min-height:var(--dreem-touch-target)}
+
+input,
+select,
+textarea{max-width:100%;box-sizing:border-box}
+
+input[type="date"],
+input[type="time"],
+input[type="datetime-local"]{min-width:0;width:100%}
+
+.document-row,
+.action-row,
+.schedule-row,
+.case-row,
+.payment-receipt,
+.role-hero,
+.panel,
+.metric,
+.quick-card,
+.focus-card{min-width:0}
+
+.document-row strong,
+.document-row span,
+.document-row small,
+.action-row strong,
+.action-row small,
+.case-row,
+.payment-receipt dd{overflow-wrap:anywhere}
+
+.modal-backdrop{overflow:auto;overscroll-behavior:contain}
+.modal{max-height:calc(100dvh - 24px);overflow:auto}
+
+@media (max-width:720px){
+  input,
+  select,
+  textarea{font-size:16px}
+  .form-grid,
+  .studio-grid,
+  .care-grid,
+  .transport-grid,
+  .prereq-grid{grid-template-columns:minmax(0,1fr)!important}
+  .role-hero{align-items:stretch}
+  .role-hero>button,
+  .card-actions>button,
+  .card-actions>.upload-button{width:100%;justify-content:center}
+  .card-actions{flex-wrap:wrap}
+  .modal-backdrop{align-items:flex-start;padding:12px}
+  .modal{width:100%;margin:0}
+  .payment-receipt dl>div{grid-template-columns:minmax(0,1fr)}
+  .compact-table,
+  .case-register,
+  .schedule-list{overflow-x:hidden}
+  .structure-record .form-grid{grid-template-columns:minmax(0,1fr)!important}
+}
+
+@media (max-width:420px){
+  .content{padding-inline:12px}
+  .panel,
+  .focus-card,
+  .quick-card{border-radius:16px}
+  .mobile-nav button{min-width:0}
+  .mobile-nav span{max-width:72px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
