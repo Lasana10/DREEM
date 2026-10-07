@@ -1,7 +1,7 @@
 do $$
 declare
-  v_school uuid; v_teacher uuid; v_class text; v_operation uuid:=gen_random_uuid(); v_key text:='acceptance-offline-'||gen_random_uuid()::text;
-  v_payload jsonb; v_first jsonb; v_second jsonb; v_receipts integer; v_sessions integer; v_pass boolean:=false;
+  v_school uuid; v_teacher uuid; v_class text; v_student uuid; v_operation uuid:=gen_random_uuid(); v_key text:='acceptance-offline-'||gen_random_uuid()::text;
+  v_payload jsonb; v_first jsonb; v_second jsonb; v_receipts integer; v_sessions integer; v_marks integer; v_pass boolean:=false;
 begin
   select m.school_id,m.profile_id,c.name into v_school,v_teacher,v_class
   from public.dreem_school_memberships m
@@ -17,10 +17,15 @@ begin
   end if;
 
   begin
+    insert into public.students(school_id,matricule,full_name,class_name)
+    values(v_school,'OFFLINE-ACCEPT-'||substr(gen_random_uuid()::text,1,8),'Offline Acceptance Learner',trim(v_class))
+    returning id into v_student;
+
     perform set_config('request.jwt.claims',jsonb_build_object('sub',v_teacher::text,'role','authenticated')::text,true);
     v_payload:=jsonb_build_object(
-      'className',v_class,'sessionDate',current_date::text,'periodLabel','ACCEPTANCE',
-      'marks','[]'::jsonb,'idempotencyKey',v_key
+      'className',trim(v_class),'sessionDate',current_date::text,'periodLabel','ACCEPTANCE',
+      'marks',jsonb_build_array(jsonb_build_object('student_id',v_student,'status','present','note','acceptance probe')),
+      'idempotencyKey',v_key
     );
 
     v_first:=public.dreem_ingest_teacher_offline_operation(
@@ -39,8 +44,11 @@ begin
 
     select count(*) into v_receipts from public.dreem_offline_operation_receipts where operation_id=v_operation;
     select count(*) into v_sessions from public.dreem_attendance_sessions where idempotency_key=v_key;
-    if v_receipts<>1 or v_sessions<>1 then
-      raise exception 'exactly-once assertion failed: receipts %, sessions %',v_receipts,v_sessions;
+    select count(*) into v_marks from public.dreem_attendance_marks am
+      join public.dreem_attendance_sessions s on s.id=am.session_id
+      where s.idempotency_key=v_key and am.student_id=v_student;
+    if v_receipts<>1 or v_sessions<>1 or v_marks<>1 then
+      raise exception 'exactly-once assertion failed: receipts %, sessions %, marks %',v_receipts,v_sessions,v_marks;
     end if;
 
     v_pass:=true;
@@ -52,7 +60,7 @@ begin
   if v_pass then
     insert into public.dreem_acceptance_evidence(school_id,scenario,status,detail,source)
     values(v_school,'offline_exactly_once_replay','passed',
-      jsonb_build_object('first_accept',true,'duplicate_detected',true,'receipt_count',v_receipts,'downstream_session_count',v_sessions,'fixture_rolled_back',true),
+      jsonb_build_object('first_accept',true,'duplicate_detected',true,'receipt_count',v_receipts,'downstream_session_count',v_sessions,'downstream_mark_count',v_marks,'fixture_rolled_back',true),
       '20261008000500_offline_exactly_once_acceptance');
   end if;
 end $$;
