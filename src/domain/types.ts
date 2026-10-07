@@ -325,6 +325,49 @@ export interface CurriculumOutcomeSummary {
   status: "draft" | "active" | "retired";
 }
 
+export interface CurriculumProposalSummary {
+  id: string;
+  documentId: string;
+  documentVersion: number;
+  academicYearId: string;
+  classId: string;
+  subjectId: string;
+  proposedCode: string;
+  proposedTitleEn: string;
+  proposedTitleFr?: string;
+  proposedDescription?: string;
+  sourcePageStart?: number;
+  sourcePageEnd?: number;
+  sourceSection?: string;
+  sourceExcerpt?: string;
+  confidence?: number;
+  extractionProvider: string;
+  status: "proposed"|"accepted"|"corrected"|"rejected";
+  reviewNote?: string;
+  createdAt: string;
+}
+export interface CurriculumProvenanceSummary {
+  outcomeId: string;
+  proposalId: string;
+  documentId: string;
+  documentVersion: number;
+  pageStart?: number;
+  pageEnd?: number;
+  sectionLabel?: string;
+  sourceExcerpt?: string;
+  approvedAt: string;
+}
+export interface CurriculumSuggestionFeedbackSummary {
+  id: string;
+  proposalId?: string;
+  outcomeId?: string;
+  teacherUserId: string;
+  preparationMinutesSaved?: number;
+  usefulness: number;
+  note?: string;
+  createdAt: string;
+}
+
 export interface CurriculumOutcomeCommand {
   academicYearId: string;
   classId: string;
@@ -388,6 +431,9 @@ export interface AcademicOperations {
   timetable: TimetableEntrySummary[];
   lessonPlans: LessonPlanSummary[];
   curriculumOutcomes: CurriculumOutcomeSummary[];
+  curriculumProposals: CurriculumProposalSummary[];
+  curriculumProvenance: CurriculumProvenanceSummary[];
+  curriculumFeedback: CurriculumSuggestionFeedbackSummary[];
   assignmentsForLearners: AssignmentSummary[];
   assignmentSubmissions: AssignmentSubmissionSummary[];
   assessments: AssessmentSummary[];
