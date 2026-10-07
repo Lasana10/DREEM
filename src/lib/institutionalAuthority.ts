@@ -36,6 +36,7 @@ export const authorityScopeOptions:{value:AuthorityScope;label:string;descriptio
   {value:"communications_approve",label:"Communications approval",description:"Approve urgent or institution-wide official communication."},
   {value:"audit",label:"Audit",description:"Independent evidence and control review."},
   {value:"school_configuration",label:"School configuration",description:"Institution structure, policies and operating setup."},
+  {value:"technical_operations",label:"Technical operations",description:"Release integrity, service health, recovery evidence and technical queues without school-governance data access."},
 ];
 
 export const positionPresets:{title:string;category:PositionCategory;scopes:AuthorityScope[]}[]=[
@@ -53,10 +54,11 @@ export const positionPresets:{title:string;category:PositionCategory;scopes:Auth
   {title:"Driver",category:"operations",scopes:["transport_operation"]},
   {title:"Gate / Security Lead",category:"operations",scopes:["gate"]},
   {title:"Auditor",category:"audit",scopes:["audit"]},
+  {title:"IT Administrator",category:"support",scopes:["technical_operations"]},
 ];
 
 export const positionPackPresets=[
-  {name:"Standard bilingual school",description:"Ready-to-use leadership, academic, admissions, finance, transport and gate positions.",positions:positionPresets.filter(item=>["Principal / Head of School","Teacher","Registrar / Admissions Lead","Bursar / Cashier","Accountant / Finance Reviewer","Transport Manager","Driver","Gate / Security Lead"].includes(item.title))},
+  {name:"Standard bilingual school",description:"Ready-to-use leadership, academic, admissions, finance, transport and gate positions.",positions:positionPresets.filter(item=>["Principal / Head of School","Teacher","Registrar / Admissions Lead","Bursar / Cashier","Accountant / Finance Reviewer","Transport Manager","Driver","Gate / Security Lead","IT Administrator"].includes(item.title))},
   {name:"Compact school",description:"For smaller schools where a few people legitimately carry several responsibilities.",positions:positionPresets.filter(item=>["Owner / Proprietor","Principal / Head of School","Teacher","Bursar / Cashier"].includes(item.title))},
   {name:"Academic-first school",description:"Leadership and teaching posts first; add finance and transport only when the school uses them.",positions:positionPresets.filter(item=>["Principal / Head of School","Dean / Academic Head","Teacher","Registrar / Admissions Lead"].includes(item.title))},
 ] as const;
