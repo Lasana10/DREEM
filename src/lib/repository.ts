@@ -2136,6 +2136,48 @@ export async function saveCurriculumOutcome(command: CurriculumOutcomeCommand) {
   return String(data);
 }
 
+export async function proposeCurriculumOutcome(input:{
+  documentId:string;academicYearId:string;classId:string;subjectId:string;code:string;titleEn:string;titleFr?:string;description?:string;
+  pageStart?:number;pageEnd?:number;section?:string;excerpt?:string;confidence?:number;provider?:string;runId?:string;
+}){
+  if(!input.documentId||!input.academicYearId||!input.classId||!input.subjectId)throw new Error("Choose a source document, academic year, class and subject.");
+  if(!input.code.trim()||input.titleEn.trim().length<3)throw new Error("Outcome code and English title are required.");
+  if(!input.pageStart&&!input.section?.trim())throw new Error("Add a page number or section label so reviewers can verify the source.");
+  if(!isSupabaseConfigured||!supabase)return crypto.randomUUID();
+  const{data,error}=await supabase.rpc("dreem_propose_curriculum_outcome",{
+    p_document_id:input.documentId,p_academic_year_id:input.academicYearId,p_class_id:input.classId,p_subject_id:input.subjectId,
+    p_code:input.code.trim(),p_title_en:input.titleEn.trim(),p_title_fr:input.titleFr?.trim()||null,p_description:input.description?.trim()||null,
+    p_page_start:input.pageStart??null,p_page_end:input.pageEnd??null,p_section:input.section?.trim()||null,p_excerpt:input.excerpt?.trim()||null,
+    p_confidence:input.confidence??null,p_provider:input.provider?.trim()||"human",p_run_id:input.runId?.trim()||null,
+  });
+  if(error)throw error;return String(data);
+}
+
+export async function reviewCurriculumProposal(input:{
+  proposalId:string;decision:"accepted"|"corrected"|"rejected";code?:string;titleEn?:string;titleFr?:string;description?:string;note:string;
+}){
+  if(!input.proposalId)throw new Error("Choose a curriculum proposal.");
+  if(input.note.trim().length<3)throw new Error("Add a short review note.");
+  if(!isSupabaseConfigured||!supabase)return input.decision==="rejected"?null:crypto.randomUUID();
+  const{data,error}=await supabase.rpc("dreem_review_curriculum_proposal",{
+    p_proposal_id:input.proposalId,p_decision:input.decision,p_code:input.code?.trim()||null,p_title_en:input.titleEn?.trim()||null,
+    p_title_fr:input.titleFr?.trim()||null,p_description:input.description?.trim()||null,p_note:input.note.trim(),
+  });
+  if(error)throw error;return data?String(data):null;
+}
+
+export async function recordCurriculumSuggestionFeedback(input:{
+  proposalId?:string;outcomeId?:string;usefulness:number;minutesSaved?:number;note?:string;
+}){
+  if(!input.proposalId&&!input.outcomeId)throw new Error("Choose a curriculum suggestion.");
+  if(input.usefulness<1||input.usefulness>5)throw new Error("Usefulness must be between 1 and 5.");
+  if(!isSupabaseConfigured||!supabase)return crypto.randomUUID();
+  const{data,error}=await supabase.rpc("dreem_record_curriculum_suggestion_feedback",{
+    p_proposal_id:input.proposalId||null,p_outcome_id:input.outcomeId||null,p_usefulness:input.usefulness,p_minutes_saved:input.minutesSaved??null,p_note:input.note?.trim()||null,
+  });
+  if(error)throw error;return String(data);
+}
+
 export async function reviewLessonPlan(input: {
   lessonPlanId: string;
   decision: "reviewed" | "returned";
