@@ -11,7 +11,7 @@ import { pendingOfflineCount } from "../lib/offlineOutbox";
 import { searchWorkspace, type WorkspaceSearchItem } from "../lib/workspaceSearch";
 import { roleAppIdentity } from "../lib/roleApp";
 import { loadReleaseManifest, releaseAlignment, type DreemReleaseManifest } from "../lib/releaseManifest";
-import { useLanguage } from "../lib/language";
+import { useLanguage } from "../lib/useLanguage";
 
 export type ViewKey = "command"|"admissions"|"operations"|"academics"|"learning"|"learners"|"credentials"|"teachers"|"care"|"transport"|"finance"|"signals"|"studio";
 type NavItem={id:ViewKey;label:string;icon:typeof BarChart3;keywords?:string};
