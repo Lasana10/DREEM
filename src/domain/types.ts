@@ -344,6 +344,14 @@ export interface CurriculumProposalSummary {
   extractionProvider: string;
   status: "proposed"|"accepted"|"corrected"|"rejected";
   reviewNote?: string;
+  teacherDecision?: "accepted"|"corrected"|"rejected";
+  teacherCode?: string;
+  teacherTitleEn?: string;
+  teacherTitleFr?: string;
+  teacherDescription?: string;
+  teacherNote?: string;
+  teacherReviewedBy?: string;
+  teacherReviewedAt?: string;
   createdAt: string;
 }
 export interface CurriculumProvenanceSummary {
