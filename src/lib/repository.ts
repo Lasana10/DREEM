@@ -824,7 +824,7 @@ export async function loadWorkspace(): Promise<WorkspaceData> {
         sourcePageStart:row.source_page_start===null?undefined:Number(row.source_page_start),sourcePageEnd:row.source_page_end===null?undefined:Number(row.source_page_end),
         sourceSection:row.source_section?String(row.source_section):undefined,sourceExcerpt:row.source_excerpt?String(row.source_excerpt):undefined,
         confidence:row.confidence===null?undefined:Number(row.confidence),extractionProvider:String(row.extraction_provider),status:row.status,
-        reviewNote:row.review_note?String(row.review_note):undefined,createdAt:String(row.created_at),
+        reviewNote:row.review_note?String(row.review_note):undefined,teacherDecision:row.teacher_decision??undefined,teacherCode:row.teacher_code?String(row.teacher_code):undefined,teacherTitleEn:row.teacher_title_en?String(row.teacher_title_en):undefined,teacherTitleFr:row.teacher_title_fr?String(row.teacher_title_fr):undefined,teacherDescription:row.teacher_description?String(row.teacher_description):undefined,teacherNote:row.teacher_note?String(row.teacher_note):undefined,teacherReviewedBy:row.teacher_reviewed_by?String(row.teacher_reviewed_by):undefined,teacherReviewedAt:row.teacher_reviewed_at?String(row.teacher_reviewed_at):undefined,createdAt:String(row.created_at),
       })),
       curriculumProvenance:(curriculumProvenanceResult.data??[]).map((row)=>({
         outcomeId:String(row.outcome_id),proposalId:String(row.proposal_id),documentId:String(row.document_id),documentVersion:Number(row.document_version),
@@ -2149,6 +2149,21 @@ export async function proposeCurriculumOutcome(input:{
     p_code:input.code.trim(),p_title_en:input.titleEn.trim(),p_title_fr:input.titleFr?.trim()||null,p_description:input.description?.trim()||null,
     p_page_start:input.pageStart??null,p_page_end:input.pageEnd??null,p_section:input.section?.trim()||null,p_excerpt:input.excerpt?.trim()||null,
     p_confidence:input.confidence??null,p_provider:input.provider?.trim()||"human",p_run_id:input.runId?.trim()||null,
+  });
+  if(error)throw error;return String(data);
+}
+
+export async function teacherReviewCurriculumProposal(input:{
+  proposalId:string;decision:"accepted"|"corrected"|"rejected";code?:string;titleEn?:string;titleFr?:string;description?:string;note:string;usefulness:number;minutesSaved?:number;
+}){
+  if(!input.proposalId)throw new Error("Choose a curriculum suggestion.");
+  if(input.usefulness<1||input.usefulness>5)throw new Error("Usefulness must be between 1 and 5.");
+  if(input.decision==="corrected"&&(!input.code?.trim()||!input.titleEn?.trim()))throw new Error("Corrected code and English title are required.");
+  if(!isSupabaseConfigured||!supabase)return crypto.randomUUID();
+  const{data,error}=await supabase.rpc("dreem_teacher_review_curriculum_proposal",{
+    p_proposal_id:input.proposalId,p_decision:input.decision,p_code:input.code?.trim()||null,p_title_en:input.titleEn?.trim()||null,
+    p_title_fr:input.titleFr?.trim()||null,p_description:input.description?.trim()||null,p_note:input.note.trim()||null,
+    p_usefulness:input.usefulness,p_minutes_saved:input.minutesSaved??null,
   });
   if(error)throw error;return String(data);
 }
