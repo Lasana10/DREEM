@@ -13,7 +13,8 @@ export type Role =
   | "security_guard"
   | "parent"
   | "student"
-  | "auditor";
+  | "auditor"
+  | "it_admin";
 
 export type SignalSeverity = "normal" | "important" | "urgent" | "safeguarding";
 export type SignalStatus =
