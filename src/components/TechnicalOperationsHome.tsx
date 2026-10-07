@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { AlertTriangle, BadgeCheck, BellRing, DatabaseBackup, RefreshCw, ServerCog, ShieldCheck, WifiOff } from "lucide-react";
 import { loadTechnicalOperations, type AcceptanceEvidenceRow, type TechnicalStatus } from "../lib/technicalOperations";
 import { releaseAlignment, type DreemReleaseManifest } from "../lib/releaseManifest";
@@ -31,4 +31,4 @@ export default function TechnicalOperationsHome(){
     <section className="panel"><div className="panel-title"><BadgeCheck/><div><span>ACCEPTANCE EVIDENCE</span><h3>Production checks that have actually run</h3><p>These records are generated only after controlled acceptance scenarios complete or are explicitly blocked.</p></div></div><div className="compact-table">{data?.acceptance.map(item=><div className="document-row" key={item.id}><strong>{item.scenario.replaceAll("_"," ")}</strong><span className={"status-pill "+(item.status==="passed"?"success":item.status==="blocked"?"attention":"danger")}>{item.status}</span><small>{new Date(item.runAt).toLocaleString()} · {item.source}</small></div>)}{!data?.acceptance.length?<p>No persisted acceptance evidence yet.</p>:null}</div></section>
   </div>;
 }
-function Metric({label,value,note,tone="",icon}:{label:string;value:number;note:string;tone?:string;icon:React.ReactNode}){return <article className={"metric "+tone}><span>{icon}{label}</span><strong>{value}</strong><small>{note}</small></article>;}
+function Metric({label,value,note,tone="",icon}:{label:string;value:number;note:string;tone?:string;icon:ReactNode}){return <article className={"metric "+tone}><span>{icon}{label}</span><strong>{value}</strong><small>{note}</small></article>;}
