@@ -11,6 +11,7 @@ describe("roleAppIdentity", () => {
     ["driver", "driver", "DREEM Driver"],
     ["transport_manager", "driver", "DREEM Transport"],
     ["security_guard", "gate", "DREEM Gate"],
+    ["it_admin", "it", "DREEM IT"],
     ["principal", "school", "DREEM School"],
   ] as const)("maps %s to its authorized install identity", (role, key, name) => {
     expect(roleAppIdentity(role)).toMatchObject({ key, name });
