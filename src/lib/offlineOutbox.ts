@@ -29,8 +29,8 @@ const MAX_ATTEMPTS = 8;
 const RETRYABLE_CODES = new Set(["PGRST000","PGRST002","08000","08003","08006","57P01","53300"]);
 const RETRYABLE_HTTP = new Set([408,425,429,500,502,503,504]);
 
-export function isRetryableRemoteFailure(reason: unknown) {
-  if (typeof navigator !== "undefined" && !navigator.onLine) return true;
+export function isRetryableRemoteFailure(reason: unknown, online = typeof navigator === "undefined" ? true : navigator.onLine) {
+  if (!online) return true;
   const record = reason && typeof reason === "object" ? reason as Record<string, unknown> : {};
   const code = String(record.code ?? "").toUpperCase();
   const status = Number(record.status ?? record.statusCode ?? 0);
