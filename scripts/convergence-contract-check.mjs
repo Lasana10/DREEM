@@ -38,10 +38,23 @@ requireTokens("src/components/Shell.tsx",["useLanguage","Passer en anglais","Tro
 requireTokens("src/components/CurriculumIntelligencePanel.tsx",["source provenance","teacher response","Record academic decision","Automatic extraction provider not connected"]);
 requireTokens("src/components/TeacherClassroomWorkspace.tsx",["teacherReviewCurriculumProposal","Send review for academic approval","Preparation minutes saved"]);
 requireTokens("src/lib/repository.ts",["dreem_propose_curriculum_outcome","dreem_teacher_review_curriculum_proposal","dreem_review_curriculum_proposal","dreem_acknowledge_notification_delivery"]);
-requireTokens("src/components/NotificationDeliveryPanel.tsx",["MY DELIVERY RECEIPTS","Acknowledge","queued, dispatched, delivered and acknowledged"]);
+requireTokens("src/components/NotificationDeliveryPanel.tsx",["MY DELIVERY RECEIPTS","Acknowledge","Queued, dispatched, delivered and acknowledged"]);
 requireTokens("supabase/functions/notification-delivery-webhook/index.ts",["x-dreem-webhook-secret","delivered","failed"]);
 requireTokens("supabase/migrations/20261007214847_it_role_and_technical_operations.sql",["it_admin","technical_operations"]);
 requireTokens("supabase/migrations/20261007215323_it_authority_consistency.sql",["technical_operations","dreem_update_membership_status"]);
+requireTokens("src/components/TechnicalOperationsHome.tsx",["IT · TODAY","RELEASE TRUTH","ACCEPTANCE EVIDENCE"]);
+requireTokens("src/lib/technicalOperations.ts",["dreem_technical_status","dreem_acceptance_evidence"]);
+requireTokens("src/lib/authority.ts",["technical_operations","it_admin"]);
+requireTokens("src/lib/access.ts",["it_admin:[\"command\"]"]);
+requireTokens("supabase/migrations/20261008000400_normalize_class_authorization.sql",["lower(trim(c.name))","lower(trim(coalesce(s.class_name"]);
+requireTokens("supabase/migrations/20261008000750_fix_digest_schema_references.sql",["extensions.digest","dreem_verify_and_record_learner_release","dreem_export_school_snapshot"]);
+requireTokens("supabase/migrations/20261008000850_fix_recovery_export_ordering_and_secrets.sql",["token_hash","to_jsonb(x)::text"]);
+requireTokens("supabase/migrations/20261008000975_fix_assessment_marks_conflict_target.sql",["dreem_marks_assessment_id_student_id_key"]);
+requireTokens("supabase/migrations/20261008000980_fix_assessment_summary_qualification.sql",["dm.assessment_id"]);
+requireTokens("supabase/migrations/20261008001150_dynamic_release_manifest.sql",["operating-completion-v12-final","connected_school_day","max(m.version)"]);
+requireTokens("supabase/migrations/20261008001000_connected_school_day_acceptance.sql",["attendance_recorded","support_case_closed","family_acknowledged"]);
+requireTokens("supabase/migrations/20261008001050_suspended_staff_acceptance.sql",["suspended_staff_new_action_denied","false_success_records"]);
+
 
 
 requireTokens("supabase/migrations/20261006151337_audited_learner_year_transitions.sql",["dreem_learner_placements","dreem_preview_class_transition","dreem_execute_class_transition"]);
