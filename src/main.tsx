@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import RuntimeBoundary from "./components/RuntimeBoundary";
-import { LanguageProvider } from "./lib/language";
+import { LanguageProvider } from "./lib/LanguageProvider";
 import "./styles.css";
 import "./roleWorkspaces.css";
 import "./components/TransportManagerWorkspace.css";
