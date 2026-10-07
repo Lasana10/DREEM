@@ -1,4 +1,4 @@
-export type OfflineOperationStatus = "pending" | "syncing" | "failed" | "tampered";
+export type OfflineOperationStatus = "pending" | "syncing" | "failed" | "blocked" | "conflict" | "tampered";
 
 export interface OfflineOperation<T = unknown> {
   id: string;
@@ -159,9 +159,18 @@ export async function replayOffline(scope: { schoolId: string; actorId: string }
       await remove(operation.id); synced++;
     }
     catch (reason) {
-      operation.attempts += 1; operation.status="failed"; operation.lastError=reason instanceof Error?reason.message:"Sync failed";
-      const delay=Math.min(60_000, 1_000 * 2 ** operation.attempts);
-      operation.nextAttemptAt=new Date(Date.now()+delay).toISOString(); await save(operation); failed++;
+      const record=reason && typeof reason==="object" ? reason as Record<string,unknown> : {};
+      operation.lastError=reason instanceof Error?reason.message:String(record.message??"Sync failed");
+      if(record.retryable===false){
+        operation.status=record.conflict===true?"conflict":"blocked";
+        operation.nextAttemptAt=undefined;
+      }else{
+        operation.attempts += 1;
+        operation.status="failed";
+        const delay=Math.min(60_000, 1_000 * 2 ** operation.attempts);
+        operation.nextAttemptAt=new Date(Date.now()+delay).toISOString();
+      }
+      await save(operation); failed++;
     }
   }
   window.dispatchEvent(new CustomEvent("dreem:outbox-changed"));
