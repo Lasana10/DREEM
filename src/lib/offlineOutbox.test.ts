@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { offlinePayloadDigest } from "./offlineOutbox";
+import { isRetryableRemoteFailure, offlinePayloadDigest } from "./offlineOutbox";
 
 describe("offline operation integrity",()=>{
   it("produces the same digest for semantically identical payload key order",async()=>{
@@ -14,5 +14,17 @@ describe("offline operation integrity",()=>{
     const present=await offlinePayloadDigest({...base,payload:{studentId:"s1",status:"present"}});
     const absent=await offlinePayloadDigest({...base,payload:{studentId:"s1",status:"absent"}});
     expect(absent).not.toBe(present);
+  });
+  it("treats backend/network outages as retryable even when the browser reports online",()=>{
+    Object.defineProperty(window.navigator,"onLine",{configurable:true,value:true});
+    expect(isRetryableRemoteFailure({message:"Failed to fetch"})).toBe(true);
+    expect(isRetryableRemoteFailure({status:503,message:"Service unavailable"})).toBe(true);
+    expect(isRetryableRemoteFailure({code:"08006",message:"connection failure"})).toBe(true);
+  });
+
+  it("does not queue ordinary authorization or validation failures",()=>{
+    Object.defineProperty(window.navigator,"onLine",{configurable:true,value:true});
+    expect(isRetryableRemoteFailure({message:"Teachers may record attendance only for an assigned class."})).toBe(false);
+    expect(isRetryableRemoteFailure({code:"23505",message:"duplicate key"})).toBe(false);
   });
 });
