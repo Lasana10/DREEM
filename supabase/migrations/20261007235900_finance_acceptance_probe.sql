@@ -33,7 +33,7 @@ begin
 
   if v_school is null or v_founder is null or v_teacher is null or v_fee_account is null or v_class is null or v_rail is null then
     insert into public.dreem_acceptance_evidence(school_id,scenario,status,detail,source)
-    values(v_school,'cash_payment_to_reconciled_deposit','blocked',jsonb_build_object('reason','Representative fixture prerequisites unavailable'),'20261007235500_finance_acceptance_probe');
+    values(v_school,'cash_payment_to_reconciled_deposit','blocked',jsonb_build_object('reason','Representative fixture prerequisites unavailable'),'20261007235900_finance_acceptance_probe');
     return;
   end if;
 
@@ -111,6 +111,6 @@ begin
         'independent_closure_approved',true,'deposit_self_confirmation_blocked',v_self_deposit_blocked,
         'independent_deposit_confirmed',true,'reconciled_event_count',v_reconciled,'fixture_rolled_back',true
       ),
-      '20261007235500_finance_acceptance_probe');
+      '20261007235900_finance_acceptance_probe');
   end if;
 end $$;
