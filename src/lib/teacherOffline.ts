@@ -48,8 +48,11 @@ async function ingestTeacherOperation(payload:unknown,operation:OfflineOperation
     p_payload:payload,p_payload_digest:operation.payloadDigest,p_captured_at:operation.createdAt,p_idempotency_key:operation.idempotencyKey,
   });
   if(error)throw error;
-  const result=(data??{}) as {accepted?:boolean;duplicate?:boolean;error?:string};
-  if(result.accepted!==true)throw new Error(result.error||"The school server rejected this offline action after rechecking current authority.");
+  const result=(data??{}) as {accepted?:boolean;duplicate?:boolean;error?:string;retryable?:boolean;conflict?:boolean};
+  if(result.accepted!==true){
+    const rejected=Object.assign(new Error(result.error||"The school server rejected this offline action after rechecking current authority."),{retryable:result.retryable===true,conflict:result.conflict===true});
+    throw rejected;
+  }
   return result;
 }
 
