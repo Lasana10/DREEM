@@ -2,7 +2,7 @@ import { BookOpenCheck, CalendarClock, ClipboardCheck, FolderHeart, GraduationCa
 import type { WorkspaceData } from "../lib/repository";
 import type { ViewKey } from "./Shell";
 import { evaluateRecommendedPolicies } from "../domain/operationalExcellence";
-import { useLanguage } from "../lib/language";
+import { useLanguage } from "../lib/useLanguage";
 
 function minutes(value:string){const [h,m]=value.slice(0,5).split(":").map(Number);return h*60+m;}
 
