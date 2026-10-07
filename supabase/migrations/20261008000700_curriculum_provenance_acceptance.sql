@@ -43,7 +43,7 @@ begin
 
     v_feedback:=public.dreem_teacher_review_curriculum_proposal(
       v_proposal,'accepted',null,null,null,null,
-      'Useful and consistent with classroom preparation.',4,12
+      'Useful and consistent with classroom preparation.',4::smallint,12
     );
 
     if v_feedback is null then raise exception 'Teacher review was not recorded'; end if;
