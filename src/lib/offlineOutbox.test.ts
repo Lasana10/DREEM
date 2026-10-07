@@ -16,15 +16,13 @@ describe("offline operation integrity",()=>{
     expect(absent).not.toBe(present);
   });
   it("treats backend/network outages as retryable even when the browser reports online",()=>{
-    Object.defineProperty(window.navigator,"onLine",{configurable:true,value:true});
-    expect(isRetryableRemoteFailure({message:"Failed to fetch"})).toBe(true);
-    expect(isRetryableRemoteFailure({status:503,message:"Service unavailable"})).toBe(true);
-    expect(isRetryableRemoteFailure({code:"08006",message:"connection failure"})).toBe(true);
+    expect(isRetryableRemoteFailure({message:"Failed to fetch"},true)).toBe(true);
+    expect(isRetryableRemoteFailure({status:503,message:"Service unavailable"},true)).toBe(true);
+    expect(isRetryableRemoteFailure({code:"08006",message:"connection failure"},true)).toBe(true);
   });
 
   it("does not queue ordinary authorization or validation failures",()=>{
-    Object.defineProperty(window.navigator,"onLine",{configurable:true,value:true});
-    expect(isRetryableRemoteFailure({message:"Teachers may record attendance only for an assigned class."})).toBe(false);
-    expect(isRetryableRemoteFailure({code:"23505",message:"duplicate key"})).toBe(false);
+    expect(isRetryableRemoteFailure({message:"Teachers may record attendance only for an assigned class."},true)).toBe(false);
+    expect(isRetryableRemoteFailure({code:"23505",message:"duplicate key"},true)).toBe(false);
   });
 });
