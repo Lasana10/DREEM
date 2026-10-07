@@ -23,6 +23,7 @@ import FinanceWorkspace from "./components/FinanceWorkspace";
 import LearnerDirectoryWorkspace from "./components/LearnerDirectoryWorkspace";
 import TeacherClassroomWorkspace from "./components/TeacherClassroomWorkspace";
 import TeacherHome from "./components/TeacherHome";
+import ITOperationsView from "./components/ITOperationsView";
 import LearningWorkspace from "./components/LearningWorkspace";
 import FamilyLearningWorkspace from "./components/FamilyLearningWorkspace";
 import StudentWorkspace from "./components/StudentWorkspace";
@@ -94,7 +95,7 @@ function WorkspaceApp() {
 
   return <>
     <Shell brand={workspace.brand} viewer={workspace.viewer} view={view} onView={setView} signalCount={workspace.signals.filter((item) => item.status === "new").length} onFeedback={openFeedback} searchItems={buildWorkspaceSearchIndex(workspace)}>
-      {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : isSchoolLeadership ? <SchoolCommandCentre workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
+      {view === "command" && (workspace.viewer.role === "teacher" ? <TeacherHome workspace={workspace} onNavigate={setView}/> : workspace.viewer.role === "it_admin" ? <ITOperationsView/> : isSchoolLeadership ? <SchoolCommandCentre workspace={workspace} onNavigate={setView}/> : <CommandView learners={workspace.learners} finance={workspace.finance} pulse={buildOperationalPulse(workspace.learners,workspace.finance,workspace.signals,workspace.cases)} signals={workspace.signals} />)}
       {view === "admissions" && <AdmissionsView workspace={workspace} onRefresh={refreshWorkspace} onOpenLearners={()=>setView("learners")}/>}
       {view === "operations" && (workspace.viewer.role==="teacher"?<TeacherClassroomWorkspace workspace={workspace} onRefresh={refreshWorkspace}/>:<OperationalWorkflowsView workspace={workspace} onInviteStaff={inviteStaff} onUpdateAccess={updateAccessStatus} onEnrolLearner={enrolLearner} onIssueCredential={issueStudentCredential} onRecordAttendance={recordAttendance} onRecordAssessment={recordAssessment} onRefresh={refreshWorkspace} />)}
       {view === "academics" && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refreshWorkspace} onOpenStudio={()=>setView("studio")}/>} 
