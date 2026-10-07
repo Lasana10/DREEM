@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, Cloud, Database, RefreshCw, ShieldCheck, Wifi } from "lucide-react";
 import { loadReleaseManifest, releaseAlignment, type DreemReleaseManifest } from "../lib/releaseManifest";
 import { loadTechnicalStatus, type TechnicalStatus } from "../lib/technicalOperations";
@@ -14,15 +14,15 @@ export default function ITOperationsView(){
   const online=typeof navigator==="undefined"?true:navigator.onLine;
   const alignment=releaseAlignment(release);
 
-  async function refresh(){
+  const refresh=useCallback(async()=>{
     setBusy(true);setError("");
     try{
       const[technical,manifest]=await Promise.all([loadTechnicalStatus(),loadReleaseManifest()]);
       setStatus(technical);setRelease(manifest);
     }catch(reason){setError(userFacingError(reason,text("System status could not be loaded.","L’état du système n’a pas pu être chargé.")));}
     finally{setBusy(false);}
-  }
-  useEffect(()=>{void refresh();},[]);
+  },[text]);
+  useEffect(()=>{void refresh();},[refresh]);
 
   const attention=(status?.failedNotifications??0)+(status?.offlineRejected??0);
   const attentionTitle=attention
