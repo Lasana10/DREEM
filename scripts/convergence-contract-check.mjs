@@ -26,6 +26,15 @@ requireTokens("src/components/InstitutionAuthorityStudio.tsx",["ACCESS PREVIEW",
 requireTokens("src/components/SchoolStudioView.tsx",["YearTransitionStudio","mergeStarter","userFacingError"]);
 requireTokens("src/components/YearTransitionStudio.tsx",["Preview transition","Move ${preview.affectedLearners}","userFacingError"]);
 requireTokens("src/lib/yearTransition.ts",["dreem_preview_class_transition","dreem_execute_class_transition"]);
+requireTokens("src/lib/offlineOutbox.ts",["isRetryableRemoteFailure","OfflineReplayReceipt","blocked","conflict"]);
+requireTokens("src/lib/teacherOffline.ts",["dreem_ingest_teacher_offline_operation","isRetryableRemoteFailure"]);
+requireTokens("src/components/SecurityGateView.tsx",["DO NOT RELEASE","isRetryableRemoteFailure","queueOfflineGateDenial"]);
+requireTokens("src/lib/releaseManifest.ts",["dreem_release_manifest","frontendCommit","Release unverified"]);
+requireTokens("src/components/SchoolRecoveryPanel.tsx",["Download verified recovery bundle","Verify a recovery file","does not overwrite the live school"]);
+requireTokens("src/lib/schoolRecovery.ts",["dreem_export_school_snapshot","dreem_verify_school_snapshot"]);
+requireTokens("src/lib/LanguageProvider.tsx",["dreem-language","LanguageContext.Provider"]);
+requireTokens("src/components/Shell.tsx",["useLanguage","Passer en anglais","Trouver un espace ou une tâche"]);
+
 requireTokens("supabase/migrations/20261006151337_audited_learner_year_transitions.sql",["dreem_learner_placements","dreem_preview_class_transition","dreem_execute_class_transition"]);
 
 const reachableSafeErrorFiles=[
