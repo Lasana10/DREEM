@@ -45,7 +45,7 @@ describe("Academic task journey", () => {
   });
   it("shows submitted assessment evidence to independent reviewers", () => {
     render(<AcademicJourneyWorkspace workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenStudio={vi.fn()}/>);
-    fireEvent.click(screen.getByRole("button",{name:"Open Assessment moderation"}));
+    expect(screen.getByRole("button",{name:"Close Assessment moderation"})).toBeInTheDocument();
     expect(screen.getByLabelText("Assessment review evidence")).toHaveTextContent("Algebra checkpoint");
     expect(screen.getByLabelText("Assessment review evidence")).toHaveTextContent("4 learner marks recorded");
   });
