@@ -34,4 +34,20 @@ describe("Academic task journey", () => {
     expect(screen.getByRole("button", { name: "Schedule period" })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save curriculum outcome" })).not.toBeInTheDocument();
   });
+  it("shows lesson evidence before an academic review and requires a correction reason", () => {
+    const submittedLesson={...demoAcademics.lessonPlans[0],status:"submitted" as const};
+    render(<AcademicJourneyWorkspace workspace={{...workspace,academics:{...demoAcademics,lessonPlans:[submittedLesson]}}} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenStudio={vi.fn()}/>);
+    expect(screen.getByText("Equivalent fractions")).toBeInTheDocument();
+    expect(screen.getByText(/Paired fraction-strip investigation/)).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Decision"),{target:{value:"returned"}});
+    fireEvent.click(screen.getByRole("button",{name:"Record review"}));
+    expect(screen.getByRole("alert")).toHaveTextContent(/Explain what the teacher needs to correct/);
+  });
+  it("shows submitted assessment evidence to independent reviewers", () => {
+    render(<AcademicJourneyWorkspace workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenStudio={vi.fn()}/>);
+    expect(screen.getByRole("button",{name:"Close Assessment moderation"})).toBeInTheDocument();
+    expect(screen.getByLabelText("Assessment review evidence")).toHaveTextContent("Algebra checkpoint");
+    expect(screen.getByLabelText("Assessment review evidence")).toHaveTextContent("4 learner marks recorded");
+  });
+
 });
