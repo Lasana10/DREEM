@@ -4,6 +4,7 @@ import { buildInstitutionFlowHealth, evaluateRecommendedPolicies, type PolicyAct
 import { canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
 import { useLanguage } from "../lib/useLanguage";
+import PolicyFindingQueue from "./PolicyFindingQueue";
 
 type ActionItem={
   id:string;
@@ -79,6 +80,7 @@ export default function ActionCentre({workspace,onNavigate}:{workspace:Workspace
   ];
 
   return <section className="action-centre">
+    <PolicyFindingQueue/>
     <header className="action-centre-head">
       <div><span>{t("YOUR ACTION CENTRE","VOTRE CENTRE D’ACTIONS")}</span><h3>{items.length?`${items.length} ${t(items.length===1?"action needs ownership":"actions need ownership",items.length===1?"action à prendre en charge":"actions à prendre en charge")}`:t("Nothing is waiting for you","Aucune action en attente")}</h3><p>{t("One place for the school work that needs attention. Open an item to deal with it.","Toutes les actions à suivre au même endroit. Ouvrez un dossier pour le traiter.")}</p></div>
       <div className={"action-centre-count "+(critical?"danger":"")}><strong>{critical||items.length}</strong><small>{critical?t("critical","critiques"):t("open","ouvertes")}</small></div>
