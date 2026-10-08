@@ -1,0 +1,49 @@
+name: DREEM browser viewport smoke
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dreem-browser-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install app and test browser
+        run: |
+          npm ci
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Build application
+        run: npm run build
+      - name: Run phone and desktop browser smoke
+        run: |
+          npx vite preview --host 127.0.0.1 --port 4173 > /tmp/dreem-preview.log 2>&1 &
+          preview_pid=$!
+          trap 'kill $preview_pid 2>/dev/null || true' EXIT
+          for attempt in 1 2 3 4 5 6 7 8 9 10; do
+            if curl --fail --silent http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          node scripts/mobile-browser-smoke.mjs
+      - name: Save viewport screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dreem-browser-viewport-screenshots
+          path: mobile-smoke-artifacts/
+          if-no-files-found: ignore
