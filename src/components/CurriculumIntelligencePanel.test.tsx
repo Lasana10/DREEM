@@ -17,7 +17,7 @@ describe("Curriculum provenance guardrails",()=>{
  it("does not allow academic approval before teacher verification",()=>{
   const doc=demoAcademics.documents.find(item=>item.documentType==="syllabus");
   if(!doc)throw new Error("Demo syllabus missing");
-  const proposal={id:"pending-1",documentId:doc.id,documentVersion:1,academicYearId:"year",classId:"class",subjectId:doc.subjectId??"",proposedCode:"MATH-01",proposedTitleEn:"Fractions",extractionProvider:"human",sourcePageStart:3,status:"proposed" as const};
+  const proposal={id:"pending-1",documentId:doc.id,documentVersion:1,academicYearId:"year",classId:"class",subjectId:doc.subjectId??"",proposedCode:"MATH-01",proposedTitleEn:"Fractions",extractionProvider:"human",sourcePageStart:3,status:"proposed" as const,createdAt:"2026-10-08T08:00:00Z"};
   const academics={...demoAcademics,curriculumProposals:[proposal]};
   render(<CurriculumIntelligencePanel workspace={{...base,academics}} onRefresh={vi.fn().mockResolvedValue(undefined)}/>);
   expect(screen.getByRole("button",{name:"Record academic decision"})).toBeDisabled();
