@@ -185,3 +185,14 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--bra
 
 /* A verified deposit preview is always visible before submitting the batch. */
 .finance-selected-total{padding:10px 13px;background:var(--dreem-surface-soft);border:1px solid var(--dreem-line);border-radius:12px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+
+
+/* Academic operation: one task opened at a time rather than six simultaneous forms. */
+.academic-stage-toggle{display:flex;width:100%;align-items:center;gap:12px;text-align:left;cursor:pointer;border:0;background:transparent;color:inherit;font:inherit;padding:0}
+.academic-stage-toggle:focus-visible{outline:3px solid var(--brand);outline-offset:5px;border-radius:8px}
+.academic-stage-description{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+.academic-stage-description strong{font-size:1.02rem}
+.academic-stage-description small{font-size:.83rem;line-height:1.4;color:var(--dreem-muted)}
+.academic-stage-chevron{font-size:1.6rem;font-weight:500;line-height:1}
+.academic-stage-active{border-color:var(--brand)}
+@media(max-width:680px){.academic-stage-toggle{align-items:flex-start}.academic-stage-chevron{margin-left:auto}}
