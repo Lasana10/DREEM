@@ -137,3 +137,30 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--bra
 }
 
 @media(prefers-reduced-motion:reduce){*{animation-duration:.001ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.001ms!important}}
+
+
+/* Object-first learner support and transport network, with compact mobile controls. */
+.care-workspace-actions{display:flex;justify-content:flex-end;margin:12px 0}
+.care-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}
+.care-case-context{padding:17px;border:1px solid var(--dreem-line);border-radius:16px;background:var(--dreem-surface-soft)}
+.care-case-context h4{margin:7px 0;font-size:1.1rem}.care-case-context p{margin:0 0 10px;overflow-wrap:anywhere}
+.care-context-meta{display:flex;gap:12px;flex-wrap:wrap;color:var(--dreem-muted);font-size:.85rem}
+.case-action-workspace{max-width:100%;min-width:0}
+.route-management-summary{display:grid;gap:12px;margin-bottom:16px}
+.route-management-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:8px}
+.route-management-list button{display:flex;flex-direction:column;align-items:flex-start;gap:5px;text-align:left;background:#fff;border:1px solid var(--dreem-line);border-radius:12px;padding:12px}
+.route-management-list button.selected{border-color:var(--brand);background:var(--dreem-surface-soft)}
+.route-management-list small{font-size:.78rem;color:var(--dreem-muted)}
+.route-stop-summary{padding:14px;border-radius:12px;background:var(--dreem-surface-soft)}
+.route-stop-summary ol{margin:8px 0 0;padding-left:23px}
+.role-workspace,.content,.panel,.settings-form,.form-grid{min-width:0;max-width:100%}
+.settings-form input,.settings-form select,.settings-form textarea{min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:680px){
+  .care-workspace-actions{justify-content:stretch}.care-workspace-actions button{width:100%}
+  .care-grid .panel{padding:17px}
+  .case-action-workspace select{width:100%;text-overflow:ellipsis}
+  .care-context-meta{display:grid;gap:5px}
+  .role-workspace .transport-grid,.route-management-list{grid-template-columns:minmax(0,1fr)}
+  .role-workspace{padding-bottom:max(105px,calc(80px + env(safe-area-inset-bottom)))}
+  .settings-form textarea{font-size:16px}
+}

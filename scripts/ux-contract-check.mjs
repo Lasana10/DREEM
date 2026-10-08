@@ -17,5 +17,11 @@ const command=fs.readFileSync("src/components/SchoolCommandCentre.tsx","utf8");
 if(!command.includes("SCHOOL TODAY"))failures.push("Plain-language School Today missing");
 if(!command.includes("SCHOOL FLOW"))failures.push("School flow surface missing");
 if(!command.includes("Suggested follow-up"))failures.push("Recommended follow-up surface missing");
+const care=fs.readFileSync("src/components/CareView.tsx","utf8");
+const transport=fs.readFileSync("src/components/TransportView.tsx","utf8");
+const responsive=fs.readFileSync("src/experience-grade-v5.css","utf8");
+for(const [source,tokens,label] of [[care,["care-case-context","showNewCase","activeCase"],"Learner care contextual workflow"],[transport,["route-management-list","showRouteSetup","route-stop-summary"],"Route-first transport"],[responsive,["case-action-workspace","route-management-list","padding-bottom:max(105px"],"Narrow-screen operational layout"]]){
+  for(const token of tokens)if(!source.includes(token))failures.push(label+" regression: "+token);
+}
 if(failures.length){console.error(failures.join("\n"));process.exit(1)}
 console.log("DREEM UX contract passed.");
