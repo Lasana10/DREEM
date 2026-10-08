@@ -34,6 +34,7 @@ describe("Admissions workflow", () => {
   it("captures required guardian declarations with the application", async () => {
     render(<AdmissionsView workspace={intakeWorkspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
     expect(screen.queryByRole("button",{name:/approve and send offer/i})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button",{name:"Start new application"}));
     fireEvent.change(screen.getByLabelText("Learner full name"), { target: { value: "Applicant Learner" } });
     fireEvent.change(screen.getByLabelText("Target class"), { target: { value: "Form 1" } });
     fireEvent.change(screen.getByLabelText("Guardian full name"), { target: { value: "Applicant Guardian" } });
@@ -72,6 +73,7 @@ describe("Admissions workflow", () => {
   it("blocks terminal admission records from being progressed again", () => {
     render(<AdmissionsView workspace={terminalWorkspace} onRefresh={vi.fn().mockResolvedValue(undefined)} />);
     expect(screen.getByText("This application is already enrolled.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /no further action/i })).toBeDisabled();
+    expect(screen.queryByRole("button", { name: /no further action/i })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Decision note")).not.toBeInTheDocument();
   });
 });
