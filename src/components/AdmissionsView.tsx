@@ -84,6 +84,7 @@ export default function AdmissionsView({
   const canDecide=canAuthority(workspace.viewer,"admissions_decision");
   const [state, setState] = useState<State>({ error: false, message: "" });
   const [busy, setBusy] = useState(false);
+  const [showIntake, setShowIntake] = useState(workspace.admissions.length === 0);
   const actionLock = useRef(false);
   const [selected, setSelected] = useState(initialApplication?.id ?? "");
   const [targetStatus, setTargetStatus] = useState<TargetAdmissionStatus | "">("");
@@ -156,6 +157,7 @@ export default function AdmissionsView({
       const result = await recordAdmissionApplication(command);
       element.reset();
       setSelected(result.applicationId);
+      setShowIntake(false);
       return `Application ${result.applicationNumber} submitted.`;
     });
   }
@@ -231,8 +233,9 @@ export default function AdmissionsView({
         </article>
       </section>
 
+      {canIntake ? <div className="care-workspace-actions"><button className="primary" type="button" aria-expanded={showIntake} onClick={() => setShowIntake(value => !value)}>{showIntake ? "Return to applications" : "Start new application"}</button></div> : null}
       <div className="care-grid">
-        {canIntake ? <form className="panel settings-form" onSubmit={record}>
+        {canIntake && showIntake ? <form className="panel settings-form" onSubmit={record}>
           <div className="panel-title">
             <div>
               <span>NEW APPLICATION</span>
@@ -410,14 +413,14 @@ export default function AdmissionsView({
               This application is already {admissionStatusLabels[selectedApplication.status].toLowerCase()}.
             </div>
           ) : null}
-          <label>
+          {availableStatuses.length ? <label>
             Decision note
             <textarea name="note" required minLength={2} rows={4} placeholder="What was confirmed, what is still needed, or why this decision was made." />
-          </label>
-          <button className="primary" type="submit" disabled={busy || !selectedApplicationId || !availableStatuses.length}>
+          </label> : null}
+          {availableStatuses.length ? <button className="primary" type="submit" disabled={busy || !selectedApplicationId}>
             <ClipboardList />
             {busy ? "Saving…" : effectiveTargetStatus ? admissionActionLabels[effectiveTargetStatus] : "No further action"}
-          </button>
+          </button> : null}
         </form> : null}
         {!canIntake && !canDecide ? <section className="panel"><p>Your admissions access is read-only. You can follow records already shared with your role, but you cannot create or decide applications.</p></section> : null}
       </div>
