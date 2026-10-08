@@ -33,12 +33,10 @@ export default function PolicyFindingQueue(){
     {loading?<p role="status">{t("Loading follow-up records…","Chargement des dossiers…")}</p>:null}
     {error?<div role="alert" className="form-status error">{error}<button type="button" onClick={()=>{setError("");setLoading(true);void loadPolicyFindings().then(setFindings).catch(reason=>setError(userFacingError(reason,"Could not load findings."))).finally(()=>setLoading(false))}}>{t("Retry","Réessayer")}</button></div>:null}
     {message?<div role="status" className="form-status success">{message}</div>:null}
-    {findings.map(finding=><article className="finance-review-item" key={finding.id}>
-      <details><summary><span><strong>{finding.title}</strong><small>{finding.domain} · {finding.severity} · {finding.state==="acknowledged"?t("Acknowledged, unresolved","Pris en charge, non résolu"):t("Needs owner","À prendre en charge")}</small></span><span className="finance-review-cta">{t("See evidence","Voir les éléments")}</span></summary>
+    {findings.map(finding=><details className="finance-review-item" key={finding.id}><summary><span><strong>{finding.title}</strong><small>{finding.domain} · {finding.severity} · {finding.state==="acknowledged"?t("Acknowledged, unresolved","Pris en charge, non résolu"):t("Needs owner","À prendre en charge")}</small></span><span className="finance-review-cta">{t("See evidence","Voir les éléments")}</span></summary>
         <div className="policy-finding-body"><p>{finding.explanation}</p><p><strong>{t("Next action:","Prochaine action :")}</strong> {finding.nextAction}</p><small>{t("Responsible authority:","Responsable habilité :")} {finding.ownerScope}</small>
         {finding.state==="open"?<form onSubmit={event=>void acknowledge(event,finding.id)} className="settings-form"><label>{t("Follow-up note","Note de suivi")}<input name="note" minLength={5} required placeholder={t("Record what you will do next","Indiquez l’action à entreprendre")}/></label><button className="primary" type="submit" disabled={busy!==""}>{t("Acknowledge responsibility","Confirmer la prise en charge")}</button></form>:<p><ShieldCheck size={15}/> {t("Acknowledged, awaiting resolution","Pris en charge, en attente de résolution")}</p>}
         </div>
-      </details>
-    </article>)}
+    </details>)}
   </section>;
 }
