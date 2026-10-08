@@ -37,7 +37,8 @@ requireTokens("src/lib/LanguageProvider.tsx",["LanguageContext.Provider","localS
 requireTokens("src/components/Shell.tsx",["useLanguage","Passer en anglais","Trouver un espace ou une tâche"]);
 requireTokens("src/components/CurriculumIntelligencePanel.tsx",["source provenance","teacher response","Record academic decision","Automatic extraction provider not connected"]);
 requireTokens("src/components/TeacherClassroomWorkspace.tsx",["teacherReviewCurriculumProposal","Send review for academic approval","Preparation minutes saved"]);
-requireTokens("src/lib/repository.ts",["dreem_propose_curriculum_outcome","dreem_teacher_review_curriculum_proposal","dreem_review_curriculum_proposal","dreem_acknowledge_notification_delivery"]);
+requireTokens("src/lib/repository.ts",["dreem_propose_curriculum_outcome","dreem_teacher_review_curriculum_proposal","dreem_review_curriculum_proposal"]);
+requireTokens("src/lib/notificationChannels.ts",["dreem_acknowledge_notification_delivery","loadMyNotificationDeliveries"]);
 requireTokens("src/components/NotificationDeliveryPanel.tsx",["MY DELIVERY RECEIPTS","Acknowledge","Queued, dispatched, delivered and acknowledged"]);
 requireTokens("supabase/functions/notification-delivery-webhook/index.ts",["x-dreem-webhook-secret","delivered","failed"]);
 requireTokens("supabase/migrations/20261007214847_it_role_and_technical_operations.sql",["it_admin","technical_operations"]);
