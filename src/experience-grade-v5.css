@@ -176,3 +176,9 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--bra
 .finance-review-item[open]>summary{background:var(--dreem-surface-soft);border-bottom:1px solid var(--dreem-line)}
 .finance-review-item>form{padding:16px}
 @media(max-width:680px){.finance-review-item>summary{align-items:flex-start;flex-direction:column}.finance-review-item>form{padding:12px}}
+
+
+/* Class-specific work context stays compact across devices. */
+.classroom-next-action{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;margin:10px 0;padding:11px 14px;background:var(--dreem-surface-soft);border:1px solid var(--dreem-line);border-radius:12px}
+.classroom-next-action strong{font-size:.91rem}.classroom-next-action span{color:var(--dreem-muted);font-size:.82rem}
+@media(max-width:680px){.classroom-next-action{align-items:flex-start;flex-direction:column}}
