@@ -166,6 +166,9 @@ export const demoAcademics: AcademicOperations = {
       reviewerNote: "Objectives and learner evidence are clear.",
     },
   ],
+  curriculumProposals: [],
+  curriculumProvenance: [],
+  curriculumFeedback: [],
   curriculumOutcomes: [
     { id:"outcome-1", academicYearId:"ay-1", classId:"class-1", subjectId:"sub-1", code:"MATH-FRAC-01", titleEn:"Represent and compare equivalent fractions", titleFr:"Représenter et comparer des fractions équivalentes", description:"School-adapted bilingual competency outcome.", source:"school", status:"active" },
   ],
