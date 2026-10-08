@@ -10,6 +10,8 @@ type ActionState={tone:"idle"|"success"|"error";message:string};
 export default function CareView({workspace,onRefresh}:{workspace:WorkspaceData;onRefresh:()=>Promise<void>}){
   const [state,setState]=useState<ActionState>({tone:"idle",message:""});
   const [selectedCase,setSelectedCase]=useState(workspace.cases[0]?.id??"");
+  const activeCase=workspace.cases.find(item=>item.id===selectedCase);
+  const [showNewCase,setShowNewCase]=useState(workspace.cases.length===0);
   const openCases=workspace.cases.filter(item=>!["resolved","closed"].includes(item.status));
   const metrics=useMemo(()=>({
     open:openCases.length,
@@ -33,7 +35,7 @@ export default function CareView({workspace,onRefresh}:{workspace:WorkspaceData;
       priority:String(form.get("priority")??"normal") as OpenStudentCaseCommand["priority"],title:String(form.get("title")??""),summary:String(form.get("summary")??""),
       reviewDueOn:String(form.get("reviewDueOn")||"")||undefined,assignedTo:String(form.get("assignedTo")||"")||undefined,idempotencyKey:createIdempotencyKey("student-case"),
     };
-    await run(async()=>{const result=await openStudentCase(command);formElement.reset();setSelectedCase(result.caseId);return `Support case ${result.caseNumber} opened.`;});
+    await run(async()=>{const result=await openStudentCase(command);formElement.reset();setSelectedCase(result.caseId);setShowNewCase(false);return `Support case ${result.caseNumber} opened.`;});
   }
 
   async function progressCase(event:FormEvent<HTMLFormElement>){
@@ -52,16 +54,18 @@ export default function CareView({workspace,onRefresh}:{workspace:WorkspaceData;
     <section className="role-hero"><div><span className="eyebrow">CARE · TODAY</span><h2>{metrics.urgent?metrics.urgent+" urgent concern"+(metrics.urgent===1?"":"s")+" need attention":metrics.open+" active learner support case"+(metrics.open===1?"":"s")}</h2><p>Record the concern, assign the right person and follow up. Private details stay limited to the right school roles.</p></div><div className="role-hero-status"><span className={"status-pill "+(metrics.urgent?"danger":"info")}><ShieldAlert size={14}/>{metrics.restricted} restricted</span></div></section>
     {state.message?<div className={`form-status ${state.tone==="error"?"error":"success"}`}>{state.tone==="error"?<AlertTriangle/>:<FolderHeart/>}{state.message}</div>:null}
     <section className="metrics care-metrics"><article className="metric"><span>Active cases</span><strong>{metrics.open}</strong><small>Open through in progress</small></article><article className="metric red"><span>Urgent / critical</span><strong>{metrics.urgent}</strong><small>Leadership attention</small></article><article className="metric amber"><span>Review overdue</span><strong>{metrics.overdue}</strong><small>Action date passed</small></article><article className="metric violet"><span>Restricted</span><strong>{metrics.restricted}</strong><small>Need-to-know records</small></article></section>
+    <div className="care-workspace-actions"><button type="button" className="primary" onClick={()=>setShowNewCase(value=>!value)}>{showNewCase?"Return to case work":"Open a new support case"}</button></div>
     <div className="care-grid">
-      <form className="panel settings-form" onSubmit={openCase}>
+      {showNewCase&&<form className="panel settings-form" onSubmit={openCase}>
         <div className="panel-title"><div><span>OPEN CASE</span><h3>Record facts and assign ownership</h3></div><FolderHeart/></div>
         <div className="form-grid"><label>Learner<select name="studentId" required><option value="">Choose learner</option>{workspace.learners.map(item=><option key={item.id} value={item.id}>{item.name} · {item.matricule}</option>)}</select></label><label>Category<select name="category" defaultValue="learning_support"><option value="learning_support">Learning support</option><option value="attendance">Attendance</option><option value="wellbeing">Wellbeing</option><option value="safeguarding">Safeguarding</option><option value="discipline">Discipline</option><option value="health">Health</option><option value="financial_support">Financial support</option><option value="other">Other</option></select></label><label>Priority<select name="priority" defaultValue="normal"><option value="normal">Normal</option><option value="important">Important</option><option value="urgent">Urgent</option><option value="critical">Critical</option></select></label><label>Review due<input type="date" name="reviewDueOn"/></label><label>Assign to<select name="assignedTo"><option value="">Triage queue</option>{staff.map(item=><option key={item.profileId} value={item.profileId}>{item.name} · {item.role.replaceAll("_"," ")}</option>)}</select></label><label>Case title<input name="title" required minLength={3}/></label></div>
         <label>Factual summary<textarea name="summary" required minLength={10} rows={5} placeholder="Record observed facts, dates, source and immediate safety action. Avoid unsupported conclusions."/></label>
         <button className="primary" type="submit"><ShieldAlert/>Open support case</button>
-      </form>
-      <form className="panel settings-form" onSubmit={progressCase}>
-        <div className="panel-title"><div><span>PROGRESS CASE</span><h3>Assign, act, resolve and close</h3></div><CalendarClock/></div>
-        <label>Case<select name="caseId" required value={selectedCase} onChange={event=>setSelectedCase(event.target.value)}><option value="">Choose case</option>{workspace.cases.map(item=><option key={item.id} value={item.id}>{item.caseNumber} · {item.studentName} · {item.title}</option>)}</select></label>
+      </form>}
+      <form className="panel settings-form case-action-workspace" onSubmit={progressCase}>
+        <div className="panel-title"><div><span>PROGRESS CASE</span><h3>Continue the selected case</h3></div><CalendarClock/></div>
+        <label>Working on<select name="caseId" required value={selectedCase} onChange={event=>setSelectedCase(event.target.value)}><option value="">Choose a case</option>{workspace.cases.map(item=><option key={item.id} value={item.id}>{item.studentName} · {item.caseNumber}</option>)}</select></label>
+        {activeCase&&<div className="care-case-context" aria-live="polite"><span className="eyebrow">CURRENT CASE · {activeCase.status.replaceAll("_"," ")}</span><h4>{activeCase.title}</h4><p>{activeCase.summary}</p><div className="care-context-meta"><span>Owner: {activeCase.assignedTo??"Triage queue"}</span><span>Review: {activeCase.reviewDueOn??"Not scheduled"}</span></div></div>}
         <div className="form-grid"><label>Next state<select name="targetStatus" defaultValue="in_progress"><option value="triaged">Triaged</option><option value="assigned">Assigned</option><option value="in_progress">In progress</option><option value="resolved">Resolved</option><option value="closed">Closed</option><option value="open">Reopen</option></select></label><label>Review due<input type="date" name="reviewDueOn"/></label><label>Assign to<select name="assignedTo"><option value="">Keep current owner</option>{staff.map(item=><option key={item.profileId} value={item.profileId}>{item.name} · {item.role.replaceAll("_"," ")}</option>)}</select></label></div>
         <label>Action / outcome<textarea name="note" required minLength={2} rows={5} placeholder="What was verified, what action was taken, who was informed, and what happens next?"/></label>
         <button className="primary" type="submit"><CalendarClock/>Record case action</button>
