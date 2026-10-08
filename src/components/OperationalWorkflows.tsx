@@ -19,6 +19,7 @@ const roleOptions:{value:StaffInvitation["role"];label:string;purpose:string}[]=
   {value:"driver",label:"Driver",purpose:"Assigned school journeys"},
   {value:"security_guard",label:"Security / gate officer",purpose:"Safe learner release at the gate"},
   {value:"auditor",label:"Auditor",purpose:"Read-only school review"},
+  {value:"it_admin",label:"IT administrator",purpose:"Technical health, recovery and service operations"},
 ];
 const readableError=(reason:unknown)=>userFacingError(reason,"This school operation could not be completed. Nothing has been assumed saved. Check your connection or access and try again.");
 

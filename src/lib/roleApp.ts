@@ -14,6 +14,7 @@ export function roleAppIdentity(role: Role): RoleAppIdentity {
   if (role === "bursar" || role === "accountant") return { key: "finance", name: "DREEM Finance", shortName: "Finance", description: "Fees, payments, receipts, reconciliation and accounting control." };
   if (role === "driver" || role === "transport_manager") return { key: "driver", name: role === "driver" ? "DREEM Driver" : "DREEM Transport", shortName: role === "driver" ? "Driver" : "Transport", description: "Routes, trips, learners, safety and operational evidence." };
   if (role === "security_guard") return { key: "gate", name: "DREEM Gate", shortName: "Gate", description: "Credential checks and safe learner release." };
+  if (role === "it_admin") return { key: "school", name: "DREEM IT", shortName: "IT", description: "Technical health, release integrity, recovery and service queues." };
   return { key: "school", name: "DREEM School", shortName: "DREEM", description: "Leadership command and whole-school operations." };
 }
 

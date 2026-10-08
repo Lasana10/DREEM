@@ -5,6 +5,7 @@ import type { AcademicOperations, FinanceSummary, LearnerSummary, TransportOpera
 const learner:LearnerSummary={id:"l1",matricule:"DRM-1",name:"Ada N.",className:"Class 5",mastery:54,attendance:74,engagement:70,wellbeing:80,trend:-3,nextAction:"Review",idStatus:"active",feeAccountId:"fa1",feeBalance:50000};
 const academics:AcademicOperations={
  assignments:[],timetable:[],lessonPlans:[],curriculumOutcomes:[],
+ curriculumProposals:[],curriculumProvenance:[],curriculumFeedback:[],
  assignmentsForLearners:[
   {id:"a1",teachingAssignmentId:"ta1",termId:"t1",classId:"c1",className:"Class 5",subjectId:"s1",subjectName:"Mathematics",title:"Fractions",instructions:"",assignedOn:"2026-09-01",dueAt:"2026-09-10T12:00:00.000Z",maxScore:20,submissionMode:"text",status:"published",createdBy:"teacher"},
   {id:"a2",teachingAssignmentId:"ta1",termId:"t1",classId:"c1",className:"Class 5",subjectId:"s1",subjectName:"Mathematics",title:"Decimals",instructions:"",assignedOn:"2026-09-02",dueAt:"2026-09-11T12:00:00.000Z",maxScore:20,submissionMode:"text",status:"published",createdBy:"teacher"},

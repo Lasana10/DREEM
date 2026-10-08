@@ -32,7 +32,7 @@ export function canOpenView(viewer:AccessViewer,view:WorkspaceView):boolean{
   const role=viewer.role;
   switch(view){
     case "command":
-      return has("institutional_leadership","audit","academics_approval","admissions_decision","transport_management","finance_approval")
+      return has("institutional_leadership","audit","academics_approval","admissions_decision","transport_management","finance_approval","technical_operations")
         || (role==="teacher" && viewer.authorityScopes===undefined);
     case "admissions": return has("admissions_intake","admissions_decision");
     case "operations": return has("staff_management","admissions_intake","academics_delivery") || (role==="teacher" && viewer.authorityScopes===undefined);
@@ -55,7 +55,7 @@ const preferred:Partial<Record<Role,WorkspaceView[]>>={
   platform_founder:["command"], school_owner:["command"], principal:["command"], administrator:["command","admissions"],
   academic_head:["command","academics"], bursar:["finance"], accountant:["finance","command"],
   teacher:["command","operations"], tutor:["learning"], transport_manager:["transport","command"],
-  driver:["transport"], security_guard:["transport"], parent:["learning"], student:["learning"], auditor:["command","finance"],
+  driver:["transport"], security_guard:["transport"], parent:["learning"], student:["learning"], auditor:["command","finance"], it_admin:["command"],
 };
 
 export function defaultWorkspaceView(viewer:AccessViewer):WorkspaceView{

@@ -36,7 +36,7 @@ const primaryMobileViews:Partial<Record<Role,ViewKey[]>>={
  administrator:["command","admissions","operations","learners"],academic_head:["command","academics","learning","teachers"],
  teacher:["command","operations","learning","learners"],tutor:["learning","learners","care","signals"],
  parent:["learning","transport","signals"],student:["learning","transport","signals"],bursar:["finance","learners"],
- accountant:["finance","command"],transport_manager:["transport","command","signals"],driver:["transport"],security_guard:["transport"],auditor:["command","finance","learners"]
+ accountant:["finance","command"],transport_manager:["transport","command","signals"],driver:["transport"],security_guard:["transport"],auditor:["command","finance","learners"],it_admin:["command"]
 };
 
 const primaryDesktopViews:Partial<Record<Role,ViewKey[]>>={
@@ -53,7 +53,8 @@ const primaryDesktopViews:Partial<Record<Role,ViewKey[]>>={
  accountant:["command","finance","signals"],
  transport_manager:["command","transport","signals"],
  driver:["transport"],security_guard:["transport"],
- auditor:["command","finance","learners"]
+ auditor:["command","finance","learners"],
+ it_admin:["command"]
 };
 
 const roleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>={
@@ -63,7 +64,7 @@ const roleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>={
  student:{learning:"Today",learners:"My record",transport:"Transport",signals:"Messages"},
  bursar:{finance:"Money today",learners:"Learner accounts"},accountant:{command:"Finance pulse",finance:"Review & reconcile"},
  transport_manager:{command:"Transport today",transport:"Transport control",signals:"Messages"},driver:{transport:"My route"},
- security_guard:{transport:"Secure gate"},auditor:{command:"Oversight",learners:"Learner records",finance:"Finance audit"}
+ security_guard:{transport:"Secure gate"},auditor:{command:"Oversight",learners:"Learner records",finance:"Finance audit"},it_admin:{command:"Technical operations"}
 };
 const frenchViewLabels:Record<ViewKey,string>={command:"Aujourd’hui",admissions:"Admissions",operations:"Opérations",academics:"Pédagogie",learning:"Apprentissage",learners:"Élèves",credentials:"Cartes ID",teachers:"Équipe enseignante",care:"Suivi",transport:"Transport",finance:"Finances",signals:"Messages",studio:"Paramètres"};
 const frenchRoleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>={
@@ -73,7 +74,7 @@ const frenchRoleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>
  student:{learning:"Aujourd’hui",learners:"Mon dossier",transport:"Transport",signals:"Messages"},
  bursar:{finance:"Caisse du jour",learners:"Comptes élèves"},accountant:{command:"Situation financière",finance:"Contrôle & rapprochement"},
  transport_manager:{command:"Transport aujourd’hui",transport:"Contrôle transport",signals:"Messages"},driver:{transport:"Mon trajet"},
- security_guard:{transport:"Portail sécurisé"},auditor:{command:"Supervision",learners:"Dossiers élèves",finance:"Audit financier"}
+ security_guard:{transport:"Portail sécurisé"},auditor:{command:"Supervision",learners:"Dossiers élèves",finance:"Audit financier"},it_admin:{command:"Opérations techniques"}
 };
 function roleLabel(role:Role){return role.replaceAll("_"," ").replace(/\b\w/g,l=>l.toUpperCase());}
 function labelFor(role:Role,id:ViewKey){return roleViewLabels[role]?.[id]??nav.find(item=>item.id===id)?.label??"Workspace";}
@@ -114,7 +115,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,s
     <div className="sidebar-bottom"><div className="secure"><ShieldCheck size={17}/><span><strong>{connectivity}</strong><small>{text("Audit trail active","Journal d’audit actif")}</small><small title={release?.databaseContract?`Database ${release.databaseContract}`:"Database release could not be verified"}>{releaseState.label}</small></span></div><div className="account"><CircleUserRound/><span><strong>{viewer.name}</strong><small>{viewer.positionTitle||roleLabel(viewer.role)}</small></span></div></div>
   </aside>
   <section className="workspace"><header>
-    <div><span>{appIdentity.shortName} · {brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?"School settings":labelFor(viewer.role,view)}</h1></div>
+    <div><span>{appIdentity.shortName} · {brand.shortName||"DREEM"} · {brand.city}</span><h1>{view==="studio"?text("School settings","Paramètres de l’école"):displayLabel(view)}</h1></div>
     <div>
       <div className="dreem-search"><Search size={17}/><input value={query} onChange={e=>setQuery(e.target.value)} placeholder={text("Find a workspace or task…","Trouver un espace ou une tâche…")}/>{navResults.length||recordResults.length?<div className="dreem-search-results">{recordResults.length?<><small className="search-section-label">{text("SCHOOL RECORDS","DOSSIERS SCOLAIRES")}</small>{recordResults.map(item=><button key={item.id} onClick={()=>open(item.view as ViewKey)}><Search size={16}/><span><strong>{item.title}</strong><small>{item.subtitle}</small></span><em>{item.kind.replaceAll("_"," ")}</em></button>)}</>:null}{navResults.length?<><small className="search-section-label">{text("WORKSPACES","ESPACES")}</small>{navResults.map(item=><button key={item.id} onClick={()=>open(item.id)}><item.icon size={16}/><span><strong>{displayLabel(item.id)}</strong><small>{item.label===displayLabel(item.id)?item.keywords:item.label}</small></span></button>)}</>:null}</div>:normalizedQuery?<div className="dreem-search-results empty-search"><small>{text("No matching school record or workspace.","Aucun dossier ou espace correspondant.")}</small></div>:null}</div>
       <span className={"connectivity "+(online?"online":"offline")}>{connectivity}</span>
