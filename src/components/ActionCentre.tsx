@@ -62,7 +62,8 @@ export default function ActionCentre({workspace,onNavigate}:{workspace:Workspace
     .map<ActionItem>(entry=>({
       id:entry.id,title:entry.title,detail:entry.detail,owner:entry.owner,count:entry.evidenceCount,
       tone:entry.status==="broken"?"critical":"warning",
-      view:entry.id.startsWith("admission")||entry.id.startsWith("enrolment")?"admissions":
+      view:entry.id==="enrolment-finance-link"?"finance":
+        entry.id.startsWith("admission")?"admissions":
         entry.id.startsWith("transport")?"transport":
         entry.id.startsWith("learning")||entry.id.startsWith("report")?"academics":"command",
       group:"handoff",
