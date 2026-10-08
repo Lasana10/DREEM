@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demoAcademics,demoAdmissions,demoBrand,demoFinance,demoLearners,demoSetup,demoSignals,demoStudentCases,demoTeachers,demoTransport } from "../domain/demo";
 import type { WorkspaceData } from "../lib/repository";
@@ -46,6 +46,18 @@ describe("Family app", () => {
     expect(screen.getByText(/School work and progress/i)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Submit work" })).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Written response")).not.toBeInTheDocument();
+  });
+
+  it("recovers from a failed private family refresh without presenting missing records as empty", async () => {
+    loadStatement.mockRejectedValueOnce(new Error("School connection unavailable")).mockResolvedValueOnce([]);
+    render(<FamilyLearningWorkspace workspace={{ ...base, learners: [demoLearners[0]] }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Fees" }));
+    await screen.findByRole("button", { name: "Retry family information" });
+    expect(screen.queryByText("No fee or payment record is available yet.")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Retry family information" }));
+    await waitFor(() => expect(loadStatement).toHaveBeenCalledTimes(2));
+    await screen.findByText("No fee or payment record is available yet.");
+    expect(screen.queryByRole("button", { name: "Retry family information" })).not.toBeInTheDocument();
   });
 
   it("hides the previous child's private records when switching and the next request fails", async () => {
