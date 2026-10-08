@@ -27,6 +27,7 @@ describe("Care and safeguarding workflow",()=>{
   it("opens a learner support case with an owner and review date",async()=>{
     const onRefresh=vi.fn().mockResolvedValue(undefined);
     render(<CareView workspace={workspace} onRefresh={onRefresh}/>);
+    fireEvent.click(screen.getByRole("button",{name:"Open a new support case"}));
     fireEvent.change(screen.getByLabelText("Learner"),{target:{value:"2"}});
     fireEvent.change(screen.getByLabelText("Category"),{target:{value:"safeguarding"}});
     fireEvent.change(screen.getByLabelText("Priority"),{target:{value:"urgent"}});
