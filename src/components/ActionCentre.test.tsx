@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LanguageContext } from "../lib/languageContext";
 import { demoAcademics, demoAdmissions, demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers, demoTransport } from "../domain/demo";
@@ -13,6 +13,19 @@ const workspace:WorkspaceData={
 };
 afterEach(cleanup);
 describe("Institution action centre bilingual presentation",()=>{
+ it("takes an enrolment finance-link failure to the finance owner",()=>{
+  const learner={...demoLearners[0],feeAccountId:undefined};
+  const admission={...demoAdmissions[0],status:"enrolled" as const,enrolledStudentId:learner.id};
+  const onNavigate=vi.fn();
+  render(<ActionCentre workspace={{...workspace,learners:[learner],admissions:[admission]}} onNavigate={onNavigate}/>);
+  const row=screen.getByText("Enrolment did not reach learner finance").closest(".action-centre-row");
+  expect(row).not.toBeNull();
+  const button=row?.querySelector("button");
+  expect(button).not.toBeNull();
+  fireEvent.click(button!);
+  expect(onNavigate).toHaveBeenCalledWith("finance");
+ });
+
  it("renders the shared French language without changing workflow actions",()=>{
   render(<LanguageContext.Provider value={{language:"fr",setLanguage:()=>undefined,toggle:()=>undefined,text:(_en,fr)=>fr}}><ActionCentre workspace={workspace} onNavigate={vi.fn()}/></LanguageContext.Provider>);
   expect(screen.getByText("VOTRE CENTRE D’ACTIONS")).toBeInTheDocument();
