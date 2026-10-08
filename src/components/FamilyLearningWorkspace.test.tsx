@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demoAcademics,demoAdmissions,demoBrand,demoFinance,demoLearners,demoSetup,demoSignals,demoStudentCases,demoTeachers,demoTransport } from "../domain/demo";
 import type { WorkspaceData } from "../lib/repository";
 import FamilyLearningWorkspace from "./FamilyLearningWorkspace";
+import { LanguageContext } from "../lib/languageContext";
 
 const { loadStatement, loadCircle } = vi.hoisted(() => ({ loadStatement: vi.fn(), loadCircle: vi.fn() }));
 vi.mock("../lib/familyFinance", () => ({ loadLearnerFeeStatement: loadStatement }));
@@ -58,6 +59,15 @@ describe("Family app", () => {
     await waitFor(() => expect(loadStatement).toHaveBeenCalledTimes(2));
     await screen.findByText("No fee or payment record is available yet.");
     expect(screen.queryByRole("button", { name: "Retry family information" })).not.toBeInTheDocument();
+  });
+
+
+  it("uses the shared French language context for guardian navigation", () => {
+    render(<LanguageContext.Provider value={{language:"fr",setLanguage:()=>undefined,toggle:()=>undefined,text:(_en,fr)=>fr}}><FamilyLearningWorkspace workspace={{...base,learners:[demoLearners[0]]}}/></LanguageContext.Provider>);
+    expect(screen.getByText("DREEM FAMILLE")).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:"Aujourd’hui"})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button",{name:"Scolarité"}));
+    expect(screen.getByText("Échéances, paiements et reçus")).toBeInTheDocument();
   });
 
   it("hides the previous child's private records when switching and the next request fails", async () => {
