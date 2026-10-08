@@ -164,3 +164,15 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--bra
   .role-workspace{padding-bottom:max(105px,calc(80px + env(safe-area-inset-bottom)))}
   .settings-form textarea{font-size:16px}
 }
+
+
+/* Finance review queue: work from records before displaying forms. */
+.finance-review-item{margin:10px 0;border:1px solid var(--dreem-line);border-radius:14px;background:var(--dreem-surface);overflow:hidden}
+.finance-review-item>summary{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:15px;cursor:pointer;list-style:none}
+.finance-review-item>summary::-webkit-details-marker{display:none}
+.finance-review-item>summary span:first-child{min-width:0;display:grid;gap:5px}
+.finance-review-item>summary small{color:var(--dreem-muted);overflow-wrap:anywhere}
+.finance-review-cta{font-size:.82rem;font-weight:700;white-space:nowrap;color:var(--brand)}
+.finance-review-item[open]>summary{background:var(--dreem-surface-soft);border-bottom:1px solid var(--dreem-line)}
+.finance-review-item>form{padding:16px}
+@media(max-width:680px){.finance-review-item>summary{align-items:flex-start;flex-direction:column}.finance-review-item>form{padding:12px}}
