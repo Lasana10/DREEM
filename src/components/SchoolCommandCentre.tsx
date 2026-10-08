@@ -9,7 +9,7 @@ type QueueItem={id:string;view:ViewKey;title:string;detail:string;count:number;t
 
 export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:WorkspaceData;onNavigate:(view:ViewKey)=>void}){
  const viewer=workspace.viewer,ownerView=canAuthority(viewer,"institutional_leadership");
- const admissionPending=workspace.admissions.filter(item=>!["admitted","rejected","withdrawn","enrolled"].includes(item.status)).length;
+ const admissionPending=workspace.admissions.filter(item=>!["rejected","withdrawn","enrolled"].includes(item.status)).length;
  const lessonReview=workspace.academics.lessonPlans.filter(item=>item.status==="submitted").length,assessmentReview=workspace.academics.assessments.filter(item=>item.status==="submitted").length;
  const careOpen=workspace.cases.filter(item=>!["resolved","closed"].includes(item.status)).length,urgentCare=workspace.cases.filter(item=>!["resolved","closed"].includes(item.status)&&["urgent","critical"].includes(item.priority)).length;
  const openSignals=workspace.signals.filter(item=>!["resolved","closed"].includes(item.status)).length,urgentSignals=workspace.signals.filter(item=>!["resolved","closed"].includes(item.status)&&["urgent","safeguarding"].includes(item.severity)).length;
@@ -51,35 +51,36 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
  const insightView=(id:string):ViewKey|undefined=>({"care-now":"care","attendance-learning":"learners","attendance":"learners","learning":"learning","money-check":"finance","money-confirm":"finance","urgent-messages":"signals"} as Record<string,ViewKey>)[id];
  const candidates=all.filter(item=>can(item.view));
  const active=candidates.filter(item=>item.count>0||item.id==="finance"&&cashAwaiting>0);
+ const roleFocus=ownerView?leadershipFocus:active.length?{eyebrow:"YOUR NEXT SCHOOL ACTION",title:active[0].title,detail:active[0].detail,view:active[0].view}:{eyebrow:"YOUR SCHOOL WORK",title:"No priority item is waiting in your workspace",detail:"Open one of your authorised school areas to continue routine work.",view:"command" as ViewKey};
  if(!canOpenView(viewer,"command"))return null;
  return <div className="content role-workspace command-today">
   <section className="role-hero"><div><span className="eyebrow">{ownerView?(viewer.positionTitle||"Leadership")+" · TODAY":"MY SCHOOL WORK · TODAY"}</span><h2>{ownerView?operatingSummary:"What needs your attention now?"}</h2><p>{ownerView?"A live view of the school. Open only what needs a decision or closer look.":"You only see the school work available to your role."}</p></div><div className="role-hero-status"><span className={"status-pill "+(priority?"attention":"") }><ShieldCheck size={14}/>{priority?priority+" priority":"All clear"}</span></div></section>
   <section className="intelligence-brief leadership-intelligence-brief">
    <div className="intelligence-brief-main">
-    <span>{leadershipFocus.eyebrow}</span><h3>{leadershipFocus.title}</h3><p>{leadershipFocus.detail}</p>
-    {leadershipFocus.view!=="command"?<button className="primary" onClick={()=>onNavigate(leadershipFocus.view)}>Open priority work</button>:null}
+    <span>{roleFocus.eyebrow}</span><h3>{roleFocus.title}</h3><p>{roleFocus.detail}</p>
+    {roleFocus.view!=="command"?<button className="primary" onClick={()=>onNavigate(leadershipFocus.view)}>Open priority work</button>:null}
    </div>
-   <aside className="intelligence-evidence"><small>WHAT THIS IS BASED ON</small>
+   {ownerView?<aside className="intelligence-evidence"><small>WHAT THIS IS BASED ON</small>
     <div><span></span><p>{admissionPending} admission{admissionPending===1?"":"s"} in progress</p></div>
     <div><span></span><p>{lessonReview+assessmentReview} academic review{lessonReview+assessmentReview===1?"":"s"} waiting</p></div>
     <div><span></span><p>{financeExceptions} finance exception{financeExceptions===1?"":"s"} · {cashAwaiting.toLocaleString("fr-FR")} FCFA awaiting confirmation</p></div>
     <div><span></span><p>{learnerOverlap} learner{learnerOverlap===1?"":"s"} with overlapping attendance + mastery concern</p></div>
-   </aside>
+   </aside>:null}
   </section>
   <ActionCentre workspace={workspace} onNavigate={onNavigate}/>
-  <section className="visual-stats">
+  {ownerView?<section className="visual-stats">
    <article className="visual-stat amber"><div className="icon"><CircleDollarSign/></div><div><span>CASH AWAITING CONFIRMATION</span><strong>{cashAwaiting.toLocaleString("fr-FR")}</strong><small>FCFA</small></div></article>
    <article className="visual-stat"><div className="icon"><ClipboardCheck/></div><div><span>ADMISSIONS</span><strong>{admissionPending}</strong><small>in progress</small></div></article>
    <article className={"visual-stat "+(attentionTotal?"red":"green")}><div className="icon"><AlertTriangle/></div><div><span>NEEDS ATTENTION</span><strong>{attentionTotal}</strong><small>{learnerOverlap?learnerOverlap+" learner support":"nothing urgent"}</small></div></article>
    <article className="visual-stat green"><div className="icon"><BookOpenCheck/></div><div><span>LEARNER SUPPORT</span><strong>{Math.max(attendanceConcern,learningConcern)}</strong><small>{learnerOverlap?learnerOverlap+" need closer review":"current records"}</small></div></article>
-  </section>
+  </section>:null}
   <div className="focus-grid">
    <section className="focus-card"><div className="panel-title"><ShieldCheck/><div><span>NEEDS YOUR DECISION</span><h3>{active.length?active.length+" active area"+(active.length===1?"":"s"):"No urgent decision waiting"}</h3></div></div><div className="action-list">{active.length?active.map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.title}</strong><small>{item.detail}</small></div><button onClick={()=>onNavigate(item.view)}>Review</button></div>):<p>The school is operating without a priority exception right now.</p>}</div></section>
-   <aside className="focus-card"><div className="panel-title"><MessageSquareMore/><div><span>SCHOOL TODAY</span><h3>What DREEM noticed</h3></div></div><div className="action-list">{todayInsights.slice(0,4).map(item=>{const target=insightView(item.id);return <div className="action-row" key={item.id}><div className="action-icon"><AlertTriangle/></div><div><strong>{item.title}</strong><small>{item.explanation} · {item.owner}</small></div>{target&&can(target)?<button onClick={()=>onNavigate(target)}>{item.action}</button>:<span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.action}</span>}</div>})}</div></aside>
+   {ownerView?<aside className="focus-card"><div className="panel-title"><MessageSquareMore/><div><span>SCHOOL TODAY</span><h3>What DREEM noticed</h3></div></div><div className="action-list">{todayInsights.slice(0,4).map(item=>{const target=insightView(item.id);return <div className="action-row" key={item.id}><div className="action-icon"><AlertTriangle/></div><div><strong>{item.title}</strong><small>{item.explanation} · {item.owner}</small></div>{target&&can(target)?<button onClick={()=>onNavigate(target)}>{item.action}</button>:<span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.action}</span>}</div>})}</div></aside>:null}
   </div>
 
-  <section className="panel" style={{marginTop:14}}><div className="panel-title"><ShieldCheck/><div><span>SCHOOL FLOW</span><h3>{brokenFlow?brokenFlow+" broken step"+(brokenFlow===1?"":"s")+" need repair":"Core school processes are connected"}</h3><p>DREEM checks that important school work continues to the next step without getting lost.</p></div></div><div className="action-list">{flowHealth.slice(0,4).map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.status==="broken"?<AlertTriangle/>:<ShieldCheck/>}</div><div><strong>{item.title}</strong><small>{item.detail} · {item.owner}</small></div><span className={"status-pill "+(item.status==="broken"?"danger":item.status==="attention"?"attention":"")}>{item.status==="healthy"?"Connected":item.status==="broken"?"Repair":"Follow up"}</span></div>)}</div></section>
-  <details className="depth-drawer"><summary>Suggested follow-up</summary><section className="panel"><div className="action-list">{policyActions.length?policyActions.slice(0,8).map(item=><div className="action-row" key={item.id}><div className="action-icon"><ClipboardCheck/></div><div><strong>{item.title}</strong><small>{item.reason} · Owner: {item.owner}</small></div><span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.nextAction}</span></div>):<p>No recommended follow-up is waiting.</p>}</div></section></details>
+  {ownerView?<><section className="panel" style={{marginTop:14}}><div className="panel-title"><ShieldCheck/><div><span>SCHOOL FLOW</span><h3>{brokenFlow?brokenFlow+" broken step"+(brokenFlow===1?"":"s")+" need repair":"Core school processes are connected"}</h3><p>DREEM checks that important school work continues to the next step without getting lost.</p></div></div><div className="action-list">{flowHealth.slice(0,4).map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.status==="broken"?<AlertTriangle/>:<ShieldCheck/>}</div><div><strong>{item.title}</strong><small>{item.detail} · {item.owner}</small></div><span className={"status-pill "+(item.status==="broken"?"danger":item.status==="attention"?"attention":"")}>{item.status==="healthy"?"Connected":item.status==="broken"?"Repair":"Follow up"}</span></div>)}</div></section>
+  <details className="depth-drawer"><summary>Suggested follow-up</summary><section className="panel"><div className="action-list">{policyActions.length?policyActions.slice(0,8).map(item=><div className="action-row" key={item.id}><div className="action-icon"><ClipboardCheck/></div><div><strong>{item.title}</strong><small>{item.reason} · Owner: {item.owner}</small></div><span className={"status-pill "+(item.severity==="critical"?"danger":item.severity==="warning"?"attention":"")}>{item.nextAction}</span></div>):<p>No recommended follow-up is waiting.</p>}</div></section></details></>:null}
   <details className="depth-drawer"><summary>See all school areas</summary><section className="panel"><div className="action-list">{candidates.map(item=><div className="action-row" key={item.id}><div className="action-icon">{item.icon}</div><div><strong>{item.title}</strong><small>{item.detail}</small></div><button onClick={()=>onNavigate(item.view)}>Open</button></div>)}</div></section></details>
  </div>;
 }
