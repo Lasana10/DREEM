@@ -182,3 +182,6 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--bra
 .classroom-next-action{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 16px;margin:10px 0;padding:11px 14px;background:var(--dreem-surface-soft);border:1px solid var(--dreem-line);border-radius:12px}
 .classroom-next-action strong{font-size:.91rem}.classroom-next-action span{color:var(--dreem-muted);font-size:.82rem}
 @media(max-width:680px){.classroom-next-action{align-items:flex-start;flex-direction:column}}
+
+/* A verified deposit preview is always visible before submitting the batch. */
+.finance-selected-total{padding:10px 13px;background:var(--dreem-surface-soft);border:1px solid var(--dreem-line);border-radius:12px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
