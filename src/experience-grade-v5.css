@@ -196,3 +196,11 @@ input:focus,select:focus,textarea:focus{border-color:color-mix(in srgb,var(--bra
 .academic-stage-chevron{font-size:1.6rem;font-weight:500;line-height:1}
 .academic-stage-active{border-color:var(--brand)}
 @media(max-width:680px){.academic-stage-toggle{align-items:flex-start}.academic-stage-chevron{margin-left:auto}}
+
+
+/* Audited policy follow-through shares the same contextual review treatment. */
+.policy-findings-queue{margin-block:16px}
+.policy-finding-body{padding:14px 18px;display:grid;gap:10px}
+.policy-finding-body>p{margin:0;line-height:1.5}
+.policy-finding-body .settings-form{margin-top:8px}
+@media(max-width:680px){.policy-finding-body{padding:12px}}
