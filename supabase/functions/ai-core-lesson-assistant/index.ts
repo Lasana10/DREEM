@@ -24,7 +24,7 @@ Deno.serve(async req=>{
  const {data:auth,error:authError}=await client.auth.getUser(token);
  if(authError||!auth.user)return respond({error:"AUTH_REQUIRED"},401);
  let body:Record<string,unknown>;
- try{body=await req.json();}catch{return respond({error:"INVALID_JSON"},400);}
+ try{body=await req.json();if(!body||typeof body!=="object"||Array.isArray(body))return respond({error:"INVALID_JSON"},400);}catch{return respond({error:"INVALID_JSON"},400);}
  const schoolId=body.schoolId;
  if(!isId(schoolId))return respond({error:"INVALID_SCHOOL"},400);
  const {data:member,error}=await client.from("dreem_school_memberships")
