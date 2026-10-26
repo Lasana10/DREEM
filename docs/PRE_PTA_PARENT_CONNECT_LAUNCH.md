@@ -28,3 +28,18 @@ Parents submit ordinary school-improvement concerns, questions and suggestions b
 
 ## Current scope limits
 No production deployment or migration is implied by this document. There is no verified alerting path for safeguarding, automatic parent receipt lookup, or independent audit of response plans yet. These must not be represented as live services.
+
+## GitHub-controlled connection (no ChatGPT Supabase connection required)
+
+This release path lives at `.github/workflows/dreem-pta-supabase-release.yml`. It targets **only** the DREEM project ref `vlukkucwtfmfgpzvjyvd` and is launched manually from the `main` branch, never automatically on PRs.
+
+1. In GitHub `Lasana10/DREEM` > Settings > Environments, create `dreem-production` with a required reviewer and limit deployments to `main`.
+2. Add **environment secrets** `DREEM_SUPABASE_ACCESS_TOKEN` (scoped Supabase platform access), `DREEM_SUPABASE_DB_PASSWORD` (the DREEM project's own database password) and `DREEM_TURNSTILE_SECRET_KEY` (secret from Cloudflare Turnstile). Do **not** paste them into code, chat or build logs.
+3. Run Actions > **DREEM PTA Supabase release** > Run workflow > `preflight` and enter the exact project ref `vlukkucwtfmfgpzvjyvd`. Preflight links and reports migration state; it does not apply schema changes.
+4. Inspect the preflight's migration list, verify dependency migrations and any drift, and apply the PTA migration through a controlled change process to this same DREEM project. Do not indiscriminately run `supabase db push` if other migrations are pending. Independently test RLS and server-only RPC permissions.
+5. Only **after** verified database migration and staff/anonymous access acceptance, set protected environment variable `DREEM_PTA_DB_VERIFIED=true` and `DREEM_PUBLIC_ORIGIN=https://dreem-school-os.pages.dev` (or verified production origin). Run the workflow again with `deploy-function` to set server-only Turnstile secret and deploy the PTA Edge Function.
+6. Register the correct hostname in Cloudflare Turnstile. Set `VITE_TURNSTILE_SITE_KEY` and `VITE_DREEM_PTA_ENABLED=true` in the DREEM **Cloudflare frontend production** configuration. Build and deploy again. The site key is a public widget identifier; the secret key must never be exposed to the browser.
+7. Submit a real non-sensitive test message, verify exactly one private leadership review entry with a receipt reference, update its status, validate the pre-PTA management briefing, and verify a denied cross-school access attempt.
+8. Publish and distribute the school-specific `/pta/<campaign-uuid>` link only after all acceptance evidence exists.
+
+The GitHub connector does **not** automatically inherit a Supabase access token merely because the repository contains Supabase configuration or migrations. The workflow needs explicitly configured, scoped production credentials. A code or frontend deployment is not proof of a live database migration.
