@@ -10,6 +10,7 @@ on:
         default: preflight
         options:
           - preflight
+          - deploy-schema
           - deploy-function
       confirmed_project:
         description: "Type the EXACT DREEM project ref: vlukkucwtfmfgpzvjyvd"
@@ -58,6 +59,15 @@ jobs:
           supabase link --project-ref "$EXPECTED_REF" --password "$SUPABASE_DB_PASSWORD"
           supabase migration list
           echo "::notice::Inspect remote migration history before approving any db push; this workflow NEVER changes schema."
+      - name: Apply ONLY PTA migration when confirmed sole pending schema change
+        if: inputs.operation == 'deploy-schema'
+        run: |
+          set -euo pipefail
+          supabase migration list --linked | tee /tmp/dreem-pta-migration-list.txt
+          python3 scripts/pta-migration-guard.py < /tmp/dreem-pta-migration-list.txt
+          supabase db push --dry-run
+          supabase db push
+          echo "::notice::PTA-only database push executed; still verify security and role tests before enabling parents."
       - name: Deploy protected PTA function after explicit production database approval
         if: inputs.operation == 'deploy-function'
         env:
