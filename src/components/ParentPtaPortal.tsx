@@ -10,7 +10,7 @@ const words={
 } as const;
 const topics=["learning","facilities","safety","administration","pta","other"] as const;
 const siteKey=import.meta.env.VITE_TURNSTILE_SITE_KEY?.trim()||"";
-type Turnstile={render:(element:HTMLElement,options:{sitekey:string;callback:(token:string)=>void;"expired-callback":()=>void})=>string;remove:(widgetId:string)=>void};
+type Turnstile={render:(element:HTMLElement,options:{sitekey:string;callback:(token:string)=>void;"expired-callback":()=>void})=>string;remove:(widgetId:string)=>void;reset:()=>void};
 const uuidPattern=/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export default function ParentPtaPortal({campaignId}:{campaignId:string}){
  const [lang,setLang]=useState<Lang>("en"),[campaign,setCampaign]=useState<Campaign|null>(null),[loading,setLoading]=useState(true),[kind,setKind]=useState<"concern"|"idea"|"question">("concern"),[topic,setTopic]=useState<(typeof topics)[number]>("learning"),[message,setMessage]=useState(""),[contact,setContact]=useState(""),[busy,setBusy]=useState(false),[error,setError]=useState(""),[reference,setReference]=useState("");
@@ -27,4 +27,4 @@ export default function ParentPtaPortal({campaignId}:{campaignId:string}){
   else {let script=document.querySelector<HTMLScriptElement>('script[data-dreem-turnstile]');if(!script){script=document.createElement("script");script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";script.async=true;script.dataset.dreemTurnstile="true";document.head.appendChild(script);}script.addEventListener("load",show);}
   return()=>{mounted=false;const api=getTurnstile();if(widgetId&&api)api.remove(widgetId);};
  },[campaign,reference]);
- async function send(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!supabase||busy||!campaign||!captcha||topic==="safety")return;setBusy(true);setError("");try{const {data,error}=await supabase.functions.invoke("pta-public-submit",{body:{campaignId,kind,topic,language:lang,message:message.trim(),contact:contact.trim()||null,turnstileToken:captcha}});if(error||typeof data?.reference!=="string")throw error||new Error("No receipt returned");setReference(data.reference);setCaptcha("");}catch{setError(t.error);}finally{setBusy(false);}}
+ async function send(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!supabase||busy||!campaign||!captcha||topic==="safety")return;setBusy(true);setError("");try{const {data,error}=await supabase.functions.invoke("pta-public-submit",{body:{campaignId,kind,topic,language:lang,message:message.trim(),contact:contact.trim()||null,turnstileToken:captcha}});if(error||typeof data?.reference!=="string")throw error||new Error("No receipt returned");setReference(data.reference);setCaptcha("");}catch{setError(t.error);setCaptcha("");(window as Window & {turnstile?:Turnstile}).turnstile?.reset();}finally{setBusy(false);}}
