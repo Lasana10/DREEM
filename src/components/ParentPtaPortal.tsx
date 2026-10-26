@@ -26,5 +26,5 @@ export default function ParentPtaPortal({campaignId}:{campaignId:string}){
   if(getTurnstile())show();
   else {let script=document.querySelector<HTMLScriptElement>('script[data-dreem-turnstile]');if(!script){script=document.createElement("script");script.src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";script.async=true;script.dataset.dreemTurnstile="true";document.head.appendChild(script);}script.addEventListener("load",show);}
   return()=>{mounted=false;const api=getTurnstile();if(widgetId&&api)api.remove(widgetId);};
- },[]);
+ },[campaign,reference]);
  async function send(event:FormEvent<HTMLFormElement>){event.preventDefault();if(!supabase||busy||!campaign||!captcha||topic==="safety")return;setBusy(true);setError("");try{const {data,error}=await supabase.functions.invoke("pta-public-submit",{body:{campaignId,kind,topic,language:lang,message:message.trim(),contact:contact.trim()||null,turnstileToken:captcha}});if(error||typeof data?.reference!=="string")throw error||new Error("No receipt returned");setReference(data.reference);setCaptcha("");}catch{setError(t.error);}finally{setBusy(false);}}
