@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
+import ParentPtaPortal from "./components/ParentPtaPortal";
 import PaymentAcknowledgement from "./components/PaymentAcknowledgement";
 import AdmissionsView from "./components/AdmissionsView";
 import AcademicJourneyWorkspace from "./components/AcademicJourneyWorkspace";
@@ -115,5 +116,7 @@ function WorkspaceApp() {
 
 export default function App() {
   if(/^\/payment\/ack\/[0-9a-fA-F-]{36}\/?$/.test(window.location.pathname))return <PaymentAcknowledgement/>;
+  const publicPtaPath = window.location.pathname.match(/^\/pta\/([0-9a-fA-F-]{36})\/?$/);
+  if(publicPtaPath)return <ParentPtaPortal campaignId={publicPtaPath[1]}/>;
   return <AuthGate><WorkspaceApp /></AuthGate>;
 }
