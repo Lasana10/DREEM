@@ -1,0 +1,85 @@
+name: DREEM PTA Supabase release
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "preflight checks (non-mutating), or deploy protected function after DB migration verification"
+        type: choice
+        required: true
+        default: preflight
+        options:
+          - preflight
+          - deploy-schema
+          - deploy-function
+      confirmed_project:
+        description: "Type the EXACT DREEM project ref: vlukkucwtfmfgpzvjyvd"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dreem-pta-supabase-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dreem-production
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.DREEM_SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DREEM_SUPABASE_DB_PASSWORD }}
+      EXPECTED_REF: vlukkucwtfmfgpzvjyvd
+    steps:
+      - name: Guard DREEM project and credentials
+        env:
+          CONFIRMED_REF: ${{ inputs.confirmed_project }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMED_REF" = "$EXPECTED_REF" || { echo "::error::Wrong project reference"; exit 1; }
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::DREEM_SUPABASE_ACCESS_TOKEN is missing in dreem-production secrets"; exit 1; }
+          test -n "$SUPABASE_DB_PASSWORD" || { echo "::error::DREEM_SUPABASE_DB_PASSWORD is missing in dreem-production secrets"; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Verify repository targets ONLY DREEM
+        run: |
+          set -euo pipefail
+          grep -q '^project_id = "vlukkucwtfmfgpzvjyvd"$' supabase/config.toml
+          test -s supabase/migrations/20261026150000_public_pre_pta_parent_voice.sql
+          test -s supabase/functions/pta-public-submit/index.ts
+      - name: Link and inspect migrations without changing production
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase migration list
+          echo "::notice::Inspect remote migration history before approving any db push; this workflow NEVER changes schema."
+      - name: Apply ONLY PTA migration when confirmed sole pending schema change
+        if: inputs.operation == 'deploy-schema'
+        run: |
+          set -euo pipefail
+          supabase migration list --linked | tee /tmp/dreem-pta-migration-list.txt
+          python3 scripts/pta-migration-guard.py < /tmp/dreem-pta-migration-list.txt
+          supabase db push --dry-run
+          supabase db push
+          echo "::notice::PTA-only database push executed; still verify security and role tests before enabling parents."
+      - name: Deploy protected PTA function after explicit production database approval
+        if: inputs.operation == 'deploy-function'
+        env:
+          TURNSTILE_SECRET_KEY: ${{ secrets.DREEM_TURNSTILE_SECRET_KEY }}
+          DB_VERIFIED: ${{ vars.DREEM_PTA_DB_VERIFIED }}
+          PUBLIC_ORIGIN: ${{ vars.DREEM_PUBLIC_ORIGIN }}
+        run: |
+          set -euo pipefail
+          test "$DB_VERIFIED" = "true" || { echo "::error::Production PTA migration and role tests have not been approved"; exit 1; }
+          test -n "$TURNSTILE_SECRET_KEY" || { echo "::error::DREEM_TURNSTILE_SECRET_KEY is missing"; exit 1; }
+          test -n "$PUBLIC_ORIGIN" || { echo "::error::DREEM_PUBLIC_ORIGIN missing"; exit 1; }
+          case "$PUBLIC_ORIGIN" in https://*) ;; *) echo "::error::Only an HTTPS parent portal origin is allowed"; exit 1;; esac
+          supabase secrets set "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY" "DREEM_PUBLIC_ORIGIN=$PUBLIC_ORIGIN" --project-ref "$EXPECTED_REF"
+          supabase functions deploy pta-public-submit --project-ref "$EXPECTED_REF" --no-verify-jwt
+          echo "::notice::Edge function deployed. This is not proof of end-to-end live parent intake; verify frontend Turnstile configuration and a real submission."
