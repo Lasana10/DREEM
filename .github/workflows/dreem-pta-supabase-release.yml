@@ -58,12 +58,18 @@ jobs:
           supabase link --project-ref "$EXPECTED_REF" --password "$SUPABASE_DB_PASSWORD"
           supabase migration list
           echo "::notice::Inspect remote migration history before approving any db push; this workflow NEVER changes schema."
-      - name: Deploy PTA Edge Function (only after approved migration)
+      - name: Deploy protected PTA function after explicit production database approval
         if: inputs.operation == 'deploy-function'
         env:
           TURNSTILE_SECRET_KEY: ${{ secrets.DREEM_TURNSTILE_SECRET_KEY }}
+          DB_VERIFIED: ${{ vars.DREEM_PTA_DB_VERIFIED }}
+          PUBLIC_ORIGIN: ${{ vars.DREEM_PUBLIC_ORIGIN }}
         run: |
           set -euo pipefail
+          test "$DB_VERIFIED" = "true" || { echo "::error::Production PTA migration and role tests have not been approved"; exit 1; }
           test -n "$TURNSTILE_SECRET_KEY" || { echo "::error::DREEM_TURNSTILE_SECRET_KEY is missing"; exit 1; }
-          echo "::error::The protected PTA function must be deployed only after DREEM migration approval and production readiness tests. Deploy stage intentionally disabled until a verified acceptance proof is committed."
-          exit 1
+          test -n "$PUBLIC_ORIGIN" || { echo "::error::DREEM_PUBLIC_ORIGIN missing"; exit 1; }
+          case "$PUBLIC_ORIGIN" in https://*) ;; *) echo "::error::Only an HTTPS parent portal origin is allowed"; exit 1;; esac
+          supabase secrets set "TURNSTILE_SECRET_KEY=$TURNSTILE_SECRET_KEY" "DREEM_PUBLIC_ORIGIN=$PUBLIC_ORIGIN" --project-ref "$EXPECTED_REF"
+          supabase functions deploy pta-public-submit --project-ref "$EXPECTED_REF" --no-verify-jwt
+          echo "::notice::Edge function deployed. This is not proof of end-to-end live parent intake; verify frontend Turnstile configuration and a real submission."
