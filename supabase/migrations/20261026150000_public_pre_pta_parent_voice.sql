@@ -121,3 +121,49 @@ revoke all on function public.dreem_pta_staff_submissions(uuid) from public,anon
 revoke all on function public.dreem_pta_set_status(uuid,text) from public,anon;
 grant execute on function public.dreem_pta_create_campaign(text,text,date,timestamptz),public.dreem_pta_staff_campaigns(),public.dreem_pta_set_published(uuid,boolean),public.dreem_pta_staff_submissions(uuid),public.dreem_pta_set_status(uuid,text) to authenticated;
 grant execute on function public.dreem_pta_public_campaign(uuid),public.dreem_pta_submit(uuid,text,text,text,text,text) to anon,authenticated;
+
+-- Management's pre-meeting action proposals, one per general discussion topic.
+-- These are separate from private individual submissions. No anonymous read.
+create table public.dreem_pta_topic_plans (
+ campaign_id uuid not null references public.dreem_pta_campaigns(id) on delete cascade,
+ topic text not null check(topic in ('learning','facilities','administration','pta','other')),
+ proposed_solution text not null default '' check(char_length(proposed_solution)<=1500),
+ responsible_officer text not null default '' check(char_length(responsible_officer)<=160),
+ target_date date,
+ updated_by uuid not null references auth.users(id),
+ updated_at timestamptz not null default now(),
+ primary key(campaign_id,topic)
+);
+alter table public.dreem_pta_topic_plans enable row level security;
+revoke all on public.dreem_pta_topic_plans from anon,authenticated;
+
+create function public.dreem_pta_get_topic_plans(p_campaign_id uuid)
+returns table(topic text,proposed_solution text,responsible_officer text,target_date date,updated_at timestamptz)
+language plpgsql security definer set search_path='' as $$
+declare v_school uuid;
+begin
+ v_school:=private.dreem_active_school_for_role(array['leadership']);
+ if v_school is null or not exists(select 1 from public.dreem_pta_campaigns where id=p_campaign_id and school_id=v_school)
+ then raise exception 'Not authorised to review this consultation';end if;
+ return query select p.topic,p.proposed_solution,p.responsible_officer,p.target_date,p.updated_at
+ from public.dreem_pta_topic_plans p where p.campaign_id=p_campaign_id;
+end $$;
+create function public.dreem_pta_save_topic_plan(p_campaign_id uuid,p_topic text,p_solution text,p_officer text,p_target_date date default null)
+returns boolean language plpgsql security definer set search_path='' as $$
+declare v_school uuid;
+begin
+ v_school:=private.dreem_active_school_for_role(array['leadership']);
+ if v_school is null or not exists(select 1 from public.dreem_pta_campaigns where id=p_campaign_id and school_id=v_school)
+ then raise exception 'Not authorised to update this consultation';end if;
+ if p_topic not in ('learning','facilities','administration','pta','other') or
+ char_length(coalesce(p_solution,''))>1500 or char_length(coalesce(p_officer,''))>160
+ then raise exception 'Invalid PTA proposal';end if;
+ insert into public.dreem_pta_topic_plans(campaign_id,topic,proposed_solution,responsible_officer,target_date,updated_by)
+ values(p_campaign_id,p_topic,trim(coalesce(p_solution,'')),trim(coalesce(p_officer,'')),p_target_date,auth.uid())
+ on conflict(campaign_id,topic) do update set proposed_solution=excluded.proposed_solution,
+ responsible_officer=excluded.responsible_officer,target_date=excluded.target_date,
+ updated_by=excluded.updated_by,updated_at=now();
+ return true;
+end $$;
+revoke all on function public.dreem_pta_get_topic_plans(uuid),public.dreem_pta_save_topic_plan(uuid,text,text,text,date) from public,anon;
+grant execute on function public.dreem_pta_get_topic_plans(uuid),public.dreem_pta_save_topic_plan(uuid,text,text,text,date) to authenticated;
