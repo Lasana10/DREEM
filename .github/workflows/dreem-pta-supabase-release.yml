@@ -1,0 +1,69 @@
+name: DREEM PTA Supabase release
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "preflight checks (non-mutating), or deploy protected function after DB migration verification"
+        type: choice
+        required: true
+        default: preflight
+        options:
+          - preflight
+          - deploy-function
+      confirmed_project:
+        description: "Type the EXACT DREEM project ref: vlukkucwtfmfgpzvjyvd"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: dreem-pta-supabase-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment: dreem-production
+    timeout-minutes: 20
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.DREEM_SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.DREEM_SUPABASE_DB_PASSWORD }}
+      EXPECTED_REF: vlukkucwtfmfgpzvjyvd
+    steps:
+      - name: Guard DREEM project and credentials
+        env:
+          CONFIRMED_REF: ${{ inputs.confirmed_project }}
+        run: |
+          set -euo pipefail
+          test "$CONFIRMED_REF" = "$EXPECTED_REF" || { echo "::error::Wrong project reference"; exit 1; }
+          test -n "$SUPABASE_ACCESS_TOKEN" || { echo "::error::DREEM_SUPABASE_ACCESS_TOKEN is missing in dreem-production secrets"; exit 1; }
+          test -n "$SUPABASE_DB_PASSWORD" || { echo "::error::DREEM_SUPABASE_DB_PASSWORD is missing in dreem-production secrets"; exit 1; }
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Verify repository targets ONLY DREEM
+        run: |
+          set -euo pipefail
+          grep -q '^project_id = "vlukkucwtfmfgpzvjyvd"$' supabase/config.toml
+          test -s supabase/migrations/20261026150000_public_pre_pta_parent_voice.sql
+          test -s supabase/functions/pta-public-submit/index.ts
+      - name: Link and inspect migrations without changing production
+        run: |
+          set -euo pipefail
+          supabase link --project-ref "$EXPECTED_REF" --password "$SUPABASE_DB_PASSWORD"
+          supabase migration list
+          echo "::notice::Inspect remote migration history before approving any db push; this workflow NEVER changes schema."
+      - name: Deploy PTA Edge Function (only after approved migration)
+        if: inputs.operation == 'deploy-function'
+        env:
+          TURNSTILE_SECRET_KEY: ${{ secrets.DREEM_TURNSTILE_SECRET_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$TURNSTILE_SECRET_KEY" || { echo "::error::DREEM_TURNSTILE_SECRET_KEY is missing"; exit 1; }
+          echo "::error::The protected PTA function must be deployed only after DREEM migration approval and production readiness tests. Deploy stage intentionally disabled until a verified acceptance proof is committed."
+          exit 1
