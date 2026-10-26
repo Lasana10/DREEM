@@ -80,7 +80,7 @@ begin
  select school_id into v_school from public.dreem_pta_campaigns
  where id=p_campaign_id and published=true and (closes_at is null or closes_at>now());
  if v_school is null then raise exception 'This PTA consultation is not accepting submissions';end if;
- if p_kind not in ('concern','idea','question') or p_topic not in ('learning','facilities','safety','administration','pta','other') or p_language not in ('en','fr') then raise exception 'Invalid submission category';end if;
+ if p_kind not in ('concern','idea','question') or p_topic not in ('learning','facilities','administration','pta','other') or p_language not in ('en','fr') then raise exception 'Unsupported category: urgent child safety matters need direct school contact';end if;
  if char_length(trim(coalesce(p_message,''))) not between 15 and 2000 or char_length(coalesce(v_contact,''))>160 then raise exception 'Please check message length';end if;
  -- A database backstop; add edge/WAF per-client rate limiting before public distribution.
  if (select count(*) from public.dreem_pta_submissions where campaign_id=p_campaign_id and created_at>now()-interval '1 hour')>=150 then
@@ -120,7 +120,10 @@ revoke all on function public.dreem_pta_set_published(uuid,boolean) from public,
 revoke all on function public.dreem_pta_staff_submissions(uuid) from public,anon;
 revoke all on function public.dreem_pta_set_status(uuid,text) from public,anon;
 grant execute on function public.dreem_pta_create_campaign(text,text,date,timestamptz),public.dreem_pta_staff_campaigns(),public.dreem_pta_set_published(uuid,boolean),public.dreem_pta_staff_submissions(uuid),public.dreem_pta_set_status(uuid,text) to authenticated;
-grant execute on function public.dreem_pta_public_campaign(uuid),public.dreem_pta_submit(uuid,text,text,text,text,text) to anon,authenticated;
+revoke all on function public.dreem_pta_submit(uuid,text,text,text,text,text) from public,anon,authenticated;
+grant execute on function public.dreem_pta_submit(uuid,text,text,text,text,text) to service_role;
+revoke all on function public.dreem_pta_public_campaign(uuid) from public;
+grant execute on function public.dreem_pta_public_campaign(uuid) to anon,authenticated;
 
 -- Management's pre-meeting action proposals, one per general discussion topic.
 -- These are separate from private individual submissions. No anonymous read.
