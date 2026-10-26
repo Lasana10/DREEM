@@ -6,3 +6,6 @@ verify_jwt = true
 [functions.update-access-status]
 verify_jwt = true
 
+
+[functions.pta-public-submit]
+verify_jwt = false
