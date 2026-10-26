@@ -83,7 +83,7 @@ begin
  if p_kind not in ('concern','idea','question') or p_topic not in ('learning','facilities','administration','pta','other') or p_language not in ('en','fr') then raise exception 'Unsupported category: urgent child safety matters need direct school contact';end if;
  if char_length(trim(coalesce(p_message,''))) not between 15 and 2000 or char_length(coalesce(v_contact,''))>160 then raise exception 'Please check message length';end if;
  -- A database backstop; add edge/WAF per-client rate limiting before public distribution.
- if (select count(*) from public.dreem_pta_submissions where campaign_id=p_campaign_id and created_at>now()-interval '1 hour')>=150 then
+ if (select count(*) from public.dreem_pta_submissions where campaign_id=p_campaign_id and created_at>now()-interval '1 hour')>=1000 then
    raise exception 'Submission limit reached; contact the school directly';
  end if;
  insert into public.dreem_pta_submissions(campaign_id,school_id,kind,topic,language,message,contact)
