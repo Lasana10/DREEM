@@ -2,14 +2,9 @@ import { useMemo, useState } from "react";
 import { CalendarDays, ClipboardList, Info } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 
-const iso = (date:Date) => [date.getFullYear(),String(date.getMonth()+1).padStart(2,"0"),String(date.getDate()).padStart(2,"0")].join("-");
-export function weekStart(value:string):string {
-  const date=new Date(value+"T12:00:00");
-  if(Number.isNaN(date.getTime())) return value;
-  date.setDate(date.getDate()-((date.getDay()+6)%7));
-  return iso(date);
-}
-export function weeklyEvidence(workspace:WorkspaceData, start:string, teacherOnly:boolean) {
+import { isoLocalDate, weekStart } from "../lib/academicWeek";
+
+function weeklyEvidence(workspace:WorkspaceData, start:string, teacherOnly:boolean) {
   const assignments=workspace.academics.assignments.filter(item=>item.status==="active"&&(!teacherOnly||item.teacherUserId===workspace.viewer.id));
   return assignments.map(assignment=>{
     const plans=workspace.academics.lessonPlans.filter(plan=>plan.assignmentId===assignment.id&&weekStart(plan.lessonDate)===start);
@@ -20,7 +15,7 @@ export function weeklyEvidence(workspace:WorkspaceData, start:string, teacherOnl
   });
 }
 export default function WeeklyEvidencePanel({workspace,teacherOnly}:{workspace:WorkspaceData;teacherOnly:boolean}){
- const [start,setStart]=useState(()=>weekStart(iso(new Date())));
+ const [start,setStart]=useState(()=>weekStart(isoLocalDate(new Date())));
  const rows=useMemo(()=>weeklyEvidence(workspace,start,teacherOnly),[workspace,start,teacherOnly]);
  const total=rows.reduce((sum,row)=>sum+row.recorded,0);
  const awaiting=rows.reduce((sum,row)=>sum+row.submitted,0);
