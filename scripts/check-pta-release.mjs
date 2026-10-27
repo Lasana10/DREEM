@@ -25,7 +25,8 @@ requires(app, '/^\\/pta\\/admin\\/?$/.test(window.location.pathname)', "Standalo
 requires(app, '<PtaStandaloneAdmin/>', "PTA management route must load standalone admin");
 requires(app, '<PtaStandaloneHome/>', "Standalone home must be publicly accessible");
 requires(standalone, '<AuthGate><PtaLeadership /></AuthGate>', "PTA management must require authentication");
-requires(standalone, 'canAuthority(workspace.viewer, "institutional_leadership")', "PTA management must require school leadership permission");
+requires(standalone, 'supabase.rpc("dreem_pta_staff_campaigns")', "PTA management must independently verify leadership in database");
+assert.ok(!standalone.includes('loadWorkspace()'), "Standalone PTA must not depend on full DREEM school workspace");
 assert.ok(!staff.includes('<PtaStaffWorkspace/>'), "PTA management must no longer be embedded in Communications");
 requires(ptaStaff, 'Copy parent link', "Staff must be able to copy published consultation link");
 requires(ptaStaff, 'Share parent link on WhatsApp', "Staff must be able to distribute parent link on WhatsApp");
