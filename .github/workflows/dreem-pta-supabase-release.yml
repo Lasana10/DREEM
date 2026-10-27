@@ -52,6 +52,7 @@ jobs:
           set -euo pipefail
           grep -q '^project_id = "vlukkucwtfmfgpzvjyvd"$' supabase/config.toml
           test -s supabase/migrations/20261026150000_public_pre_pta_parent_voice.sql
+          test -s supabase/migrations/20261027120000_pta_parent_family_private_intake.sql
           test -s supabase/functions/pta-public-submit/index.ts
       - name: Link and inspect migrations without changing production
         run: |
