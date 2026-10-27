@@ -15,6 +15,29 @@ create table public.dreem_exam_papers(
  created_at timestamptz not null default now(),
  updated_at timestamptz not null default now()
 );
+create table public.dreem_exam_paper_revisions (
+ id uuid primary key default gen_random_uuid(),
+ paper_id uuid not null references public.dreem_exam_papers(id) on delete cascade,
+ school_id uuid not null references public.schools(id) on delete cascade,
+ revision integer not null check(revision>=1),
+ question_ids uuid[] not null,
+ snapshot jsonb not null,
+ title text not null,
+ term_label text not null,
+ duration_minutes integer not null,
+ total_marks integer not null,
+ created_by uuid not null references auth.users(id),
+ created_at timestamptz not null default now(),
+ unique(paper_id,revision)
+);
+alter table public.dreem_exam_paper_revisions enable row level security;
+revoke all on public.dreem_exam_paper_revisions from public,anon,authenticated;
+grant select on public.dreem_exam_paper_revisions to authenticated;
+create policy dreem_exam_paper_revisions_read on public.dreem_exam_paper_revisions
+ for select to authenticated using(exists(
+ select 1 from public.dreem_exam_papers p where p.id=paper_id and p.school_id=school_id
+ and (p.created_by=(select auth.uid()) or (select private.dreem_has_role(p.school_id,array['leadership','academic_head'])))
+));
 create index dreem_exam_papers_school_idx on public.dreem_exam_papers(school_id,created_at desc);
 alter table public.dreem_exam_papers enable row level security;
 revoke all on public.dreem_exam_papers from public,anon,authenticated;
@@ -74,6 +97,10 @@ begin
   values(v_school,v_class,v_year,trim(p_title),left(trim(coalesce(p_term_label,'')),80),
   p_duration,p_question_ids,v_snapshot,v_total,v_actor) returning id into v_id;
  end if;
+ insert into public.dreem_exam_paper_revisions(
+ paper_id,school_id,revision,question_ids,snapshot,title,term_label,duration_minutes,total_marks,created_by)
+ select id,school_id,revision,question_ids,snapshot,title,term_label,duration_minutes,total_marks,v_actor
+ from public.dreem_exam_papers where id=v_id;
  perform private.dreem_write_event(v_school,'exam_paper',v_id,'exam_paper.draft_saved',
  'exam-paper-revision:'||v_id||':'||(select revision from public.dreem_exam_papers where id=v_id),
  jsonb_build_object('question_count',cardinality(p_question_ids),'total_marks',v_total));
