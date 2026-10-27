@@ -19,7 +19,8 @@ function requires(haystack, needle, description) {
 
 requires(app, 'publicPtaPath', "Public PTA route must exist");
 requires(app, 'ParentPtaPortal', "Public PTA route must use bilingual portal");
-requires(staff, 'VITE_DREEM_PTA_ENABLED==="true"', "Staff UI must remain protected by release flag");
+requires(staff, 'VITE_DREEM_PTA_ENABLED!=="false"', "PTA workspace is enabled by default with emergency shutdown flag");
+requires(staff, 'canAuthority(viewer,"institutional_leadership")', "PTA staff workspace must be leadership-only");
 requires(ptaStaff, 'Copy parent link', "Staff must be able to copy published consultation link");
 requires(ptaStaff, 'Share parent link on WhatsApp', "Staff must be able to distribute parent link on WhatsApp");
 requires(ptaStaff, 'setEntries((subs.data??[]) as Entry[])', "Staff data must refresh after status changes");
