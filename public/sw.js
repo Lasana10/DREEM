@@ -1,4 +1,4 @@
-const CACHE = "dreem-shell-v3";
+const CACHE = "dreem-shell-v4";
 const ROLE_MANIFESTS = ["school", "teacher", "family", "student", "finance", "driver", "gate"].map((app) => `/manifests/${app}.webmanifest`);
 const SHELL = ["/", "/offline.html", "/manifest.webmanifest", "/dreem-icon.svg", ...ROLE_MANIFESTS];
 
@@ -33,11 +33,15 @@ self.addEventListener("fetch", (event) => {
 
   if (url.pathname.startsWith("/manifests/") || ["script", "style", "font", "image"].includes(event.request.destination)) {
     event.respondWith((async () => {
-      const cached = await caches.match(event.request);
-      if (cached) return cached;
-      const response = await fetch(event.request);
-      if (response.ok) (await caches.open(CACHE)).put(event.request, response.clone());
-      return response;
+      try {
+        const response = await fetch(event.request, { cache: "no-cache" });
+        if (response.ok) (await caches.open(CACHE)).put(event.request, response.clone());
+        return response;
+      } catch {
+        const cached = await caches.match(event.request);
+        if (cached) return cached;
+        return Response.error();
+      }
     })());
   }
 });
