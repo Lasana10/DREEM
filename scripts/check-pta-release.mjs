@@ -8,6 +8,7 @@ const app = read("src/App.tsx");
 const publicPage = read("src/components/ParentPtaPortal.tsx");
 const staff = read("src/components/CommunicationsWorkspace.tsx");
 const ptaStaff = read("src/components/PtaStaffWorkspace.tsx");
+const standalone = read("src/components/PtaStandalone.tsx");
 const edge = read("supabase/functions/pta-public-submit/index.ts");
 const migration = read("supabase/migrations/20261026150000_public_pre_pta_parent_voice.sql");
 const config = read("supabase/config.toml");
@@ -19,8 +20,14 @@ function requires(haystack, needle, description) {
 
 requires(app, 'publicPtaPath', "Public PTA route must exist");
 requires(app, 'ParentPtaPortal', "Public PTA route must use bilingual portal");
-requires(staff, 'VITE_DREEM_PTA_ENABLED!=="false"', "PTA workspace is enabled by default with emergency shutdown flag");
-requires(staff, 'canAuthority(viewer,"institutional_leadership")', "PTA staff workspace must be leadership-only");
+requires(app, '/^\\/pta\\/?$/.test(window.location.pathname)', "Standalone PTA home route must exist");
+requires(app, '/^\\/pta\\/admin\\/?$/.test(window.location.pathname)', "Standalone management route must exist");
+requires(app, '<PtaStandaloneAdmin/>', "PTA management route must load standalone admin");
+requires(app, '<PtaStandaloneHome/>', "Standalone home must be publicly accessible");
+requires(standalone, '<AuthGate><PtaLeadership /></AuthGate>', "PTA management must require authentication");
+requires(standalone, 'supabase.rpc("dreem_pta_staff_campaigns")', "PTA management must independently verify leadership in database");
+assert.ok(!standalone.includes('loadWorkspace()'), "Standalone PTA must not depend on full DREEM school workspace");
+assert.ok(!staff.includes('<PtaStaffWorkspace/>'), "PTA management must no longer be embedded in Communications");
 requires(ptaStaff, 'Copy parent link', "Staff must be able to copy published consultation link");
 requires(ptaStaff, 'Share parent link on WhatsApp', "Staff must be able to distribute parent link on WhatsApp");
 requires(ptaStaff, 'setEntries((subs.data??[]) as Entry[])', "Staff data must refresh after status changes");
