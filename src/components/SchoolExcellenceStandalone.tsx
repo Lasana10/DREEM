@@ -3,6 +3,7 @@ import { ArrowLeft, ArrowRight, BookOpenCheck, ClipboardCheck, GraduationCap, Lo
 import AuthGate from "./AuthGate";
 import WeeklyEvidencePanel from "./WeeklyEvidencePanel";
 import WeeklyRegisterWorkspace from "./WeeklyRegisterWorkspace";
+import QuestionBankWorkspace from "./QuestionBankWorkspace";
 import TeacherClassroomWorkspace from "./TeacherClassroomWorkspace";
 import AcademicJourneyWorkspace from "./AcademicJourneyWorkspace";
 import { loadWorkspace, type WorkspaceData } from "../lib/repository";
@@ -11,7 +12,7 @@ import { canAuthority } from "../lib/access";
 import { userFacingError } from "../lib/userFacingError";
 import "./SchoolExcellence.css";
 
-type Mode = "overview" | "teach" | "review" | "weekly";
+type Mode = "overview" | "teach" | "review" | "weekly" | "questions";
 const featureCards = [
   { title: "Weekly lesson evidence", summary: "Plan with approved outcomes, record delivery and follow-up.", icon: BookOpenCheck },
   { title: "Academic supervision", summary: "Examine submitted lessons and assessments before approval.", icon: ClipboardCheck },
@@ -59,7 +60,7 @@ function ExcellenceWorkspace() {
       {!busy && workspace && (teacher || reviewer) && <>
         {mode === "overview" && <>
           <section className="excellence-hero">
-            <div><span className="excellence-kicker"><Sparkles size={15}/> SCHOOL EXCELLENCE · ACADEMIC OPERATIONS</span><h1>Better teaching.<br/><em>Visible progress.</em></h1><p>Curriculum, classroom evidence and independent academic review in one focused workspace—connected to your existing DREEM school records.</p><div className="excellence-actions">{teacher && <button className="excellence-primary" type="button" onClick={() => setMode("teach")}>Open my classroom <ArrowRight size={17}/></button>}<button className="excellence-secondary" type="button" onClick={() => setMode("weekly")}>Weekly register <BookOpenCheck size={17}/></button>{reviewer && <button className="excellence-secondary" type="button" onClick={() => setMode("review")}>Academic review <ClipboardCheck size={17}/></button>}</div></div>
+            <div><span className="excellence-kicker"><Sparkles size={15}/> SCHOOL EXCELLENCE · ACADEMIC OPERATIONS</span><h1>Better teaching.<br/><em>Visible progress.</em></h1><p>Curriculum, classroom evidence and independent academic review in one focused workspace—connected to your existing DREEM school records.</p><div className="excellence-actions">{teacher && <button className="excellence-primary" type="button" onClick={() => setMode("teach")}>Open my classroom <ArrowRight size={17}/></button>}<button className="excellence-secondary" type="button" onClick={() => setMode("weekly")}>Weekly register <BookOpenCheck size={17}/></button><button className="excellence-secondary" type="button" onClick={() => setMode("questions")}>Question bank <GraduationCap size={17}/></button>{reviewer && <button className="excellence-secondary" type="button" onClick={() => setMode("review")}>Academic review <ClipboardCheck size={17}/></button>}</div></div>
             <div className="excellence-hero-art" aria-hidden="true"><div className="excellence-orbit"><GraduationCap size={68}/></div><span>CURRICULUM</span><span>TEACHING</span><span>REVIEW</span></div>
           </section>
           <section className="excellence-summary" aria-label="School academic overview"><div><span>Active curriculum outcomes</span><strong>{counts?.outcomes ?? 0}</strong><small>Approved for delivery</small></div><div><span>Teaching assignments</span><strong>{counts?.assignments ?? 0}</strong><small>Active across this school</small></div><div><span>Pending academic reviews</span><strong>{counts?.reviews ?? 0}</strong><small>Submitted lesson plans and assessments</small></div></section>
@@ -68,7 +69,8 @@ function ExcellenceWorkspace() {
           <div className="excellence-features">{featureCards.map(({title,summary,icon: Icon}) => <article className="excellence-feature" key={title}><span className="excellence-feature-icon"><Icon size={23}/></span><h3>{title}</h3><p>{summary}</p></article>)}</div>
           <div className="excellence-bottom"><Users size={20}/><div><strong>No forced data migration.</strong><span>Classrooms, identities, approved curricula and review permissions come from the school's current DREEM records. Schools using other software can introduce this academic workspace gradually.</span></div></div>
         </>}
-        {mode !== "overview" && <section className="excellence-workflow"><div className="excellence-workflow-head"><div><span>ACADEMIC WORKSPACE</span><h1>{mode === "teach" ? "My classroom" : mode === "weekly" ? "Weekly teaching register" : "Supervision & approval"}</h1><p>{mode === "teach" ? "Teaching evidence aligned with the approved curriculum." : mode === "weekly" ? "Teacher submission and independent academic review." : "Independent review of academic plans and assessment results."}</p></div><button type="button" onClick={() => setMode("overview")}><ArrowLeft size={16}/> Back to overview</button></div>
+        {mode !== "overview" && <section className="excellence-workflow"><div className="excellence-workflow-head"><div><span>ACADEMIC WORKSPACE</span><h1>{mode === "teach" ? "My classroom" : mode === "weekly" ? "Weekly teaching register" : mode === "questions" ? "Question bank & moderation" : "Supervision & approval"}</h1><p>{mode === "teach" ? "Teaching evidence aligned with the approved curriculum." : mode === "weekly" ? "Teacher submission and independent academic review." : mode === "questions" ? "Curriculum-aligned, independently approved assessment materials." : "Independent review of academic plans and assessment results."}</p></div><button type="button" onClick={() => setMode("overview")}><ArrowLeft size={16}/> Back to overview</button></div>
+          {mode === "questions" && <QuestionBankWorkspace workspace={workspace} teacher={teacher} reviewer={reviewer}/>}
           {mode === "weekly" && <WeeklyRegisterWorkspace workspace={workspace} teacher={teacher} reviewer={reviewer}/>}
           {mode === "teach" && teacher && <TeacherClassroomWorkspace workspace={workspace} onRefresh={refresh}/>}
           {mode === "review" && reviewer && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refresh} onOpenStudio={() => window.location.assign("/")}/>}
