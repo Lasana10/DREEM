@@ -3,6 +3,7 @@ import { BookOpen, CheckCircle, FileQuestion, ShieldCheck } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 import { fetchQuestionBank, reviewQuestion, saveQuestionDraft, submitQuestion, type QuestionDraft, type QuestionItem } from "../lib/questionBank";
 import { userFacingError } from "../lib/userFacingError";
+import AssessmentPaperComposer from "./AssessmentPaperComposer";
 
 export default function QuestionBankWorkspace({workspace,teacher,reviewer}:{workspace:WorkspaceData;teacher:boolean;reviewer:boolean}){
  const [items,setItems]=useState<QuestionItem[]>([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
@@ -63,5 +64,6 @@ export default function QuestionBankWorkspace({workspace,teacher,reviewer}:{work
      {item.status==="approved"&&<p className="excellence-question-approved"><CheckCircle size={15}/> Approved for reuse in teacher-authored assessments</p>}
     </article>;
    })}</div>
+  <AssessmentPaperComposer items={items} schoolName={workspace.brand.name}/>
  </section>;
 }
