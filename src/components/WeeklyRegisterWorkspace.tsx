@@ -3,7 +3,7 @@ import { BookCheck, CheckCircle2, RotateCcw, Send } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 import { listWeeklyRegisters, reviewWeeklyRegister, submitWeeklyRegister, type WeeklyRegister } from "../lib/weeklyRegisters";
 import { userFacingError } from "../lib/userFacingError";
-import { weekStart } from "./WeeklyEvidencePanel";
+import { weekStart } from "../lib/academicWeek";
 
 const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
 export default function WeeklyRegisterWorkspace({workspace,teacher,reviewer}:{workspace:WorkspaceData;teacher:boolean;reviewer:boolean}){
