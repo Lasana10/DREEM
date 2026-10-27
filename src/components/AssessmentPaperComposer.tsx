@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { FileDown, FileText, GraduationCap, ListChecks, ShieldCheck } from "lucide-react";
 import type { QuestionItem } from "../lib/questionBank";
 import { orderedApprovedQuestions, paperHasMixedLanguages, paperTotalMarks } from "../lib/paperComposer";
-import { listExamPapers, saveExamPaper, type SavedExamPaper } from "../lib/examPapers";
+import { listExamPapers, saveExamPaper, submitExamPaper, reviewExamPaper, type SavedExamPaper } from "../lib/examPapers";
 import { userFacingError } from "../lib/userFacingError";
 
 type PaperKind="questions"|"marking";
-export default function AssessmentPaperComposer({items,schoolName,classes}:{items:QuestionItem[];schoolName:string;classes:Array<{id:string;name:string}>}){
+export default function AssessmentPaperComposer({items,schoolName,classes,reviewer,viewerId}:{items:QuestionItem[];schoolName:string;classes:Array<{id:string;name:string}>;reviewer:boolean;viewerId?:string}){
  const approved=useMemo(()=>items.filter(item=>item.status==="approved"),[items]);
  const [chosen,setChosen]=useState<string[]>([]);
  const [title,setTitle]=useState("Continuous Assessment");
@@ -18,6 +18,7 @@ export default function AssessmentPaperComposer({items,schoolName,classes}:{item
  const [onlyLanguage,setOnlyLanguage]=useState(true);
  const [saved,setSaved]=useState<SavedExamPaper[]>([]);
  const [activePaper,setActivePaper]=useState<SavedExamPaper|null>(null);
+ const [reviewNote,setReviewNote]=useState(""),[reviewDecision,setReviewDecision]=useState<"approved"|"returned">("approved");
  const [working,setWorking]=useState(false),[saveError,setSaveError]=useState(""),[savedMessage,setSavedMessage]=useState("");
  const reloadPapers=useCallback(async()=>{try{setSaved(await listExamPapers());}catch(reason){setSaveError(userFacingError(reason,"Saved papers are unavailable. Check the database migration."));}},[]);
  useEffect(()=>{void reloadPapers();},[reloadPapers]);
@@ -29,12 +30,28 @@ export default function AssessmentPaperComposer({items,schoolName,classes}:{item
  const restore=(id:string)=>{const paper=saved.find(p=>p.id===id);if(!paper)return;setActivePaper(paper);setChosen(paper.question_ids);setTitle(paper.title);setTerm(paper.term_label);setDuration(paper.duration_minutes);setClassName(classes.find(x=>x.id===paper.class_id)?.name??"Class-linked saved paper");setSavedMessage("Saved revision loaded with its original question and marking snapshots.");setSaveError("");};
  const createNew=()=>{setActivePaper(null);setChosen([]);setTitle("Continuous Assessment");setClassName("");setTerm("");setDuration(45);setSavedMessage("");};
  async function persist(){setWorking(true);setSaveError("");setSavedMessage("");try{const id=await saveExamPaper({title,termLabel:term,durationMinutes:duration,questionIds:chosen,paperId:activePaper?.id});await reloadPapers();setSavedMessage("Exam paper saved with its approved questions and marking snapshot. Reference: "+id.slice(0,8));}catch(reason){setSaveError(userFacingError(reason,"This exam draft was not saved. Check school authorization and selected approved questions."));}finally{setWorking(false);}}
+ async function changePaperStatus(action:"submit"|"review"){
+  if(!activePaper)return;
+  setWorking(true);setSaveError("");setSavedMessage("");
+  try{
+   if(action==="submit") await submitExamPaper(activePaper.id);
+   else await reviewExamPaper(activePaper.id,reviewDecision,reviewNote);
+   const updated=await listExamPapers();setSaved(updated);
+   setActivePaper(updated.find(item=>item.id===activePaper.id)??null);
+   setSavedMessage(action==="submit"?"Paper submitted for independent academic review.":"Review decision saved.");
+  }catch(reason){setSaveError(userFacingError(reason,"The paper decision was not saved."));}
+  finally{setWorking(false);}
+ }
  const print=(kind:PaperKind)=>{setMode(kind);window.setTimeout(()=>window.print(),50);};
  return <section className="excellence-paper">
   <div className="excellence-paper-head"><div><span className="excellence-kicker-dark"><FileText size={15}/> PRINTABLE ASSESSMENTS</span><h2>Examination paper composer</h2><p>Choose independently approved questions, arrange them and produce a pupil paper or staff-only marking guide. Paper composition is local until printed or saved by your browser.</p></div><span className="excellence-paper-total"><GraduationCap size={18}/>{sum} marks</span></div>
   <div className="excellence-paper-form">
    <div className="excellence-paper-saved"><label>Saved exam papers<select aria-label="Saved exam papers" value={activePaper?.id??""} onChange={e=>e.target.value?restore(e.target.value):createNew()}><option value="">New paper</option>{saved.map(p=><option value={p.id} key={p.id}>{p.title} · Revision {p.revision} · {p.total_marks} marks</option>)}</select></label><button type="button" className="excellence-cancel" onClick={createNew}>New paper</button></div>
-   {saveError&&<p className="form-status error" role="alert">{saveError}</p>}{savedMessage&&<p className="form-status success" role="status">{savedMessage}</p>}{activePaper&&<p className="excellence-register-status">Viewing saved revision {activePaper.revision}. Printing uses the stored question snapshot. Saving a revision validates every question against the current approved bank.</p>}
+   {saveError&&<p className="form-status error" role="alert">{saveError}</p>}{savedMessage&&<p className="form-status success" role="status">{savedMessage}</p>}{activePaper&&<div className="excellence-paper-review"><p className="excellence-register-status">Paper status: <strong>{activePaper.status}</strong> · revision {activePaper.revision}. Reprinting uses its saved questions and answer snapshot.</p>
+    {activePaper.review_note&&<p>Review findings: {activePaper.review_note}</p>}
+    {activePaper.created_by===viewerId&&activePaper.status==="draft"&&<button type="button" disabled={working} className="excellence-register-action" onClick={()=>void changePaperStatus("submit")}>Submit paper for approval</button>}
+    {reviewer&&activePaper.status==="submitted"&&activePaper.created_by!==viewerId&&<div className="excellence-register-review"><label>Decision<select value={reviewDecision} onChange={e=>setReviewDecision(e.target.value as "approved"|"returned")}><option value="approved">Approve after verification</option><option value="returned">Return for correction</option></select></label><label>Review findings<input value={reviewNote} onChange={e=>setReviewNote(e.target.value)} placeholder="Evidence checked or correction needed"/></label><button type="button" disabled={working||reviewNote.trim().length<5} onClick={()=>void changePaperStatus("review")}>Record independent review</button></div>}
+   </div>}
    <div className="excellence-register-fields"><label>Assessment title<input value={title} maxLength={100} onChange={e=>setTitle(e.target.value)}/></label><label>Class or level<input value={className} maxLength={80} placeholder="e.g. Class 5" onChange={e=>setClassName(e.target.value)}/></label><label>Term / period<input value={term} maxLength={80} onChange={e=>setTerm(e.target.value)}/></label></div>
    <div className="excellence-register-fields"><label>Duration (minutes)<input type="number" min={1} max={300} value={duration} onChange={e=>setDuration(Number(e.target.value))}/></label><label>Language<select value={language} onChange={e=>setLanguage(e.target.value as "en"|"fr")}><option value="en">English</option><option value="fr">Français</option></select></label><label>Question filtering<select value={onlyLanguage?"yes":"no"} onChange={e=>setOnlyLanguage(e.target.value==="yes")}><option value="yes">Chosen language only</option><option value="no">Both languages</option></select></label></div>
   </div>
@@ -44,7 +61,7 @@ export default function AssessmentPaperComposer({items,schoolName,classes}:{item
   </div>
   {selected.length>0&&<div className="excellence-paper-order"><strong>Question order</strong><p>Selected questions print in the order shown below. Reorder them before printing.</p>{selected.map((item,i)=><div key={item.id}><span><b>{i+1}.</b> {item.question_text.slice(0,115)}{item.question_text.length>115?"…":""}</span><span><button type="button" aria-label={`Move question ${i+1} up`} disabled={i===0} onClick={()=>setChosen(prev=>{const next=[...prev];[next[i-1],next[i]]=[next[i],next[i-1]];return next;})}>↑</button><button type="button" aria-label={`Move question ${i+1} down`} disabled={i===selected.length-1} onClick={()=>setChosen(prev=>{const next=[...prev];[next[i],next[i+1]]=[next[i+1],next[i]];return next;})}>↓</button></span></div>)}</div>}
   {mixed&&<p className="excellence-register-status">This paper contains questions in both English and French. Confirm that this matches your school's approved assessment plan.</p>}
-  <div className="excellence-question-actions"><button type="button" className="excellence-register-action" disabled={working||!selected.length||!title.trim()||!className.trim()} onClick={()=>void persist()}>Save exam draft</button><button type="button" className="excellence-register-action" disabled={!selected.length||!title.trim()||!className.trim()||duration<1} onClick={()=>print("questions")}><FileDown size={17}/> Print / save pupil paper</button><button type="button" className="excellence-cancel" disabled={!selected.length||!title.trim()||!className.trim()} onClick={()=>print("marking")}><ListChecks size={17}/> Print staff marking guide</button></div>
+  <div className="excellence-question-actions"><button type="button" className="excellence-register-action" disabled={working||!selected.length||!title.trim()||!className.trim()||(!!activePaper&&activePaper.status!=="draft"&&activePaper.status!=="returned")} onClick={()=>void persist()}>Save exam draft</button><button type="button" className="excellence-register-action" disabled={!selected.length||!title.trim()||!className.trim()||duration<1} onClick={()=>print("questions")}><FileDown size={17}/> Print / save pupil paper</button><button type="button" className="excellence-cancel" disabled={!selected.length||!title.trim()||!className.trim()} onClick={()=>print("marking")}><ListChecks size={17}/> Print staff marking guide</button></div>
   <p className="excellence-weekly-disclaimer"><ShieldCheck size={15}/> Only approved questions may be assembled. Printing a paper does not publish learner results or expose answer keys on the pupil version. Save using your browser's print-to-PDF option if needed.</p>
   <div className="excellence-print-sheet" aria-label={mode==="questions"?"Pupil examination paper":"Confidential marking guide"}>
    <header><p className="excellence-print-brand">{schoolName||"SCHOOL"}</p><h1>{title}</h1><p>{className} · {term} · {duration} minutes · {sum} marks</p>{mode==="marking"&&<strong>STAFF ONLY — CONFIDENTIAL MARKING GUIDE</strong>}</header>

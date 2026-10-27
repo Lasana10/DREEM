@@ -42,3 +42,5 @@ body *{visibility:hidden!important}
 }
 
 .excellence-paper-saved{display:flex;align-items:end;gap:12px;padding:16px;border:1px solid #dce6ef;border-radius:12px;background:#f4f8fb}.excellence-paper-saved label{flex:1}.excellence-paper-saved button{height:41px}@media(max-width:800px){.excellence-paper-saved{flex-direction:column;align-items:stretch}}
+
+.excellence-paper-review{border:1px solid #d9e8e1;background:#f3f9f6;border-radius:12px;padding:16px;margin:14px 0;display:grid;gap:12px}.excellence-paper-review>p{font-size:13px;color:#42675d;margin:0}.excellence-paper-review .excellence-register-review{grid-template-columns:1fr 2fr auto}@media(max-width:800px){.excellence-paper-review .excellence-register-review{grid-template-columns:1fr}}

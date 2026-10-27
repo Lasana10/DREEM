@@ -64,6 +64,6 @@ export default function QuestionBankWorkspace({workspace,teacher,reviewer}:{work
      {item.status==="approved"&&<p className="excellence-question-approved"><CheckCircle size={15}/> Approved for reuse in teacher-authored assessments</p>}
     </article>;
    })}</div>
-  <AssessmentPaperComposer items={items} schoolName={workspace.brand.name} classes={workspace.setup.classes}/>
+  <AssessmentPaperComposer items={items} schoolName={workspace.brand.name} classes={workspace.setup.classes} reviewer={reviewer} viewerId={workspace.viewer.id}/>
  </section>;
 }
