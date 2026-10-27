@@ -21,13 +21,13 @@ export default function QuestionBankWorkspace({workspace,teacher,reviewer}:{work
  const pending=items.filter(item=>item.status==="submitted");
  const [editing,setEditing]=useState<QuestionItem|null>(null);
  async function save(event:FormEvent<HTMLFormElement>){
-  event.preventDefault();const f=new FormData(event.currentTarget);
+  event.preventDefault();const form=event.currentTarget;const f=new FormData(form);
   if(!currentOutcome){setError("Choose an approved curriculum objective before writing a question.");return;}
   const choices=type==="multiple_choice"?String(f.get("choices")??"").split("\n").map(x=>x.trim()).filter(Boolean):[];
   if(type==="multiple_choice"&&(choices.length<2||choices.length>6)){setError("Enter 2–6 answer choices, each on a separate line.");return;}
   const draft:QuestionDraft={outcomeId:currentOutcome.id,questionId:editId||undefined,language:String(f.get("language")) as QuestionDraft["language"],questionType:type,difficulty:String(f.get("difficulty")) as QuestionDraft["difficulty"],questionText:String(f.get("question")).trim(),choices,answerKey:String(f.get("answer")).trim(),markingGuide:String(f.get("guide")).trim(),points:Number(f.get("points")),sourceReference:String(f.get("source")).trim()};
   setBusy(true);setError("");setMessage("");
-  try{await saveQuestionDraft(draft);setMessage("Question draft saved. Submit it for independent approval when ready.");setEditId("");setEditing(null);event.currentTarget.reset();await reload();}
+  try{await saveQuestionDraft(draft);setMessage("Question draft saved. Submit it for independent approval when ready.");setEditId("");setEditing(null);form.reset();await reload();}
   catch(reason){setError(userFacingError(reason,"The question draft was not saved."));}finally{setBusy(false);}
  }
  async function act(id:string,action:"submit"|"review"){
