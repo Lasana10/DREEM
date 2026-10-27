@@ -2,22 +2,22 @@ import { useEffect, useState } from "react";
 import AuthGate from "./AuthGate";
 import PtaStaffWorkspace from "./PtaStaffWorkspace";
 import { resolveActiveSchoolContext } from "../lib/schoolContext";
-import { loadWorkspace } from "../lib/repository";
-import { canAuthority } from "../lib/access";
 import { supabase } from "../lib/supabase";
 import { userFacingError } from "../lib/userFacingError";
 import "./PtaStandalone.css";
 
 function PtaLeadership() {
-  const [state, setState] = useState<"loading" | "ready" | "denied" | "error">("loading");
+  const [state, setState] = useState<"loading" | "ready" | "error">("loading");
   const [message, setMessage] = useState("");
   useEffect(() => {
     let active = true;
     (async () => {
       try {
         await resolveActiveSchoolContext();
-        const workspace = await loadWorkspace();
-        if (active) setState(canAuthority(workspace.viewer, "institutional_leadership") ? "ready" : "denied");
+        if (!supabase) throw new Error("School service unavailable");
+        const { error } = await supabase.rpc("dreem_pta_staff_campaigns");
+        if (error) throw error;
+        if (active) setState("ready");
       } catch (reason) {
         if (active) {
           setMessage(userFacingError(reason, "Your school access could not be verified."));
@@ -34,8 +34,7 @@ function PtaLeadership() {
     </header>
     <div className="pta-admin-container">
       {state === "loading" && <section className="pta-admin-state" role="status">Checking your school leadership access…</section>}
-      {state === "denied" && <section className="pta-admin-state"><h1>School leadership access required</h1><p>Only authorised school leaders can view private parent submissions. Parents can submit through a published consultation link without signing in.</p><a href="/pta">Go to PTA / APEE</a></section>}
-      {state === "error" && <section className="pta-admin-state"><h1>School context required</h1><p>{message}</p><p>If you belong to several schools, choose your school in DREEM before returning here.</p><a href="/">Open school selection</a><button type="button" onClick={() => window.location.reload()}>Retry</button></section>}
+      {state === "error" && <section className="pta-admin-state"><h1>Leadership access could not be confirmed</h1><p>{message}</p><p>If you belong to several schools, choose your school in DREEM before returning here.</p><a href="/">Open school selection</a><button type="button" onClick={() => window.location.reload()}>Retry</button></section>}
       {state === "ready" && <PtaStaffWorkspace />}
     </div>
   </main>;
