@@ -7,6 +7,7 @@ const read = (file) => readFileSync(file, "utf8");
 const app = read("src/App.tsx");
 const publicPage = read("src/components/ParentPtaPortal.tsx");
 const staff = read("src/components/CommunicationsWorkspace.tsx");
+const ptaStaff = read("src/components/PtaStaffWorkspace.tsx");
 const edge = read("supabase/functions/pta-public-submit/index.ts");
 const migration = read("supabase/migrations/20261026150000_public_pre_pta_parent_voice.sql");
 const config = read("supabase/config.toml");
@@ -19,6 +20,9 @@ function requires(haystack, needle, description) {
 requires(app, 'publicPtaPath', "Public PTA route must exist");
 requires(app, 'ParentPtaPortal', "Public PTA route must use bilingual portal");
 requires(staff, 'VITE_DREEM_PTA_ENABLED==="true"', "Staff UI must remain protected by release flag");
+requires(ptaStaff, 'Copy parent link', "Staff must be able to copy published consultation link");
+requires(ptaStaff, 'Share parent link on WhatsApp', "Staff must be able to distribute parent link on WhatsApp");
+requires(ptaStaff, 'setEntries((subs.data??[]) as Entry[])', "Staff data must refresh after status changes");
 requires(publicPage, 'name="website"', "Public submission must retain a low-friction bot trap");
 requires(publicPage, 'supabase.functions.invoke("pta-public-submit"', "Public form must use protected function");
 assert.ok(!publicPage.includes('supabase.rpc("dreem_pta_submit"'), "Public page must never call privileged RPC directly");
