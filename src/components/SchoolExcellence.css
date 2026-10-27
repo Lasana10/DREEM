@@ -40,3 +40,5 @@ body *{visibility:hidden!important}
 .excellence-print-question{display:grid;grid-template-columns:25px 1fr auto;gap:8px}.excellence-print-question p{margin:0 0 8px}.excellence-print-question ol{margin:8px 0 15px 25px}.excellence-print-question>strong{font-size:10pt;white-space:nowrap}.excellence-print-answer{border-top:1px dashed #666;margin-top:12px;padding-top:8px;color:#333}
 .excellence-print-sheet footer{border-top:1px solid #bbb;padding-top:8px;font-size:9pt;margin-top:40px;text-align:center}
 }
+
+.excellence-paper-saved{display:flex;align-items:end;gap:12px;padding:16px;border:1px solid #dce6ef;border-radius:12px;background:#f4f8fb}.excellence-paper-saved label{flex:1}.excellence-paper-saved button{height:41px}@media(max-width:800px){.excellence-paper-saved{flex-direction:column;align-items:stretch}}
