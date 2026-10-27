@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, BookOpenCheck, ClipboardCheck, GraduationCap, LockKeyhole, RefreshCw, ShieldCheck, Sparkles, Users } from "lucide-react";
 import AuthGate from "./AuthGate";
+import WeeklyEvidencePanel from "./WeeklyEvidencePanel";
 import TeacherClassroomWorkspace from "./TeacherClassroomWorkspace";
 import AcademicJourneyWorkspace from "./AcademicJourneyWorkspace";
 import { loadWorkspace, type WorkspaceData } from "../lib/repository";
@@ -61,6 +62,7 @@ function ExcellenceWorkspace() {
             <div className="excellence-hero-art" aria-hidden="true"><div className="excellence-orbit"><GraduationCap size={68}/></div><span>CURRICULUM</span><span>TEACHING</span><span>REVIEW</span></div>
           </section>
           <section className="excellence-summary" aria-label="School academic overview"><div><span>Active curriculum outcomes</span><strong>{counts?.outcomes ?? 0}</strong><small>Approved for delivery</small></div><div><span>Teaching assignments</span><strong>{counts?.assignments ?? 0}</strong><small>Active across this school</small></div><div><span>Pending academic reviews</span><strong>{counts?.reviews ?? 0}</strong><small>Submitted lesson plans and assessments</small></div></section>
+          <WeeklyEvidencePanel workspace={workspace} teacherOnly={!reviewer}/>
           <div className="excellence-section-title"><div><span>CONNECTED WORKFLOWS</span><h2>One academic journey, not another school database.</h2></div><span className="excellence-integrity"><ShieldCheck size={16}/> Existing school permissions enforced</span></div>
           <div className="excellence-features">{featureCards.map(({title,summary,icon: Icon}) => <article className="excellence-feature" key={title}><span className="excellence-feature-icon"><Icon size={23}/></span><h3>{title}</h3><p>{summary}</p></article>)}</div>
           <div className="excellence-bottom"><Users size={20}/><div><strong>No forced data migration.</strong><span>Classrooms, identities, approved curricula and review permissions come from the school's current DREEM records. Schools using other software can introduce this academic workspace gradually.</span></div></div>
