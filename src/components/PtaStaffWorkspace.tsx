@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { userFacingError } from "../lib/userFacingError";
 
 type Campaign = {id:string;title_en:string;title_fr:string;meeting_date:string|null;published:boolean};
-type Entry = {id:string;kind:string;topic:string;language:string;message:string;contact:string|null;status:string;created_at:string};
+type Entry = {id:string;kind:string;topic:string;language:string;message:string;contact:string|null;status:string;created_at:string;parent_name:string|null;children_names:string|null;child_classes:string|null};
 const statuses=["new","under_review","action_planned","resolved","closed"];
 const topics=["learning","facilities","administration","pta","other"] as const;
 type TopicPlan={topic:string;proposed_solution:string;responsible_officer:string;target_date:string|null};
@@ -43,7 +43,7 @@ export default function PtaStaffWorkspace(){
   <small>Before sharing, verify the live migration, request limits and child-safety response contact.</small></section>
   {campaign&&<section className="message-composer"><header className="object-header"><div><span>PRE-MEETING MANAGEMENT BRIEFING</span><h3>Issues and proposed solutions</h3></div><button type="button" onClick={copyBriefing}>Copy anonymised briefing</button></header><p>Prepare proposed answers before the PTA. Individual messages, names, contact details and safety cases are not exported.</p>{grouped.map(row=><article key={row.topic} className="message-card"><h4>{row.topic} — {row.count} submissions</h4><label>Proposed school response<textarea rows={2} maxLength={1500} value={row.plan?.proposed_solution??""} onChange={e=>updatePlan(row.topic,"proposed_solution",e.target.value)}/></label><label>Responsible person<input maxLength={160} value={row.plan?.responsible_officer??""} onChange={e=>updatePlan(row.topic,"responsible_officer",e.target.value)}/></label><label>Proposed target date<input type="date" value={row.plan?.target_date??""} onChange={e=>updatePlan(row.topic,"target_date",e.target.value)}/></label><button type="button" disabled={busy} onClick={()=>void savePlan(row.topic)}>Save response plan</button></article>)}</section>}
   {campaign&&<section className="message-composer"><h3>Private parent submissions ({entries.length})</h3><p>Do not share names or allegations in public PTA reports. Child safety cases need immediate restricted follow-up.</p>
-  {entries.map(entry=><article key={entry.id} className="message-card"><header><strong>{entry.topic} · {entry.kind}</strong><small>{new Date(entry.created_at).toLocaleString()}</small></header><p>{entry.message}</p>{entry.contact&&<small>Private contact: {entry.contact}</small>}
+  {entries.map(entry=><article key={entry.id} className="message-card"><header><strong>{entry.topic} · {entry.kind}</strong><small>{new Date(entry.created_at).toLocaleString()}</small></header><p>{entry.message}</p><small>Parent: {entry.parent_name||"Not supplied"} · Children: {entry.children_names||"Not supplied"} · Classes: {entry.child_classes||"Not supplied"}</small>{entry.contact&&<small>Private contact: {entry.contact}</small>}
   <label>Resolution status<select value={entry.status} disabled={busy} onChange={e=>void execute(async()=>{const r=await supabase!.rpc("dreem_pta_set_status",{p_submission_id:entry.id,p_status:e.target.value});if(r.error)throw r.error;setEntries(current=>current.map(x=>x.id===entry.id?{...x,status:e.target.value}:x));})}>{statuses.map(status=><option key={status} value={status}>{status.replaceAll("_"," ")}</option>)}</select></label></article>)}
   </section>}
  </section>;

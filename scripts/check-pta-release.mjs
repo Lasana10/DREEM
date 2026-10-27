@@ -26,7 +26,10 @@ requires(publicPage, 'topic==="safety"', "Child safety topics must be blocked fr
 requires(edge, "TURNSTILE_SECRET_KEY", "Captcha secret is mandatory server-side");
 requires(edge, "siteverify", "Server must verify CAPTCHA with provider");
 requires(edge, "outcome.hostname===expectedHost", "CAPTCHA must bind to configured site hostname");
-requires(edge, 'admin.rpc("dreem_pta_submit"', "Server-only insertion route must exist");
+requires(edge, 'admin.rpc("dreem_pta_submit_family"', "Server-only family insertion route must exist");
+requires(publicPage, "parentName:parentName.trim()", "Public parent form must capture parent name");
+requires(publicPage, "childrenNames:childrenNames.trim()", "Public parent form must capture child names");
+requires(migration, "revoke all on function public.dreem_pta_submit(uuid,text,text,text,text,text) from public,anon,authenticated", "Old public submission must be blocked");
 requires(edge, 'if(!secret||!url||!serviceKey)', "Server must fail closed without required secrets");
 requires(migration, "revoke all on function public.dreem_pta_submit(uuid,text,text,text,text,text) from public,anon,authenticated", "Direct anonymous submission permission must be revoked");
 requires(migration, "grant execute on function public.dreem_pta_submit(uuid,text,text,text,text,text) to service_role", "Only service role may write submissions");
