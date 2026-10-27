@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AuthGate from "./components/AuthGate";
+import SchoolExcellenceStandalone from "./components/SchoolExcellenceStandalone";
 import ParentPtaPortal from "./components/ParentPtaPortal";
 import { PtaStandaloneHome, PtaStandaloneAdmin } from "./components/PtaStandalone";
 import PaymentAcknowledgement from "./components/PaymentAcknowledgement";
@@ -116,6 +117,7 @@ function WorkspaceApp() {
 }
 
 export default function App() {
+  if(/^\/excellence\/?$/.test(window.location.pathname))return <SchoolExcellenceStandalone/>;
   if(/^\/payment\/ack\/[0-9a-fA-F-]{36}\/?$/.test(window.location.pathname))return <PaymentAcknowledgement/>;
   if(/^\/pta\/?$/.test(window.location.pathname))return <PtaStandaloneHome/>;
   if(/^\/pta\/admin\/?$/.test(window.location.pathname))return <PtaStandaloneAdmin/>;
