@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { userFacingError } from "../lib/userFacingError";
 
 type Campaign = {id:string;title_en:string;title_fr:string;meeting_date:string|null;published:boolean};
-type Entry = {id:string;kind:string;topic:string;language:string;message:string;contact:string|null;status:string;created_at:string};
+type Entry = {id:string;kind:string;topic:string;language:string;message:string;contact:string|null;status:string;created_at:string;parent_name:string|null;children_names:string|null;child_classes:string|null};
 const statuses=["new","under_review","action_planned","resolved","closed"];
 const topics=["learning","facilities","administration","pta","other"] as const;
 type TopicPlan={topic:string;proposed_solution:string;responsible_officer:string;target_date:string|null};
