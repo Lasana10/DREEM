@@ -42,3 +42,25 @@ export async function reviewWeeklyRegister(id:string,decision:"approved"|"return
  if(error)throw error;
  return data as string;
 }
+
+export type MarkingCheck={id:string;school_id:string;register_id:string;sampled_books:number;decision:"verified"|"needs_correction"|"inconclusive";evidence_reference:string;findings:string;checked_by:string;checked_at:string};
+export async function listMarkingChecks(registerIds:string[]):Promise<MarkingCheck[]>{
+ if(!supabase)throw new Error("School service unavailable.");
+ if(registerIds.length===0)return [];
+ const school=await resolveActiveSchoolContext();
+ const {data,error}=await supabase.from("dreem_weekly_marking_checks")
+ .select("id,school_id,register_id,sampled_books,decision,evidence_reference,findings,checked_by,checked_at")
+ .eq("school_id",school.schoolId).in("register_id",registerIds.slice(0,200))
+ .order("checked_at",{ascending:false}).limit(200);
+ if(error)throw error;
+ return(data??[]) as MarkingCheck[];
+}
+export async function recordMarkingCheck(input:{registerId:string;sampledBooks:number;decision:MarkingCheck["decision"];reference:string;findings:string}):Promise<string>{
+ if(!supabase)throw new Error("School service unavailable.");
+ const {data,error}=await supabase.rpc("dreem_record_marking_check",{
+  p_register_id:input.registerId,p_sampled_books:input.sampledBooks,
+  p_decision:input.decision,p_evidence_reference:input.reference,p_findings:input.findings
+ });
+ if(error)throw error;
+ return String(data);
+}
