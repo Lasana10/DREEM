@@ -4,6 +4,7 @@ import type { WorkspaceData } from "../lib/repository";
 import { listWeeklyRegisters, reviewWeeklyRegister, submitWeeklyRegister, type WeeklyRegister } from "../lib/weeklyRegisters";
 import { userFacingError } from "../lib/userFacingError";
 import { weekStart } from "../lib/academicWeek";
+import MarkingVerificationPanel from "./MarkingVerificationPanel";
 
 const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
 export default function WeeklyRegisterWorkspace({workspace,teacher,reviewer}:{workspace:WorkspaceData;teacher:boolean;reviewer:boolean}){
@@ -60,6 +61,7 @@ export default function WeeklyRegisterWorkspace({workspace,teacher,reviewer}:{wo
     {row.status==="submitted"&&row.submitted_by!==workspace.viewer.id?<div className="excellence-register-review"><label>Decision<select aria-label="Review decision" value={decision[row.id]??"approved"} onChange={e=>setDecision(current=>({...current,[row.id]:e.target.value as "approved"|"returned"}))}><option value="approved">Approve after checking evidence</option><option value="returned">Return for correction</option></select></label><label>Review findings<input aria-label="Review findings" value={reviewNotes[row.id]??""} onChange={e=>setReviewNotes(current=>({...current,[row.id]:e.target.value}))} placeholder="Record what was verified or needs correction"/></label><button disabled={saving} onClick={()=>void review(row)}><CheckCircle2 size={16}/> Record review</button></div>:row.status==="submitted"?<p>Independent reviewer required for your own submission.</p>:<p><RotateCcw size={14}/> {row.review_note??"Review recorded"}</p>}
    </article>;
   })}</div>}
+  {!loading&&<MarkingVerificationPanel registers={rows} reviewer={reviewer} viewerId={workspace.viewer.id}/>}
   <p className="excellence-weekly-disclaimer">Weekly figures and marking status are teacher declarations until reviewed against classroom evidence. Reviewing does not automatically certify exercise books or modify official pupil scores.</p>
  </section>;
 }
