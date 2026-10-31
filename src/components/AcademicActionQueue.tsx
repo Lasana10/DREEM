@@ -7,26 +7,27 @@ import { listWeeklyRegisters,listMarkingChecks,reviewWeeklyRegister,type WeeklyR
 import { isoLocalDate,weekStart } from "../lib/academicWeek";
 import { buildAcademicQueue,type AcademicQueueArea } from "../lib/academicQueue";
 import { userFacingError } from "../lib/userFacingError";
+import {listAcademicFollowups,type AcademicFollowup} from "../lib/academicFollowups";
 
 type ReviewDecision="approved"|"returned";
 export default function AcademicActionQueue({workspace,onOpen}:{workspace:WorkspaceData;onOpen:(area:AcademicQueueArea)=>void}){
  const [questions,setQuestions]=useState<QuestionItem[]>([]),[papers,setPapers]=useState<SavedExamPaper[]>([]);
- const [registers,setRegisters]=useState<WeeklyRegister[]>([]),[checks,setChecks]=useState<MarkingCheck[]>([]);
+ const [registers,setRegisters]=useState<WeeklyRegister[]>([]),[checks,setChecks]=useState<MarkingCheck[]>([]),[followups,setFollowups]=useState<AcademicFollowup[]>([]);
  const [loading,setLoading]=useState(true),[busyId,setBusyId]=useState(""),[error,setError]=useState(""),[notice,setNotice]=useState("");
  const [decisions,setDecisions]=useState<Record<string,ReviewDecision>>({}),[notes,setNotes]=useState<Record<string,string>>({});
  const reload=useCallback(async()=>{
   setLoading(true);
   try{
    const start=weekStart(isoLocalDate(new Date()));
-   const [q,p,r]=await Promise.all([fetchQuestionBank(),listExamPapers(),listWeeklyRegisters(start)]);
+   const [q,p,r,a]=await Promise.all([fetchQuestionBank(),listExamPapers(),listWeeklyRegisters(start),listAcademicFollowups()]);
    const marking=await listMarkingChecks(r.map(item=>item.id));
-   setQuestions(q);setPapers(p);setRegisters(r);setChecks(marking);setError("");
+   setQuestions(q);setPapers(p);setRegisters(r);setChecks(marking);setFollowups(a);setError("");
   }catch(reason){setError(userFacingError(reason,"Academic review evidence could not be loaded. Check the school connection and retry."));}
   finally{setLoading(false);}
  },[]);
  useEffect(()=>{void reload();},[reload]);
  const items=useMemo(()=>buildAcademicQueue({lessonPlans:workspace.academics.lessonPlans,assessments:workspace.academics.assessments,
-  questions,papers,registers,checks,viewerId:workspace.viewer.id}),[workspace,questions,papers,registers,checks]);
+  questions,papers,registers,checks,followups,today:isoLocalDate(new Date()),viewerId:workspace.viewer.id}),[workspace,questions,papers,registers,checks,followups]);
  async function decide(id:string,kind:"question"|"paper"|"weekly_register"){
   const note=(notes[id]??"").trim(),decision=decisions[id]??"approved";
   if(note.length<5){setError("Explain your review findings in at least five characters.");return;}
@@ -47,7 +48,7 @@ export default function AcademicActionQueue({workspace,onOpen}:{workspace:Worksp
   </div><button type="button" className="excellence-cancel" disabled={loading} onClick={()=>void reload()}><RefreshCw size={15}/> Refresh</button></div>
   {error&&<p className="form-status error" role="alert">{error}</p>}{notice&&<p className="form-status success" role="status">{notice}</p>}
   {loading?<p role="status">Loading academic decisions…</p>:
-   <><div className="excellence-queue-summary"><strong>{items.length}</strong> current actions requiring attention <small>Weekly marking checks cover the current teaching week. Lesson and assessment queues use currently loaded school records.</small></div>
+   <><div className="excellence-queue-summary"><strong>{items.length}</strong> current actions requiring attention <small>Weekly marking checks cover the current teaching week; corrective actions include prior weeks. Lesson and assessment queues use currently loaded school records.</small></div>
    {items.length===0?<p className="excellence-queue-empty"><ClipboardCheck size={19}/> No pending academic decisions are visible in the current records.</p>:
    <div className="excellence-queue-items">{items.map(item=><article key={item.kind+item.id}>
     <div><span className="excellence-queue-type">{item.kind.replace("_"," ")}</span><strong>{item.title}</strong><small>{item.detail}</small></div>

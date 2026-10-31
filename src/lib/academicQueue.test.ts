@@ -2,6 +2,14 @@ import { describe,expect,it } from "vitest";
 import { buildAcademicQueue,type AcademicQueueSource } from "./academicQueue";
 const empty=():AcademicQueueSource=>({lessonPlans:[],assessments:[],questions:[],papers:[],registers:[],checks:[],viewerId:"head"});
 describe("academic action queue",()=>{
+ it("routes teacher responses and overdue academic improvements to independent review",()=>{
+  const data=empty();data.today="2026-11-01";data.followups=[
+   {id:"f1",status:"responded",title:"Correct marking",due_date:"2026-11-05",assigned_teacher:"teacher"},
+   {id:"f2",status:"open",title:"Supply lesson evidence",due_date:"2026-10-20",assigned_teacher:"teacher"},
+   {id:"f3",status:"closed",title:"Already completed",due_date:"2026-10-20",assigned_teacher:"teacher"}
+  ];
+  expect(buildAcademicQueue(data).filter(x=>x.kind==="followup").map(x=>x.id)).toEqual(["f1","f2"]);
+ });
  it("excludes decisions owned by the current reviewer",()=>{
   const data=empty();data.questions=[{id:"q1",created_by:"head",question_text:"Question",status:"submitted"},{id:"q2",created_by:"teacher",question_text:"Question 2",status:"submitted"}];
   expect(buildAcademicQueue(data).map(x=>x.id)).toEqual(["q2"]);
