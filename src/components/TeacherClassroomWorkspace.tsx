@@ -6,6 +6,7 @@ import { recordAssessment, teacherReviewCurriculumProposal, uploadAcademicDocume
 import { prepareTeacherOfflineContext, recordAttendanceResilient, recordLessonPlanResilient, replayTeacherOffline } from "../lib/teacherOffline";
 import { loadTeacherClassRoster } from "../lib/teacherClassRoster";
 import { userFacingError } from "../lib/userFacingError";
+import { resolveAssignedCurriculumFocus } from "../lib/teachingFocus";
 
 type Task="Teach"|"Attendance"|"Assess"|"Resources";
 const tasks:Array<[Task,ReactNode]>=[["Teach",<BookOpenCheck key="teach"/>],["Attendance",<UsersRound key="attendance"/>],["Assess",<ClipboardCheck key="assess"/>],["Resources",<FileText key="resources"/>]];
@@ -13,14 +14,13 @@ const readableError=(reason:unknown)=>userFacingError(reason,"This classroom act
 const today=()=>new Date().toISOString().slice(0,10);
 
 export default function TeacherClassroomWorkspace({workspace,onRefresh,focusOutcomeId}:{workspace:WorkspaceData;onRefresh:()=>Promise<void>;focusOutcomeId?:string}){
- const assigned=workspace.academics.assignments.filter(item=>item.status==="active"&&(!workspace.viewer.id||item.teacherUserId===workspace.viewer.id));
+ const assigned=workspace.academics.assignments.filter(item=>item.status==="active"&&!!workspace.viewer.id&&item.teacherUserId===workspace.viewer.id);
  const classes=useMemo(()=>Array.from(new Set(assigned.map(item=>item.className))),[assigned]);
- const focusedOutcome=workspace.academics.curriculumOutcomes.find(item=>item.id===focusOutcomeId&&item.status==="active");
- const focusedAssignment=assigned.find(item=>focusedOutcome&&item.classId===focusedOutcome.classId&&item.subjectId===focusedOutcome.subjectId&&item.academicYearId===focusedOutcome.academicYearId);
+ const focusedAssignment=resolveAssignedCurriculumFocus(assigned,workspace.academics.curriculumOutcomes,workspace.viewer.id,focusOutcomeId);
  const [className,setClassName]=useState(focusedAssignment?.className??classes[0]??""),[task,setTask]=useState<Task>("Teach"),[lessonAssignmentId,setLessonAssignmentId]=useState(focusedAssignment?.id??"");
  const [online,setOnline]=useState(typeof navigator==="undefined"?true:navigator.onLine),[busy,setBusy]=useState(false),[message,setMessage]=useState(""),[error,setError]=useState(""),[roster,setRoster]=useState<LearnerSummary[]>([]);
  const subjects=assigned.filter(item=>item.className===className),selectedAssignment=subjects.find(item=>item.id===lessonAssignmentId)??subjects[0];
- const lessonOutcomes=workspace.academics.curriculumOutcomes.filter(item=>item.status==="active"&&selectedAssignment&&item.classId===selectedAssignment.classId&&item.subjectId===selectedAssignment.subjectId);
+ const lessonOutcomes=workspace.academics.curriculumOutcomes.filter(item=>item.status==="active"&&selectedAssignment&&item.classId===selectedAssignment.classId&&item.subjectId===selectedAssignment.subjectId&&item.academicYearId===selectedAssignment.academicYearId);
  const learners=roster.length?roster:workspace.learners.filter(item=>item.className===className);
  const classAssignmentIds=new Set(subjects.map(item=>item.subjectId));
  const teacherProposals=workspace.academics.curriculumProposals.filter(item=>item.status==="proposed"&&classAssignmentIds.has(item.subjectId));
