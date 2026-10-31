@@ -24,6 +24,7 @@ const featureCards = [
 function ExcellenceWorkspace() {
   const [workspace, setWorkspace] = useState<WorkspaceData | null>(null);
   const [mode, setMode] = useState<Mode>("overview");
+  const [focusOutcomeId, setFocusOutcomeId] = useState<string | undefined>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(true);
   const refresh = useCallback(async () => { setWorkspace(await loadWorkspace()); }, []);
@@ -67,7 +68,7 @@ function ExcellenceWorkspace() {
           </section>
           <section className="excellence-summary" aria-label="School academic overview"><div><span>Active curriculum outcomes</span><strong>{counts?.outcomes ?? 0}</strong><small>Approved for delivery</small></div><div><span>Teaching assignments</span><strong>{counts?.assignments ?? 0}</strong><small>Active across this school</small></div><div><span>Pending academic reviews</span><strong>{counts?.reviews ?? 0}</strong><small>Submitted lesson plans and assessments</small></div></section>
           {reviewer && <AcademicActionQueue workspace={workspace} onOpen={setMode}/>}
-          <CurriculumCoveragePanel workspace={workspace} teacherOnly={!reviewer}/>
+          <CurriculumCoveragePanel workspace={workspace} teacherOnly={!reviewer} onPlanOutcome={teacher ? (id)=>{setFocusOutcomeId(id);setMode("teach");}:undefined}/>
           <WeeklyEvidencePanel workspace={workspace} teacherOnly={!reviewer}/>
           <div className="excellence-section-title"><div><span>CONNECTED WORKFLOWS</span><h2>One academic journey, not another school database.</h2></div><span className="excellence-integrity"><ShieldCheck size={16}/> Existing school permissions enforced</span></div>
           <div className="excellence-features">{featureCards.map(({title,summary,icon: Icon}) => <article className="excellence-feature" key={title}><span className="excellence-feature-icon"><Icon size={23}/></span><h3>{title}</h3><p>{summary}</p></article>)}</div>
@@ -76,7 +77,7 @@ function ExcellenceWorkspace() {
         {mode !== "overview" && <section className="excellence-workflow"><div className="excellence-workflow-head"><div><span>ACADEMIC WORKSPACE</span><h1>{mode === "teach" ? "My classroom" : mode === "weekly" ? "Weekly teaching register" : mode === "questions" ? "Question bank & moderation" : "Supervision & approval"}</h1><p>{mode === "teach" ? "Teaching evidence aligned with the approved curriculum." : mode === "weekly" ? "Teacher submission and independent academic review." : mode === "questions" ? "Curriculum-aligned, independently approved assessment materials." : "Independent review of academic plans and assessment results."}</p></div><button type="button" onClick={() => setMode("overview")}><ArrowLeft size={16}/> Back to overview</button></div>
           {mode === "questions" && <QuestionBankWorkspace workspace={workspace} teacher={teacher} reviewer={reviewer}/>}
           {mode === "weekly" && <WeeklyRegisterWorkspace workspace={workspace} teacher={teacher} reviewer={reviewer}/>}
-          {mode === "teach" && teacher && <TeacherClassroomWorkspace workspace={workspace} onRefresh={refresh}/>}
+          {mode === "teach" && teacher && <TeacherClassroomWorkspace workspace={workspace} onRefresh={refresh} focusOutcomeId={focusOutcomeId}/>}
           {mode === "review" && reviewer && <AcademicJourneyWorkspace workspace={workspace} onRefresh={refresh} onOpenStudio={() => window.location.assign("/")}/>}
         </section>}
       </>}
