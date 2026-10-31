@@ -10,7 +10,6 @@ export default function CurriculumCoveragePanel({workspace,teacherOnly}:{workspa
  const [classFilter,setClassFilter]=useState("all"),[stateFilter,setStateFilter]=useState("all");
  useEffect(()=>{
   let active=true;
-  setLoading(true);
   loadOutcomeLessonLinks(workspace.academics.lessonPlans).then(rows=>{if(active){setLinks(rows);setError("");}}).catch(reason=>{if(active)setError(userFacingError(reason,"Curriculum evidence links could not be loaded."));}).finally(()=>{if(active)setLoading(false);});
   return()=>{active=false;};
  },[workspace,version]);
@@ -24,7 +23,7 @@ export default function CurriculumCoveragePanel({workspace,teacherOnly}:{workspa
  return <section className="excellence-coverage" aria-label="Curriculum progress supported by lesson evidence">
   <div className="excellence-register-header"><div><span className="excellence-kicker-dark"><BookCheck size={15}/> CURRICULUM · TEACHING EVIDENCE</span>
    <h2>Curriculum coverage</h2><p>See approved outcomes linked to recorded lesson plans and their independent review status. Planning evidence is not proof of completed teaching or pupil mastery.</p></div>
-   <button type="button" className="excellence-cancel" disabled={loading} onClick={()=>setVersion(v=>v+1)}><RefreshCw size={15}/> Refresh</button></div>
+   <button type="button" className="excellence-cancel" disabled={loading} onClick={()=>{setLoading(true);setVersion(v=>v+1);}}><RefreshCw size={15}/> Refresh</button></div>
   {error&&<p className="form-status error" role="alert">{error}</p>}
   {loading?<p role="status">Loading curriculum-to-lesson evidence…</p>:<>
    <div className="excellence-coverage-metrics"><div><strong>{coverage.length}</strong><span>Active assigned outcomes</span></div><div><strong>{evidenced}</strong><span>With reviewed lesson evidence</span></div><div><strong>{awaiting}</strong><span>Awaiting lesson review</span></div><div><strong>{coverage.length-evidenced-awaiting}</strong><span>Returned only / no recorded link</span></div></div>
