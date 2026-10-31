@@ -2,10 +2,11 @@ import type { LessonPlanSummary, AssessmentSummary } from "../domain/types";
 import type { QuestionItem } from "./questionBank";
 import type { SavedExamPaper } from "./examPapers";
 import type { WeeklyRegister, MarkingCheck } from "./weeklyRegisters";
+import type { AcademicFollowup } from "./academicFollowups";
 
 export type AcademicQueueArea="review"|"questions"|"weekly";
 export type AcademicQueueItem={
- id:string;area:AcademicQueueArea;kind:"lesson"|"assessment"|"question"|"paper"|"weekly_register"|"marking_check";
+ id:string;area:AcademicQueueArea;kind:"lesson"|"assessment"|"question"|"paper"|"weekly_register"|"marking_check"|"followup";
  title:string;detail:string;submittedAt?:string;
 };
 export type AcademicQueueSource={
@@ -14,6 +15,8 @@ export type AcademicQueueSource={
  papers:Pick<SavedExamPaper,"id"|"status"|"title"|"revision"|"created_by">[];
  registers:Pick<WeeklyRegister,"id"|"status"|"week_start"|"marking_state"|"submitted_by"|"teaching_assignment_id">[];
  checks:Pick<MarkingCheck,"register_id"|"decision">[];
+ followups?:Pick<AcademicFollowup,"id"|"status"|"title"|"due_date"|"assigned_teacher">[];
+ today?:string;
  viewerId?:string;
 };
 export function buildAcademicQueue(source:AcademicQueueSource):AcademicQueueItem[]{
@@ -54,6 +57,13 @@ export function buildAcademicQueue(source:AcademicQueueSource):AcademicQueueItem
    id:register.id+":marking",area:"weekly",kind:"marking_check",title:`Marking evidence · ${register.week_start}`,
    detail:"Teacher reports marking complete; no sampled check recorded"
   });
+ }
+ for(const followup of source.followups??[]){
+  const needsReview=followup.status==="responded";
+  const overdue=followup.status!=="closed"&&followup.due_date<(source.today??"");
+  if(!needsReview&&!overdue)continue;
+  items.push({id:followup.id,area:"weekly",kind:"followup",title:followup.title,
+   detail:needsReview?"Teacher corrective evidence awaiting verification":`Overdue teaching improvement · due ${followup.due_date}`});
  }
  return items;
 }
