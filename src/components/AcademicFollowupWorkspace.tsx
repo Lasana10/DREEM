@@ -4,6 +4,7 @@ import type {WorkspaceData} from "../lib/repository";
 import {listMarkingChecks,type WeeklyRegister,type MarkingCheck} from "../lib/weeklyRegisters";
 import {listAcademicFollowups,openAcademicFollowup,respondAcademicFollowup,reviewAcademicFollowup,type AcademicFollowup} from "../lib/academicFollowups";
 import {userFacingError} from "../lib/userFacingError";
+import {isoLocalDate} from "../lib/academicWeek";
 
 export default function AcademicFollowupWorkspace({workspace,registers,reviewer}:{workspace:WorkspaceData;registers:WeeklyRegister[];reviewer:boolean}){
  const [checks,setChecks]=useState<MarkingCheck[]>([]);
@@ -51,7 +52,7 @@ export default function AcademicFollowupWorkspace({workspace,registers,reviewer}
    <h3>Assign an evidence-based improvement</h3><div className="excellence-register-fields">
    <label>Weekly register<select value={selectedRegister?.id??""} onChange={e=>{setRegisterId(e.target.value);setCheckId("");}}>{accessibleRegisters.map(r=><option key={r.id} value={r.id}>{r.week_start} · {workspace.academics.assignments.find(a=>a.id===r.teaching_assignment_id)?.className??"Assigned class"}</option>)}</select></label>
    <label>Marking check (optional)<select value={checkId} onChange={e=>setCheckId(e.target.value)}><option value="">General weekly review</option>{relatedChecks.map(x=><option key={x.id} value={x.id}>{x.decision.replace("_"," ")} · {x.sampled_books} sampled</option>)}</select></label>
-   <label>Due date<input type="date" name="due" min={new Date().toLocaleDateString("en-CA")} required/></label></div>
+   <label>Due date<input type="date" name="due" min={isoLocalDate(new Date())} required/></label></div>
    <label>Required improvement title<input name="title" minLength={5} maxLength={160} required placeholder="e.g. Correct outstanding workbook marking"/></label>
    <label>Action and expected evidence<textarea name="action" rows={3} minLength={10} maxLength={2000} required placeholder="Specific correction, learning support or marking evidence expected"/></label>
    <button className="excellence-register-action" type="submit" disabled={!!busy}>Assign corrective action</button>
@@ -60,7 +61,7 @@ export default function AcademicFollowupWorkspace({workspace,registers,reviewer}
    <div className="excellence-followup-count"><ClipboardList size={17}/><strong>{active.length}</strong> open, awaiting review or returned actions</div>
    {actions.length===0?<p className="excellence-queue-empty">No academic follow-up actions are recorded for your accessible school work.</p>:
    <div className="excellence-followup-list">{actions.map(item=>{
-    const overdue=item.status!=="closed"&&item.due_date<new Date().toLocaleDateString("en-CA");
+    const overdue=item.status!=="closed"&&item.due_date<isoLocalDate(new Date());
     return <article className="excellence-register-item" key={item.id}>
      <div className="excellence-register-item-top"><div><strong>{item.title}</strong><small>Due {item.due_date}{overdue?" · OVERDUE":""} · Assigned to {workspace.academics.assignments.find(a=>registers.some(r=>r.id===item.register_id&&r.teaching_assignment_id===a.id))?.teacherName??"Teacher"}</small></div><span className={"excellence-register-state "+(overdue?"excellence-overdue":"")}>{item.status}</span></div>
      <p><strong>Required improvement:</strong> {item.required_action}</p>
