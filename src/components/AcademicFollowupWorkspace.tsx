@@ -1,16 +1,19 @@
 import {useCallback,useEffect,useMemo,useState,type FormEvent} from "react";
 import {CheckCircle2,ClipboardList,RefreshCw,ShieldCheck} from "lucide-react";
 import type {WorkspaceData} from "../lib/repository";
-import type {WeeklyRegister,MarkingCheck} from "../lib/weeklyRegisters";
+import {listMarkingChecks,type WeeklyRegister,type MarkingCheck} from "../lib/weeklyRegisters";
 import {listAcademicFollowups,openAcademicFollowup,respondAcademicFollowup,reviewAcademicFollowup,type AcademicFollowup} from "../lib/academicFollowups";
 import {userFacingError} from "../lib/userFacingError";
 
-export default function AcademicFollowupWorkspace({workspace,registers,checks,reviewer}:{workspace:WorkspaceData;registers:WeeklyRegister[];checks:MarkingCheck[];reviewer:boolean}){
+export default function AcademicFollowupWorkspace({workspace,registers,reviewer}:{workspace:WorkspaceData;registers:WeeklyRegister[];reviewer:boolean}){
+ const [checks,setChecks]=useState<MarkingCheck[]>([]);
  const [actions,setActions]=useState<AcademicFollowup[]>([]),[busy,setBusy]=useState(""),[loading,setLoading]=useState(true),[error,setError]=useState(""),[message,setMessage]=useState("");
  const [registerId,setRegisterId]=useState(""),[checkId,setCheckId]=useState("");
  const [responseNotes,setResponseNotes]=useState<Record<string,string>>({}),[responseEvidence,setResponseEvidence]=useState<Record<string,string>>({});
  const [reviewNotes,setReviewNotes]=useState<Record<string,string>>({}),[reviewDecisions,setReviewDecisions]=useState<Record<string,"closed"|"returned">>({});
  const viewerId=workspace.viewer.id;
+ const registerIds=registers.map(x=>x.id).join(",");
+ useEffect(()=>{let active=true;listMarkingChecks(registerIds?registerIds.split(","):[]).then(rows=>{if(active)setChecks(rows);}).catch(reason=>{if(active)setError(userFacingError(reason,"Marking check evidence could not be loaded."));});return()=>{active=false;};},[registerIds]);
  const accessibleRegisters=useMemo(()=>registers.filter(x=>x.submitted_by!==viewerId),[registers,viewerId]);
  const selectedRegister=accessibleRegisters.find(x=>x.id===registerId)??accessibleRegisters[0];
  const relatedChecks=checks.filter(x=>x.register_id===selectedRegister?.id);
