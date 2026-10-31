@@ -7,6 +7,7 @@ import QuestionBankWorkspace from "./QuestionBankWorkspace";
 import TeacherClassroomWorkspace from "./TeacherClassroomWorkspace";
 import AcademicJourneyWorkspace from "./AcademicJourneyWorkspace";
 import AcademicActionQueue from "./AcademicActionQueue";
+import CurriculumCoveragePanel from "./CurriculumCoveragePanel";
 import { loadWorkspace, type WorkspaceData } from "../lib/repository";
 import { resolveActiveSchoolContext } from "../lib/schoolContext";
 import { canAuthority } from "../lib/access";
@@ -66,6 +67,7 @@ function ExcellenceWorkspace() {
           </section>
           <section className="excellence-summary" aria-label="School academic overview"><div><span>Active curriculum outcomes</span><strong>{counts?.outcomes ?? 0}</strong><small>Approved for delivery</small></div><div><span>Teaching assignments</span><strong>{counts?.assignments ?? 0}</strong><small>Active across this school</small></div><div><span>Pending academic reviews</span><strong>{counts?.reviews ?? 0}</strong><small>Submitted lesson plans and assessments</small></div></section>
           {reviewer && <AcademicActionQueue workspace={workspace} onOpen={setMode}/>}
+          <CurriculumCoveragePanel workspace={workspace} teacherOnly={!reviewer}/>
           <WeeklyEvidencePanel workspace={workspace} teacherOnly={!reviewer}/>
           <div className="excellence-section-title"><div><span>CONNECTED WORKFLOWS</span><h2>One academic journey, not another school database.</h2></div><span className="excellence-integrity"><ShieldCheck size={16}/> Existing school permissions enforced</span></div>
           <div className="excellence-features">{featureCards.map(({title,summary,icon: Icon}) => <article className="excellence-feature" key={title}><span className="excellence-feature-icon"><Icon size={23}/></span><h3>{title}</h3><p>{summary}</p></article>)}</div>
