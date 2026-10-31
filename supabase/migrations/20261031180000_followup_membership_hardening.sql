@@ -21,7 +21,7 @@ begin
   raise exception 'Independent school leadership must assign academic follow-up';end if;
  if not exists(select 1 from public.dreem_school_memberships m
    where m.school_id=v_register.school_id and m.profile_id=v_register.submitted_by
-   and m.status='approved' and m.role='teacher')
+   and m.status='approved')
  then raise exception 'Assigned teacher must have approved current school membership';end if;
  if p_marking_check_id is not null then
   select * into v_check from public.dreem_weekly_marking_checks where id=p_marking_check_id;
