@@ -5,6 +5,7 @@ import { listWeeklyRegisters, reviewWeeklyRegister, submitWeeklyRegister, type W
 import { userFacingError } from "../lib/userFacingError";
 import { weekStart } from "../lib/academicWeek";
 import MarkingVerificationPanel from "./MarkingVerificationPanel";
+import AcademicFollowupWorkspace from "./AcademicFollowupWorkspace";
 
 const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,"0"),String(d.getDate()).padStart(2,"0")].join("-");};
 export default function WeeklyRegisterWorkspace({workspace,teacher,reviewer}:{workspace:WorkspaceData;teacher:boolean;reviewer:boolean}){
@@ -62,6 +63,7 @@ export default function WeeklyRegisterWorkspace({workspace,teacher,reviewer}:{wo
    </article>;
   })}</div>}
   {!loading&&<MarkingVerificationPanel registers={rows} reviewer={reviewer} viewerId={workspace.viewer.id}/>}
+  {!loading&&<AcademicFollowupWorkspace workspace={workspace} registers={rows} reviewer={reviewer}/>}
   <p className="excellence-weekly-disclaimer">Weekly figures and marking status are teacher declarations until reviewed against classroom evidence. Reviewing does not automatically certify exercise books or modify official pupil scores.</p>
  </section>;
 }
