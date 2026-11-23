@@ -32,7 +32,7 @@ export default function SecurityGateView({workspace,onRefresh}:{workspace:Worksp
       if(!online){if(decision==="released")throw new Error("DO NOT RELEASE: DREEM is offline and cannot prove that this collector is still authorised. Choose Deny release or wait for reconnection.");await queueOfflineGateDenial({credentialToken:learnerToken,collectorToken,reason,idempotencyKey},workspace.viewer);setMessage("Release denied. Hashed gate evidence is saved safely on this device and will sync when DREEM reconnects.");setCollectorToken("");return;}
       if(decision==="released"&&!collectorToken.trim())throw new Error("A valid collector credential is required before release.");
       try{
-        const saved=await verifyLearnerRelease({credentialToken:learnerToken.trim(),collectorToken:collectorToken.trim(),decision,reason:reason.trim(),idempotencyKey,identityConfirmed:decision==="released"&&identityConfirmed,identityMethod:decision==="released"?identityMethod:undefined});
+        const saved=await verifyLearnerRelease({credentialToken:learnerToken.trim(),collectorToken:collectorToken.trim(),decision,reason:reason.trim(),idempotencyKey,identityConfirmed:decision==="released"&&identityConfirmed,identityMethod:decision==="released"&&identityMethod?identityMethod:undefined});
         const collectorPhotoUrl=saved.collectorPhotoUrl?await resolveIdentityMedia(saved.collectorPhotoUrl):undefined;
         setResult({...saved,collectorPhotoUrl:collectorPhotoUrl??""});
         setMessage(saved.decision==="released"?"Release verified and written to the safeguarding audit trail.":"Release denied and written to the safeguarding audit trail.");
