@@ -2666,11 +2666,15 @@ export async function verifyLearnerRelease(input: {
   decision: "released" | "denied";
   reason: string;
   idempotencyKey: string;
+  identityConfirmed?: boolean;
+  identityMethod?: "school_photo" | "physical_photo_id";
 }) {
   if (!input.credentialToken.trim())
     throw new Error("Scan or enter the learner credential.");
   if (input.decision === "released" && !input.collectorToken.trim())
     throw new Error("Scan or enter the collector authorization.");
+  if (input.decision === "released" && (!input.identityConfirmed || !["school_photo","physical_photo_id"].includes(input.identityMethod ?? "")))
+    throw new Error("DO NOT RELEASE: a verified physical identity check is required.");
   if (!input.reason.trim())
     throw new Error("Record the reason for this gate decision.");
   if (!isSupabaseConfigured || !supabase)
@@ -2692,7 +2696,7 @@ export async function verifyLearnerRelease(input: {
       p_collector_token: input.collectorToken.trim(),
       p_decision: input.decision,
       p_reason: input.reason.trim(),
-      p_evidence: { capture: "gate_scanner" },
+      p_evidence: { capture: "gate_scanner", identity_checked: input.decision === "released" && input.identityConfirmed === true, identity_method: input.decision === "released" ? input.identityMethod : null },
       p_idempotency_key: input.idempotencyKey,
     },
   );
