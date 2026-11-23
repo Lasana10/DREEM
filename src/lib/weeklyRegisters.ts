@@ -22,6 +22,22 @@ export async function listWeeklyRegisters(weekStart:string):Promise<WeeklyRegist
  if(error)throw error;
  return (data??[]) as WeeklyRegister[];
 }
+/**
+ * Resolve submitted registers across school weeks rather than only the active
+ * teaching week. Leadership cannot approve a backlog it cannot see.
+ * This is intentionally bounded and school-scoped; the API returns the oldest
+ * pending work first so stale decisions do not disappear behind new records.
+ */
+export async function listOutstandingWeeklyRegisters():Promise<WeeklyRegister[]>{
+ if(!supabase)throw new Error("School service unavailable.");
+ const ctx=await resolveActiveSchoolContext();
+ const {data,error}=await supabase.from("dreem_weekly_teaching_registers")
+ .select("id,school_id,teaching_assignment_id,week_start,lessons_delivered,exercises_assigned,marking_state,curriculum_progress,learner_difficulties,evidence_reference,teacher_note,status,submitted_by,submitted_at,reviewed_at,review_note")
+ .eq("school_id",ctx.schoolId).eq("status","submitted")
+ .order("week_start",{ascending:true}).limit(200);
+ if(error)throw error;
+ return (data??[]) as WeeklyRegister[];
+}
 export async function submitWeeklyRegister(input:WeeklyRegisterInput){
  if(!supabase)throw new Error("School service unavailable.");
  const {data,error}=await supabase.rpc("dreem_submit_weekly_register",{
