@@ -15,7 +15,7 @@ describe("role-specific transport workspaces",()=>{
   afterEach(cleanup);
   it("gives gate officers verification without transport administration",()=>{
     render(<TransportView workspace={workspaceFor("security_guard")} onRefresh={async()=>undefined}/>);
-    expect(screen.getByRole("heading",{name:"Scan both credentials"})).toBeInTheDocument();
+    expect(screen.getByRole("heading",{name:/Scan learner\. Verify collector\. Confirm handover/i})).toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Activate route"})).not.toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Register vehicle"})).not.toBeInTheDocument();
   });
