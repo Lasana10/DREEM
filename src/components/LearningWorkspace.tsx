@@ -51,7 +51,7 @@ export default function LearningWorkspace({
   const [selectedTeachingAssignment,setSelectedTeachingAssignment]=useState("");
   const [selectedFamilyAssignment,setSelectedFamilyAssignment]=useState("");
   const academicReviewer=canAuthority(workspace.viewer,"academics_approval");
-  const teachingAssignments=teachingAssignmentsForAuthor(workspace.academics.assignments,workspace.viewer.id,academicReviewer);
+  const teachingAssignments=teachingAssignmentsForAuthor(workspace.academics.assignments,workspace.viewer.id??"",academicReviewer);
   const teachingAssignment=teachingAssignments.find(x=>x.id===selectedTeachingAssignment);
   const curriculumOutcomes=curriculumForTeachingAssignment(workspace.academics.curriculumOutcomes,teachingAssignment);
   const teacherAssignmentIds=new Set(teachingAssignments.map(x=>x.id));
