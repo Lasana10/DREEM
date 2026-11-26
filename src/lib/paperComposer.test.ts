@@ -1,5 +1,5 @@
 import { describe,expect,it } from "vitest";
-import { orderedApprovedQuestions, paperHasMixedLanguages, paperTotalMarks } from "./paperComposer";
+import { approvedQuestionsForClass, orderedApprovedQuestions, paperHasMixedLanguages, paperMatchesOneClassAndYear, paperTotalMarks } from "./paperComposer";
 import type { QuestionItem } from "./questionBank";
 const item=(id:string,status:QuestionItem["status"],points:number,language:QuestionItem["language"]="en"):QuestionItem=>({
  id,school_id:"s",outcome_id:"o",language,question_type:"short_answer",difficulty:"foundation",
@@ -20,5 +20,31 @@ describe("approved assessment composition",()=>{
  it("warns when approved questions mix languages",()=>{
   expect(paperHasMixedLanguages(orderedApprovedQuestions(items,["a","c"]))).toBe(true);
   expect(paperHasMixedLanguages(orderedApprovedQuestions(items,["a"]))).toBe(false);
+ });
+});
+
+describe("school-aligned examination composition",()=>{
+ const outcomes=[
+  {id:"o",classId:"class-a",academicYearId:"2026",status:"active" as const},
+  {id:"other",classId:"class-b",academicYearId:"2026",status:"active" as const},
+  {id:"new-year",classId:"class-a",academicYearId:"2027",status:"active" as const},
+  {id:"retired",classId:"class-a",academicYearId:"2026",status:"retired" as const},
+ ];
+ const question=(id:string,outcome_id:string,status:QuestionItem["status"]="approved")=>({...item(id,status,5),outcome_id});
+ it("shows only moderated questions assigned to the chosen class",()=>{
+  const available=approvedQuestionsForClass([
+   question("a","o"),question("b","other"),question("c","retired"),question("d","o","submitted")
+  ],outcomes,"class-a");
+  expect(available.map(x=>x.id)).toEqual(["a"]);
+ });
+ it("rejects class mixing and academic-year mixing before printing or saving",()=>{
+  expect(paperMatchesOneClassAndYear([question("a","o"),question("b","other")],outcomes,"class-a")).toBe(false);
+  expect(paperMatchesOneClassAndYear([question("a","o"),question("b","new-year")],outcomes,"class-a")).toBe(false);
+  expect(paperMatchesOneClassAndYear([question("a","o"),question("b","o")],outcomes,"class-a")).toBe(true);
+ });
+ it("rejects unapproved, retired and empty selections",()=>{
+  expect(paperMatchesOneClassAndYear([question("x","o","submitted")],outcomes,"class-a")).toBe(false);
+  expect(paperMatchesOneClassAndYear([question("x","retired")],outcomes,"class-a")).toBe(false);
+  expect(paperMatchesOneClassAndYear([],outcomes,"class-a")).toBe(false);
  });
 });
