@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { submitAssignment, type WorkspaceData } from "../lib/repository";
 import { userFacingError } from "../lib/userFacingError";
+import { schoolClock } from "../lib/academicWeek";
 import PublishedReportCard from "./PublishedReportCard";
 import "./StudentWorkspace.css";
 
@@ -21,11 +22,7 @@ export default function StudentWorkspace({ workspace, onRefresh }: { workspace: 
   const periods = workspace.academics.timetable.filter(item => item.status === "active" && item.className === learner.className);
   const learnerClass = workspace.setup.classes.find(item => item.name === learner.className);
   const materials = workspace.academics.documents.filter(item => item.status === "approved" && (!item.classId || item.classId === learnerClass?.id));
-  const now = new Date();
-  const dateParts = new Intl.DateTimeFormat("en-CA", { timeZone: workspace.brand.timezone || "Africa/Douala", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(now);
-  const part = (type: string) => dateParts.find(item => item.type === type)?.value;
-  const today = `${part("year")}-${part("month")}-${part("day")}`;
-  const weekday = new Date(`${today}T12:00:00Z`).getUTCDay() || 7;
+  const {date:today,weekday}=schoolClock(new Date(),workspace.brand.timezone||"Africa/Douala");
   const todayPeriods = periods.filter(item => item.weekday === weekday && item.effectiveFrom <= today && item.effectiveTo >= today).sort((a,b) => a.startsAt.localeCompare(b.startsAt));
   const reports = workspace.academics.reportCards.filter(item => item.studentId === learner.id && item.status === "published");
   const transportAssignment = workspace.transport.assignments.find(item => item.studentId === learner.id && item.status === "active");
