@@ -7,6 +7,8 @@ import {
 import { useState, type FormEvent, type ReactNode } from "react";
 import { createIdempotencyKey } from "../domain/rules";
 import { canAuthority } from "../lib/access";
+import { schoolClock } from "../lib/academicWeek";
+import { assignmentBelongsToLearner, assignmentsForLinkedLearners, curriculumForTeachingAssignment, teachingAssignmentsForAuthor } from "../lib/learningContext";
 import {
   createAssignment,
   gradeAssignmentSubmission,
@@ -46,6 +48,14 @@ export default function LearningWorkspace({
     canReview = canAuthority(workspace.viewer,"academics_approval") || canAuthority(workspace.viewer,"academics_delivery"),
     family = role === "student" || role === "parent",
     canSubmit = family;
+  const [selectedTeachingAssignment,setSelectedTeachingAssignment]=useState("");
+  const [selectedFamilyAssignment,setSelectedFamilyAssignment]=useState("");
+  const academicReviewer=canAuthority(workspace.viewer,"academics_approval");
+  const teachingAssignments=teachingAssignmentsForAuthor(workspace.academics.assignments,workspace.viewer.id??"",academicReviewer);
+  const teachingAssignment=teachingAssignments.find(x=>x.id===selectedTeachingAssignment);
+  const curriculumOutcomes=curriculumForTeachingAssignment(workspace.academics.curriculumOutcomes,teachingAssignment);
+  const teacherAssignmentIds=new Set(teachingAssignments.map(x=>x.id));
+  const visibleWork=family?assignmentsForLinkedLearners(workspace.academics.assignmentsForLearners,workspace.learners):academicReviewer?workspace.academics.assignmentsForLearners:workspace.academics.assignmentsForLearners.filter(x=>teacherAssignmentIds.has(x.teachingAssignmentId));
   const [busy, setBusy] = useState(false),
     [message, setMessage] = useState(""),
     [error, setError] = useState("");
@@ -73,9 +83,13 @@ export default function LearningWorkspace({
     }
     const f = new FormData(form),
       outcomes = f.getAll("outcomes").map(String);
+    const assignmentId=String(f.get("teachingAssignmentId"));
+    if(!teachingAssignments.some(a=>a.id===assignmentId)){setError("Choose an active class and subject assigned to you.");return;}
+    const allowed=new Set(curriculumForTeachingAssignment(workspace.academics.curriculumOutcomes,teachingAssignments.find(a=>a.id===assignmentId)).map(o=>o.id));
+    if(outcomes.some(id=>!allowed.has(id))){setError("Curriculum objectives must belong to the chosen class, subject and year.");return;}
     await run(async () => {
       await createAssignment({
-        teachingAssignmentId: String(f.get("teachingAssignmentId")),
+        teachingAssignmentId: assignmentId,
         title: String(f.get("title")),
         instructions: String(f.get("instructions")),
         assignedOn: String(f.get("assignedOn")),
@@ -93,6 +107,9 @@ export default function LearningWorkspace({
     event.preventDefault();
     const f = new FormData(event.currentTarget),
       file = f.get("file");
+    const chosenAssignment=visibleWork.find(a=>a.id===String(f.get("assignmentId")));
+    const chosenLearner=workspace.learners.find(l=>l.id===String(f.get("studentId")));
+    if(!chosenAssignment||!chosenLearner||!assignmentBelongsToLearner(chosenAssignment,chosenLearner)){setError("Choose published work for the selected learner’s class. No work was submitted.");return;}
     await run(
       () =>
         submitAssignment({
@@ -122,14 +139,15 @@ export default function LearningWorkspace({
         : "Work returned for revision.",
     );
   }
-  const drafts = workspace.academics.assignmentsForLearners.filter(
+  const drafts = visibleWork.filter(
       (x) => x.status === "draft",
     ),
-    open = workspace.academics.assignmentsForLearners.filter(
+    open = visibleWork.filter(
       (x) => x.status === "published",
     ),
+    workIds=new Set(visibleWork.map(a=>a.id)),
     pending = workspace.academics.assignmentSubmissions.filter(
-      (x) => x.status === "submitted" || x.status === "late",
+      (x) => workIds.has(x.assignmentId)&&(x.status === "submitted" || x.status === "late"),
     );
   return (
     <div className="content">
@@ -155,10 +173,9 @@ export default function LearningWorkspace({
             <form className="settings-form" onSubmit={create} noValidate>
               <label>
                 Teaching assignment
-                <select name="teachingAssignmentId" required>
+                <select name="teachingAssignmentId" required value={selectedTeachingAssignment} onChange={e=>setSelectedTeachingAssignment(e.target.value)}>
                   <option value="">Choose assigned class and subject</option>
-                  {workspace.academics.assignments
-                    .filter((x) => x.status === "active")
+                  {teachingAssignments
                     .map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.className} · {x.subjectName}
@@ -177,7 +194,7 @@ export default function LearningWorkspace({
                     name="assignedOn"
                     type="date"
                     required
-                    defaultValue={new Date().toISOString().slice(0, 10)}
+                    defaultValue={schoolClock(new Date(),workspace.brand.timezone||"Africa/Douala").date}
                   />
                 </label>
                 <label>
@@ -218,8 +235,7 @@ export default function LearningWorkspace({
                 Curriculum outcomes{" "}
                 <small>Optional—select one or more syllabus objectives.</small>
               <select aria-label="Curriculum outcomes" name="outcomes" multiple size={4}>
-                  {workspace.academics.curriculumOutcomes
-                    .filter((x) => x.status === "active")
+                  {curriculumOutcomes
                     .map((x) => (
                       <option key={x.id} value={x.id}>
                         {x.code} · {x.titleEn}
@@ -292,7 +308,7 @@ export default function LearningWorkspace({
             <form className="settings-form" onSubmit={submit}>
               <label>
                 Assignment
-                <select name="assignmentId" required>
+                <select name="assignmentId" required value={selectedFamilyAssignment} onChange={e=>setSelectedFamilyAssignment(e.target.value)}>
                   <option value="">Choose open assignment</option>
                   {open.map((x) => (
                     <option key={x.id} value={x.id}>
@@ -305,7 +321,7 @@ export default function LearningWorkspace({
                 Learner
                 <select name="studentId" required>
                   <option value="">Choose learner</option>
-                  {workspace.learners.map((x) => (
+                  {workspace.learners.filter(learner=>open.some(item=>item.id===selectedFamilyAssignment&&assignmentBelongsToLearner(item,learner))).map((x) => (
                     <option key={x.id} value={x.id}>
                       {x.name} · {x.className}
                     </option>
@@ -327,7 +343,7 @@ export default function LearningWorkspace({
               </label>
               <button
                 className="primary"
-                disabled={busy || !open.length || !workspace.learners.length}
+                disabled={busy || !selectedFamilyAssignment || !workspace.learners.some(learner=>open.some(item=>item.id===selectedFamilyAssignment&&assignmentBelongsToLearner(item,learner)))}
               >
                 Submit assignment
               </button>
