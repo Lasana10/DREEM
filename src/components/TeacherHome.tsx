@@ -3,6 +3,7 @@ import type { WorkspaceData } from "../lib/repository";
 import type { ViewKey } from "./Shell";
 import { evaluateRecommendedPolicies } from "../domain/operationalExcellence";
 import { useLanguage } from "../lib/useLanguage";
+import { isoLocalDate } from "../lib/academicWeek";
 
 function minutes(value:string){const [h,m]=value.slice(0,5).split(":").map(Number);return h*60+m;}
 
@@ -19,7 +20,8 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
  const pending=workspace.academics.assignmentSubmissions.filter(item=>assignmentIds.has(item.assignmentId)&&(item.status==="submitted"||item.status==="late")&&learnerIds.has(item.studentId));
  const drafts=learnerAssignments.filter(item=>item.status==="draft");
  const published=learnerAssignments.filter(item=>item.status==="published");
- const now=new Date(),today=now.toISOString().slice(0,10),weekday=now.getDay()===0?7:now.getDay(),currentMinutes=now.getHours()*60+now.getMinutes();
+ // Timetables use school-local calendar dates, never UTC date truncation.
+ const now=new Date(),today=isoLocalDate(now),weekday=now.getDay()===0?7:now.getDay(),currentMinutes=now.getHours()*60+now.getMinutes();
  const todayPeriods=periods.filter(item=>item.weekday===weekday&&item.effectiveFrom<=today&&item.effectiveTo>=today).sort((a,b)=>minutes(a.startsAt)-minutes(b.startsAt));
  const next=todayPeriods.find(item=>minutes(item.endsAt)>=currentMinutes);
  const completed=todayPeriods.filter(item=>minutes(item.endsAt)<currentMinutes).length;
@@ -44,6 +46,14 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
 
  return <div className="content teacher-home role-workspace">
   <section className="role-hero"><div><span className="eyebrow">TEACHER · TODAY</span><h2>Good day, {workspace.viewer.name.split(" ")[0]}</h2><p>{todayPeriods.length} classes today · {pending.length} submissions waiting · {learnerIds.size} learners in your classes</p></div><div className="role-hero-status"><span className="status-pill info"><CalendarClock size={14}/>{today}</span></div></section>
+  <section className="focus-card" aria-label={text("Getting started with DREEM","Bien démarrer avec DREEM")} style={{marginBottom:16}}>
+   <div className="panel-title"><BookOpenCheck/><div><span>{text("YOUR FIRST DAY","VOTRE PREMIER JOUR")}</span><h3>{text("Three useful things to do","Trois actions pour commencer")}</h3><p>{text("Start with your assigned classes. No need to enter the same pupil twice.","Commencez par vos classes attribuées. Ne saisissez pas deux fois le même élève.")}</p></div></div>
+   <div className="quick-grid">
+    <article className="quick-card"><span>01</span><h3>{text("Check my classes","Vérifier mes classes")}</h3><p>{text("Confirm your timetable and pupils. Ask administration to correct missing assignments.","Vérifiez l'emploi du temps et les élèves. Signalez toute attribution manquante à l'administration.")}</p><button type="button" onClick={()=>onNavigate("operations")}>{text("Open my classes","Ouvrir mes classes")}</button></article>
+    <article className="quick-card"><span>02</span><h3>{text("Record teaching work","Enregistrer le travail")}</h3><p>{text("Use your existing lesson and learning workflows; check that each submission is saved.","Utilisez les outils de cours et de suivi existants ; vérifiez que chaque envoi est enregistré.")}</p><button type="button" onClick={()=>onNavigate("learning")}>{text("Open learning","Ouvrir le suivi")}</button></article>
+    <article className="quick-card"><span>03</span><h3>{text("Raise a concern","Signaler une préoccupation")}</h3><p>{text("Send sensitive learner concerns through the restricted support workflow, not a public note.","Envoyez les préoccupations sensibles via le suivi protégé, jamais dans une note publique.")}</p><button type="button" onClick={()=>onNavigate("care")}>{text("Open support","Ouvrir le suivi protégé")}</button></article>
+   </div>
+  </section>
   <section className="intelligence-brief teacher-intelligence-brief">
    <div className="intelligence-brief-main">
     <span>{primaryTeacherAction.eyebrow}</span>
