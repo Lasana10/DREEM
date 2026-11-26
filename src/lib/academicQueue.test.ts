@@ -20,6 +20,14 @@ describe("academic action queue",()=>{
   data.checks=[{register_id:"r1",decision:"inconclusive"}];
   expect(buildAcademicQueue(data)).toEqual([]);
  });
+ it("keeps an earlier pending weekly submission actionable after its teaching week",()=>{
+  const data=empty();data.today="2026-11-23";
+  data.registers=[
+   {id:"october-pending",submitted_by:"teacher",status:"submitted",marking_state:"pending",week_start:"2026-10-26",teaching_assignment_id:"a"},
+   {id:"november-approved",submitted_by:"teacher",status:"approved",marking_state:"pending",week_start:"2026-11-23",teaching_assignment_id:"a"}
+  ];
+  expect(buildAcademicQueue(data).map(x=>x.id)).toEqual(["october-pending"]);
+ });
  it("routes teacher submissions to academic workflows",()=>{
   const data=empty();data.papers=[{id:"p1",created_by:"teacher",title:"Term test",revision:1,status:"submitted"}];
   data.registers=[{id:"r1",submitted_by:"teacher",status:"submitted",marking_state:"pending",week_start:"2026-10-26",teaching_assignment_id:"a"}];

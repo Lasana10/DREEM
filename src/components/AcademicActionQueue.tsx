@@ -3,7 +3,7 @@ import { ClipboardCheck, RefreshCw, ShieldCheck, ArrowRight } from "lucide-react
 import type { WorkspaceData } from "../lib/repository";
 import { fetchQuestionBank,reviewQuestion,type QuestionItem } from "../lib/questionBank";
 import { listExamPapers,reviewExamPaper,type SavedExamPaper } from "../lib/examPapers";
-import { listWeeklyRegisters,listMarkingChecks,reviewWeeklyRegister,type WeeklyRegister,type MarkingCheck } from "../lib/weeklyRegisters";
+import { listWeeklyRegisters,listOutstandingWeeklyRegisters,listMarkingChecks,reviewWeeklyRegister,type WeeklyRegister,type MarkingCheck } from "../lib/weeklyRegisters";
 import { isoLocalDate,weekStart } from "../lib/academicWeek";
 import { buildAcademicQueue,type AcademicQueueArea } from "../lib/academicQueue";
 import { userFacingError } from "../lib/userFacingError";
@@ -19,9 +19,16 @@ export default function AcademicActionQueue({workspace,onOpen}:{workspace:Worksp
   setLoading(true);
   try{
    const start=weekStart(isoLocalDate(new Date()));
-   const [q,p,r,a]=await Promise.all([fetchQuestionBank(),listExamPapers(),listWeeklyRegisters(start),listAcademicFollowups()]);
-   const marking=await listMarkingChecks(r.map(item=>item.id));
-   setQuestions(q);setPapers(p);setRegisters(r);setChecks(marking);setFollowups(a);setError("");
+   const [q,p,currentWeek,backlog,a]=await Promise.all([
+    fetchQuestionBank(),listExamPapers(),listWeeklyRegisters(start),
+    listOutstandingWeeklyRegisters(),listAcademicFollowups()
+   ]);
+   // Merge by stable register identity, preserving current-week marking review
+   // and older submissions still requiring an independent decision.
+   const registersById=new Map([...currentWeek,...backlog].map(row=>[row.id,row]));
+   const allRegisters=[...registersById.values()];
+   const marking=await listMarkingChecks(allRegisters.map(item=>item.id));
+   setQuestions(q);setPapers(p);setRegisters(allRegisters);setChecks(marking);setFollowups(a);setError("");
   }catch(reason){setError(userFacingError(reason,"Academic review evidence could not be loaded. Check the school connection and retry."));}
   finally{setLoading(false);}
  },[]);
@@ -48,7 +55,7 @@ export default function AcademicActionQueue({workspace,onOpen}:{workspace:Worksp
   </div><button type="button" className="excellence-cancel" disabled={loading} onClick={()=>void reload()}><RefreshCw size={15}/> Refresh</button></div>
   {error&&<p className="form-status error" role="alert">{error}</p>}{notice&&<p className="form-status success" role="status">{notice}</p>}
   {loading?<p role="status">Loading academic decisions…</p>:
-   <><div className="excellence-queue-summary"><strong>{items.length}</strong> current actions requiring attention <small>Weekly marking checks cover the current teaching week; corrective actions include prior weeks. Lesson and assessment queues use currently loaded school records.</small></div>
+   <><div className="excellence-queue-summary"><strong>{items.length}</strong> current actions requiring attention <small>Pending weekly reviews include earlier teaching weeks; marking checks use loaded weekly records. Corrective actions include prior weeks. Lesson and assessment queues use currently loaded school records.</small></div>
    {items.length===0?<p className="excellence-queue-empty"><ClipboardCheck size={19}/> No pending academic decisions are visible in the current records.</p>:
    <div className="excellence-queue-items">{items.map(item=><article key={item.kind+item.id}>
     <div><span className="excellence-queue-type">{item.kind.replace("_"," ")}</span><strong>{item.title}</strong><small>{item.detail}</small></div>
