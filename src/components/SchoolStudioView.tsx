@@ -40,7 +40,6 @@ export function SchoolStudioView({brand,setup,memberships,onSave,onSaveSetup,onU
   !setupDraft.subjects.length?"subjects":"",
  ].filter(Boolean);
  const structureReady=missingSetup.length===0;
- const setupCount=setupDraft.academicYears.length+setupDraft.terms.length+setupDraft.classes.length+setupDraft.subjects.length;
  return <div className="content studio-workspace role-workspace">
   <section className="role-hero"><div><span className="eyebrow">SCHOOL STUDIO</span><h2>Make DREEM fit your school</h2><p>Set identity, structure, school rules and responsibilities once. Use year transition only when the school is ready to move learners into a new academic year.</p></div><div className="role-hero-status"><span className="status-pill"><ShieldCheck size={14}/>{structureReady?"Academic structure ready":"Setup incomplete"}</span></div></section>
   {status?<div className={`form-status ${failed?"error":"success"}`} role={failed?"alert":"status"}><CheckCircle2/>{status}</div>:null}
