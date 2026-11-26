@@ -3,7 +3,7 @@ import type { WorkspaceData } from "../lib/repository";
 import type { ViewKey } from "./Shell";
 import { evaluateRecommendedPolicies } from "../domain/operationalExcellence";
 import { useLanguage } from "../lib/useLanguage";
-import { isoLocalDate } from "../lib/academicWeek";
+import { schoolClock } from "../lib/academicWeek";
 
 function minutes(value:string){const [h,m]=value.slice(0,5).split(":").map(Number);return h*60+m;}
 
@@ -21,7 +21,7 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
  const drafts=learnerAssignments.filter(item=>item.status==="draft");
  const published=learnerAssignments.filter(item=>item.status==="published");
  // Timetables use school-local calendar dates, never UTC date truncation.
- const now=new Date(),today=isoLocalDate(now),weekday=now.getDay()===0?7:now.getDay(),currentMinutes=now.getHours()*60+now.getMinutes();
+ const {date:today,weekday,minutes:currentMinutes}=schoolClock(new Date(),workspace.brand.timezone||"Africa/Douala");
  const todayPeriods=periods.filter(item=>item.weekday===weekday&&item.effectiveFrom<=today&&item.effectiveTo>=today).sort((a,b)=>minutes(a.startsAt)-minutes(b.startsAt));
  const next=todayPeriods.find(item=>minutes(item.endsAt)>=currentMinutes);
  const completed=todayPeriods.filter(item=>minutes(item.endsAt)<currentMinutes).length;
