@@ -1,5 +1,6 @@
 import { resolveActiveSchoolContext } from "./schoolContext";
 import { isSupabaseConfigured, supabase } from "./supabase";
+import {parseNotificationDispatch} from "./notificationDispatchResult";
 
 function requireNotificationService(){
  if(!isSupabaseConfigured||!supabase)throw new Error("School notifications are unavailable: the school database is not connected. No changes have been saved or sent.");
@@ -26,7 +27,7 @@ export async function loadDeliverySummary():Promise<DeliverySummary[]>{
  const client=requireNotificationService();const context=await resolveActiveSchoolContext();const{data,error}=await client.from("dreem_notification_delivery_summary").select("announcement_id,channel,status,deliveries,last_updated_at").eq("school_id",context.schoolId).order("last_updated_at",{ascending:false}).limit(100);if(error)throw error;return(data??[]).map(row=>({announcementId:String(row.announcement_id),channel:String(row.channel),status:String(row.status),deliveries:Number(row.deliveries),lastUpdatedAt:String(row.last_updated_at)}));
 }
 export async function dispatchQueuedNotifications(){
- const client=requireNotificationService();const context=await resolveActiveSchoolContext();const{data,error}=await client.functions.invoke("dispatch-notifications",{body:{schoolId:context.schoolId,limit:100}});if(error)throw error;return data as{processed:number;sent:number;failed:number;waitingForProvider:number};
+ const client=requireNotificationService();const context=await resolveActiveSchoolContext();const{data,error}=await client.functions.invoke("dispatch-notifications",{body:{schoolId:context.schoolId,limit:100}});if(error)throw error;return parseNotificationDispatch(data);
 }
 
 export async function loadMyNotificationDeliveries():Promise<MyNotificationDelivery[]>{
