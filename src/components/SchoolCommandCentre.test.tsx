@@ -37,7 +37,7 @@ describe("SchoolCommandCentre operational excellence",()=>{
     const onNavigate=vi.fn();
     const planned:WorkspaceData={
       ...workspace,
-      viewer:{...workspace.viewer,authorityScopes:[...workspace.viewer.authorityScopes??[],"school_configuration"]},
+      viewer:{...workspace.viewer,authorityScopes:[...(workspace.viewer.authorityScopes??[]),"school_configuration"]},
       setup:{...workspace.setup,academicYears:workspace.setup.academicYears.map(y=>({...y,status:"planning" as const}))},
     };
     render(<SchoolCommandCentre workspace={planned} onNavigate={onNavigate}/>);
