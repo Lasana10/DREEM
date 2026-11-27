@@ -46,7 +46,7 @@ describe("role-specific finance workspaces",()=>{
     expect(reviews).toBeInTheDocument();
     expect(policy!.compareDocumentPosition(reviews!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     expect(reviews).not.toHaveAttribute("open");
-    expect(container.querySelectorAll(".fee-plan-studio")).toHaveLength(1);
+    expect(screen.getAllByText(/fee structure studio/i)).toHaveLength(1);
     expect(screen.getByText("Expected today")).toBeInTheDocument();
   });
   it("keeps accountant daily review visible without school fee policy or collection",async()=>{
