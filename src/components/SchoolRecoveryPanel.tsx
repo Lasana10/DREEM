@@ -10,9 +10,9 @@ export default function SchoolRecoveryPanel({brand}:{brand:SchoolBrand}){
     setBusy(true);setMessage("");setError("");
     try{
       const bundle=await exportSchoolRecoveryBundle();
-      downloadRecoveryBundle(bundle,brand.shortName||brand.name);
       const verification=await verifySchoolRecoveryBundle(bundle);
-      if(!verification.valid)throw new Error("The generated recovery bundle failed its integrity check.");
+      if(!verification.valid)throw new Error("The generated recovery bundle failed its integrity check. No download was issued.");
+      downloadRecoveryBundle(bundle,brand.shortName||brand.name);
       setMessage(`Recovery bundle verified: ${verification.students??0} learners, ${verification.guardians??0} guardians and ${verification.audit_events??0} audit events. Store it securely.`);
     }catch(reason){setError(userFacingError(reason,"The recovery bundle could not be generated. Nothing has been assumed backed up."));}
     finally{setBusy(false);}

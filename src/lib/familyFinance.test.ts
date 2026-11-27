@@ -23,3 +23,16 @@ it("propagates access failures instead of showing an empty successful statement"
   rpc.mockResolvedValue({ data: null, error });
   await expect(loadLearnerFeeStatement("unlinked-learner")).rejects.toEqual(error);
 });
+
+it("rejects malformed and missing financial amounts instead of reporting zero", async () => {
+  rpc.mockResolvedValueOnce({error:null,data:[{row_kind:"charge",row_id:"x",amount:null}]});
+  await expect(loadLearnerFeeStatement("learner-1")).rejects.toThrow(/amount is invalid/);
+  rpc.mockResolvedValueOnce({error:null,data:[{row_kind:"charge",row_id:"x",amount:"not-a-number"}]});
+  await expect(loadLearnerFeeStatement("learner-1")).rejects.toThrow(/amount is invalid/);
+});
+it("requires an authorised learner ID and rejects malformed server responses", async () => {
+  await expect(loadLearnerFeeStatement("")).rejects.toThrow(/linked learner/);
+  expect(rpc).not.toHaveBeenCalled();
+  rpc.mockResolvedValueOnce({error:null,data:{unexpected:true}});
+  await expect(loadLearnerFeeStatement("learner-1")).rejects.toThrow(/invalid statement/);
+});
