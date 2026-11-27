@@ -25,7 +25,7 @@ export default function FinanceWorkspace({finance,learners,operations,setup,role
 
   if(isBursar)return <><BursarCollectionWorkspace finance={finance} learners={learners} onRecorded={onRecorded}/><div className="content role-workspace"><details className="depth-drawer"><summary>Finance controls and role separation</summary>{roleGuide}{prerequisites}</details><FinanceControlDesk role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/></div></>;
   const reviewer=canReview;
-  const policyOwner=canManageFeePolicy&&!isAccountant;
+  const policyOwner=canManageFeePolicy;
   return <div className="content role-workspace">
     <section className="role-hero"><div><span className="eyebrow">{policyOwner?"FINANCE · SCHOOL POLICY":isAccountant?"FINANCE · INDEPENDENT REVIEW":"FINANCE · AUDIT"}</span>
       <h2>{policyOwner?"School fees and financial oversight":reviewer?"Money that needs review":"Financial assurance"}</h2>
