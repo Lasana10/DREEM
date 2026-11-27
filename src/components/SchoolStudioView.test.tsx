@@ -40,8 +40,9 @@ describe("School Studio branding",()=>{
   expect(advanced).toHaveTextContent("Pupil record migration");
   expect(advanced).toHaveTextContent("Year transition");
   expect(advanced).toHaveTextContent("Recovery & export");
-  const stages=Array.from(container.querySelectorAll(".studio-stage summary strong")).map(el=>el.textContent);
-  expect(stages.slice(0,4)).toEqual(["School identity and appearance","School structure","School rules","Staff responsibilities"].filter(x=>stages.includes(x)));
+  const essentialStages=Array.from(container.querySelectorAll(".studio-stage:not(.studio-advanced-operations .studio-stage) > summary strong")).map(el=>el.textContent);
+  expect(essentialStages).toEqual(["School identity and appearance","School structure","School rules"]);
+  expect(advanced.querySelectorAll(".studio-stage")).toHaveLength(3);
   fireEvent.click(screen.getByText(/Advanced school operations · pupil migration/i));
   expect(advanced).toHaveAttribute("open");
  });
