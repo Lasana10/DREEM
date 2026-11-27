@@ -6,6 +6,7 @@ import { loadPickupCircle, type PickupCircleMember } from "../lib/pickupCircle";
 import { userFacingError } from "../lib/userFacingError";
 import PublishedReportCard from "./PublishedReportCard";
 import { useLanguage } from "../lib/useLanguage";
+import {familyAcademicScope,publishedFamilyHomework,publishedFamilyReports,familyFeeBalanceLabel} from "../lib/familyAcademicScope";
 
 type FamilyTab="Today"|"Learning"|"Fees"|"Transport";
 const messageFrom=(reason:unknown)=>userFacingError(reason,"Some family information could not be refreshed. Check your connection and try again.");
@@ -16,12 +17,14 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
  const {text:t,language}=useLanguage();
  const [selectedStudentId,setSelectedStudentId]=useState(workspace.learners[0]?.id??""),[tab,setTab]=useState<FamilyTab>("Today"),[refreshVersion,setRefreshVersion]=useState(0);
  const [familyRecords,setFamilyRecords]=useState<{key:string;statement:LearnerFeeStatementRow[];pickupCircle:PickupCircleMember[]}>({key:"",statement:[],pickupCircle:[]}),[familyError,setFamilyError]=useState("");
- const learner=workspace.learners.find(item=>item.id===selectedStudentId)??workspace.learners[0],learnerId=learner?.id??"",learnerClass=learner?.className??"";
+ const learner=workspace.learners.find(item=>item.id===selectedStudentId)??workspace.learners[0],learnerId=learner?.id??"";
+ const academicScope=familyAcademicScope(workspace.setup,learner);
  const familyKey=JSON.stringify([workspace.viewer.id,learnerId]);
  const familyLoading=Boolean(learnerId)&&familyRecords.key!==familyKey&&!familyError;
  const statement=familyRecords.key===familyKey?familyRecords.statement:[],pickupCircle=familyRecords.key===familyKey?familyRecords.pickupCircle:[];
- const assignments=useMemo(()=>workspace.academics.assignmentsForLearners.filter(item=>item.status==="published"&&(!learnerClass||item.className===learnerClass)),[workspace.academics.assignmentsForLearners,learnerClass]);
- const submissions=workspace.academics.assignmentSubmissions.filter(item=>item.studentId===learnerId),reportCards=workspace.academics.reportCards.filter(item=>item.studentId===learnerId&&item.status==="published");
+ const assignments=useMemo(()=>publishedFamilyHomework(workspace.setup,learner,workspace.academics.assignmentsForLearners),[workspace.setup,learner,workspace.academics.assignmentsForLearners]);
+ const assignmentIds=new Set(assignments.map(a=>a.id));
+ const submissions=workspace.academics.assignmentSubmissions.filter(item=>item.studentId===learnerId&&assignmentIds.has(item.assignmentId)),reportCards=publishedFamilyReports(workspace.setup,learner,workspace.academics.reportCards);
  const transportAssignment=workspace.transport.assignments.find(item=>item.studentId===learnerId&&item.status==="active"),transportTrips=transportAssignment?workspace.transport.trips.filter(item=>item.routeId===transportAssignment.routeId&&item.status!=="cancelled").slice(0,5):[];
  const submittedAssignmentIds=new Set(submissions.filter(item=>item.status!=="needs_revision").map(item=>item.assignmentId)),due=assignments.filter(item=>!submittedAssignmentIds.has(item.id));
  const charges=statement.filter(item=>item.entryType==="charge"),payments=statement.filter(item=>item.entryType==="payment"),overdue=charges.filter(item=>item.status==="overdue");
@@ -37,6 +40,8 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
    {(["Today","Learning","Fees","Transport"] as FamilyTab[]).map(item=><button key={item} className={tab===item?"active":""} onClick={()=>setTab(item)}>{({Today:t("Today","Aujourd’hui"),Learning:t("Learning","Apprentissage"),Fees:t("Fees","Scolarité"),Transport:t("Transport","Transport")} as Record<FamilyTab,string>)[item]}</button>)}
   </nav>
 
+  {!academicScope.ready?<div className="form-status" role="status">{t("Academic records are not yet available for this child in an active school year. School administration must confirm the current year and class before work or reports can appear.","Les dossiers scolaires de cet enfant ne sont pas encore disponibles pour une année scolaire active. L’administration doit confirmer l’année et la classe avant la publication des devoirs et bulletins.")}</div>:null}
+
   {familyError?<div className="form-status error" role="alert"><span>{familyError} The school record has not been changed.</span><button type="button" className="secondary" onClick={()=>{setFamilyError("");setRefreshVersion(value=>value+1)}}>{t("Retry family information","Réessayer le chargement")}</button></div>:null}
 
   {tab==="Today"?<>
@@ -44,7 +49,7 @@ export default function FamilyLearningWorkspace({workspace}:{workspace:Workspace
    <div className="visual-stats">
     <article className="visual-stat green"><div className="icon"><GraduationCap/></div><div><span>{t("ATTENDANCE","PRÉSENCE")}</span><strong>{Math.round(learner.attendance)}%</strong><small>{t("Current attendance","Taux de présence actuel")}</small></div></article>
     <article className="visual-stat purple"><div className="icon"><BookOpenCheck/></div><div><span>{t("DUE WORK","TRAVAUX À RENDRE")}</span><strong>{due.length}</strong><small>{submissions.length} {t("work submitted","travaux remis")}</small></div></article>
-    <article className={overdue.length?"visual-stat amber":"visual-stat green"}><div className="icon"><WalletCards/></div><div><span>{t("FEE BALANCE","SOLDE DES FRAIS")}</span><strong>{money(learner.feeBalance??0)}</strong><small>{overdue.length?overdue.length+" overdue payment":"Nothing overdue"}</small></div></article>
+    <article className={overdue.length?"visual-stat amber":"visual-stat green"}><div className="icon"><WalletCards/></div><div><span>{t("FEE BALANCE","SOLDE DES FRAIS")}</span><strong>{familyFeeBalanceLabel(learner.feeBalance)??"—"}</strong><small>{learner.feeBalance===undefined?t("Balance not available yet","Solde non disponible"):overdue.length?overdue.length+" overdue payment":t("No overdue items recorded","Aucune échéance en retard enregistrée")}</small></div></article>
     <article className="visual-stat"><div className="icon"><BusFront/></div><div><span>{t("TRANSPORT","TRANSPORT")}</span><strong>{transportAssignment?"Assigned":"—"}</strong><small>{transportAssignment?.routeName||t("No active route","Aucun itinéraire actif")}</small></div></article>
    </div>
    <div className="focus-grid">
