@@ -19,15 +19,21 @@ export async function loadLearnerFeeStatement(studentId: string): Promise<Learne
     p_student_id: studentId,
   });
   if (error) throw error;
-  return (data ?? []).map((row: Record<string, unknown>) => ({
+  if (!Array.isArray(data)) throw new Error("School finance returned an invalid statement. No balance can be confirmed.");
+  return data.map((row: Record<string, unknown>) => {
+    const amount = typeof row.amount === "number" || typeof row.amount === "string" ? Number(row.amount) : Number.NaN;
+    if (!Number.isFinite(amount) || row.amount === "") throw new Error("A school fee amount is invalid. The statement cannot be presented as complete.");
+    if (!["charge", "payment", "adjustment"].includes(String(row.row_kind))) throw new Error("The statement contains an unsupported financial entry type.");
+    return {
     entryType: String(row.row_kind) as LearnerFeeStatementRow["entryType"],
     entryId: String(row.row_id),
     label: String(row.label ?? "School fee entry"),
     occurredOn: String(row.occurred_on ?? ""),
     dueOn: String(row.due_on ?? ""),
-    amount: typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : Number.NaN,
+    amount,
     status: String(row.status ?? ""),
     receiptNumber: row.row_kind === "payment" ? String(row.reference ?? "") : "",
     note: row.row_kind === "adjustment" ? String(row.reference ?? "") : "",
-  }));
+    };
+  });
 }
