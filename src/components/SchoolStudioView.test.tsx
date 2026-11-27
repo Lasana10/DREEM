@@ -32,4 +32,19 @@ describe("School Studio branding",()=>{
   confirm.mockRestore();
  });
 
+ it("separates routine school setup from protected migration, year transition and recovery",()=>{
+  const {container}=render(<SchoolStudioView brand={brand} setup={demoSetup} onSave={vi.fn()} onSaveSetup={vi.fn()} onUploadLogo={vi.fn()}/>);
+  const advanced=container.querySelector(".studio-advanced-operations") as HTMLDetailsElement;
+  expect(advanced).toBeInTheDocument();
+  expect(advanced).not.toHaveAttribute("open");
+  expect(advanced).toHaveTextContent("Pupil record migration");
+  expect(advanced).toHaveTextContent("Year transition");
+  expect(advanced).toHaveTextContent("Recovery & export");
+  const essentialStages=Array.from(container.querySelectorAll(".studio-stage > summary strong")).filter(el=>!el.closest(".studio-advanced-operations")).map(el=>el.textContent);
+  expect(essentialStages).toEqual(["School identity and appearance","School structure","School rules"]);
+  expect(advanced.querySelectorAll(".studio-stage")).toHaveLength(3);
+  fireEvent.click(screen.getByText(/Advanced school operations · pupil migration/i));
+  expect(advanced).toHaveAttribute("open");
+ });
+
 });
