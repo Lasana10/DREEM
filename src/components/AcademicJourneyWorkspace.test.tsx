@@ -50,4 +50,19 @@ describe("Academic task journey", () => {
     expect(screen.getByLabelText("Assessment review evidence")).toHaveTextContent("4 learner marks recorded");
   });
 
+  it("keeps curriculum import inside reviewer-only setup instead of the daily review surface",()=>{
+    const {container}=render(<AcademicJourneyWorkspace workspace={workspace} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenStudio={vi.fn()}/>);
+    expect(container.querySelector(".academic-flow-grid")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button",{name:"Open Curriculum outcomes"}));
+    expect(screen.getByText("Import reviewed curriculum resources")).toBeInTheDocument();
+    const section=screen.getByText("Import reviewed curriculum resources").closest("details");
+    expect(section).not.toHaveAttribute("open");
+  });
+  it("does not show academic resource imports to teaching-only accounts",()=>{
+    const teacher:WorkspaceData={...workspace,viewer:{id:"teacher",name:"Teacher",email:"teacher@example.test",role:"teacher",authorityScopes:["academics_delivery"]}};
+    render(<AcademicJourneyWorkspace workspace={teacher} onRefresh={vi.fn().mockResolvedValue(undefined)} onOpenStudio={vi.fn()}/>);
+    fireEvent.click(screen.getByRole("button",{name:"Open Curriculum outcomes"}));
+    expect(screen.queryByText("Import reviewed curriculum resources")).not.toBeInTheDocument();
+  });
+
 });
