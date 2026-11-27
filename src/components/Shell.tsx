@@ -76,6 +76,11 @@ const frenchRoleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>
  transport_manager:{command:"Transport aujourd’hui",transport:"Contrôle transport",signals:"Messages"},driver:{transport:"Mon trajet"},
  security_guard:{transport:"Portail sécurisé"},auditor:{command:"Supervision",learners:"Dossiers élèves",finance:"Audit financier"},it_admin:{command:"Opérations techniques"}
 };
+/** Preserve a meaningful mobile label: "My children" must not become "My". */
+function conciseMobileLabel(label:string){
+ const parts=label.trim().split(/\s+/);
+ return /^(my|mes|mon|ma|nos|notre)$/i.test(parts[0])&&parts.length>1?parts.slice(1).join(" "):label;
+}
 function roleLabel(role:Role){return role.replaceAll("_"," ").replace(/\b\w/g,l=>l.toUpperCase());}
 function labelFor(role:Role,id:ViewKey){return roleViewLabels[role]?.[id]??nav.find(item=>item.id===id)?.label??"Workspace";}
 function frenchLabelFor(role:Role,id:ViewKey){return frenchRoleViewLabels[role]?.[id]??frenchViewLabels[id]??"Espace";}
@@ -125,7 +130,7 @@ export default function Shell({brand,viewer,view,onView,signalCount,onFeedback,s
     </div>
   </header>{children}</section>
   {mobileMenuOpen?<div className="mobile-more-backdrop" onClick={()=>setMobileMenuOpen(false)}><section className="mobile-more-menu" aria-label="More DREEM workspaces" onClick={e=>e.stopPropagation()}><header><strong>{text("More","Plus")}</strong><button aria-label="Close" onClick={()=>setMobileMenuOpen(false)}><X/></button></header>{mobileMore.map(item=><button key={item.id} className={view===item.id?"active":""} onClick={()=>{onView(item.id);setMobileMenuOpen(false);}}><item.icon size={19}/><span>{displayLabel(item.id)}</span></button>)}{canOpenStudio?<button className={view==="studio"?"active":""} onClick={()=>{onView("studio");setMobileMenuOpen(false);}}><Settings2 size={19}/><span>{text("Settings","Paramètres")}</span></button>:null}</section></div>:null}
-  <nav className="mobile-nav">{mobilePrimary.map(item=><button key={item.id} className={view===item.id?"active":""} onClick={()=>onView(item.id)}><item.icon size={19}/><span>{displayLabel(item.id).split(" ")[0]}</span></button>)}{(mobileMore.length>0||canOpenStudio)?<button className={mobileMore.some(item=>item.id===view)||view==="studio"?"active":""} onClick={()=>setMobileMenuOpen(true)}><Menu size={19}/><span>{text("More","Plus")}</span></button>:null}</nav>
+  <nav className="mobile-nav">{mobilePrimary.map(item=><button key={item.id} className={view===item.id?"active":""} onClick={()=>onView(item.id)}><item.icon size={19}/><span>{conciseMobileLabel(displayLabel(item.id))}</span></button>)}{(mobileMore.length>0||canOpenStudio)?<button className={mobileMore.some(item=>item.id===view)||view==="studio"?"active":""} onClick={()=>setMobileMenuOpen(true)}><Menu size={19}/><span>{text("More","Plus")}</span></button>:null}</nav>
  </main>;
 }
 export function EmptyState({title,body}:{title:string;body:string}){return <div className="empty"><UsersRound/><strong>{title}</strong><p>{body}</p></div>;}
