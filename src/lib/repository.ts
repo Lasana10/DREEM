@@ -1451,28 +1451,23 @@ export async function saveSchoolSetup(
     grading_weight: subject.gradingWeight,
     updated_at: new Date().toISOString(),
   }));
-  const [yearsResult, termsResult, classesResult, subjectsResult] =
-    await Promise.all([
-      academicYearsPayload.length
-        ? supabase.from("dreem_academic_years").upsert(academicYearsPayload)
-        : Promise.resolve({ error: null }),
-      termsPayload.length
-        ? supabase.from("dreem_terms").upsert(termsPayload)
-        : Promise.resolve({ error: null }),
-      classesPayload.length
-        ? supabase.from("dreem_classes").upsert(classesPayload)
-        : Promise.resolve({ error: null }),
-      subjectsPayload.length
-        ? supabase.from("dreem_subjects").upsert(subjectsPayload)
-        : Promise.resolve({ error: null }),
-    ]);
-  for (const result of [
-    yearsResult,
-    termsResult,
-    classesResult,
-    subjectsResult,
-  ]) {
-    if (result.error) throw result.error;
+  // Academic years must exist before their dependent term and class foreign keys.
+  // Each write is checked before moving to the next stage; no implicit deletion.
+  if(academicYearsPayload.length){
+    const {error}=await supabase.from("dreem_academic_years").upsert(academicYearsPayload);
+    if(error)throw error;
+  }
+  if(termsPayload.length){
+    const {error}=await supabase.from("dreem_terms").upsert(termsPayload);
+    if(error)throw error;
+  }
+  if(classesPayload.length){
+    const {error}=await supabase.from("dreem_classes").upsert(classesPayload);
+    if(error)throw error;
+  }
+  if(subjectsPayload.length){
+    const {error}=await supabase.from("dreem_subjects").upsert(subjectsPayload);
+    if(error)throw error;
   }
   // Deliberately additive: school-year edits must never delete omitted historical records.
   // Removal/archival requires a separate, audited, school-authorised workflow.
