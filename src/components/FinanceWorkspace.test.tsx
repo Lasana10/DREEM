@@ -38,4 +38,23 @@ describe("role-specific finance workspaces",()=>{
     expect(screen.queryByRole("button",{name:/collect payment/i})).not.toBeInTheDocument();
     expect(screen.queryByRole("button",{name:/save decision/i})).not.toBeInTheDocument();
   });
+  it("puts school fee policy before independent transaction reviews for leadership",()=>{
+    const {container}=render(<FinanceWorkspace finance={demoFinance} learners={demoLearners} setup={demoSetup} role="principal" authorityScopes={["institutional_leadership","finance_approval","school_configuration"]} onRecorded={async()=>undefined}/>);
+    const policy=container.querySelector(".finance-policy-workspace");
+    const reviews=container.querySelector(".finance-independent-review");
+    expect(policy).toBeInTheDocument();
+    expect(reviews).toBeInTheDocument();
+    expect(policy!.compareDocumentPosition(reviews!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(reviews).not.toHaveAttribute("open");
+    expect(screen.getAllByText(/fee structure studio/i)).toHaveLength(1);
+    expect(screen.getByText("Expected today")).toBeInTheDocument();
+  });
+  it("keeps accountant daily review visible without school fee policy or collection",async()=>{
+    const {container}=render(<FinanceWorkspace finance={demoFinance} learners={demoLearners} setup={demoSetup} role="accountant" onRecorded={async()=>undefined}/>);
+    expect(container.querySelector(".finance-policy-workspace")).not.toBeInTheDocument();
+    expect(container.querySelector(".finance-independent-review")).not.toBeInTheDocument();
+    expect(await screen.findByRole("heading",{name:/cashier closings ·/i})).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:/collect payment/i})).not.toBeInTheDocument();
+  });
+
 });
