@@ -49,14 +49,6 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
 
  return <div className="content teacher-home role-workspace">
   <section className="role-hero"><div><span className="eyebrow">TEACHER · TODAY</span><h2>Good day, {workspace.viewer.name.split(" ")[0]}</h2><p>{todayPeriods.length} classes today · {pending.length} submissions waiting · {learnerIds.size} learners in your classes</p></div><div className="role-hero-status"><span className="status-pill info"><CalendarClock size={14}/>{today}</span></div></section>
-  {needsFirstDayGuide&&<>  <section className="focus-card" aria-label={text("Getting started with DREEM","Bien démarrer avec DREEM")} style={{marginBottom:16}}>
-   <div className="panel-title"><BookOpenCheck/><div><span>{text("YOUR FIRST DAY","VOTRE PREMIER JOUR")}</span><h3>{text("Three useful things to do","Trois actions pour commencer")}</h3><p>{text("Start with your assigned classes. No need to enter the same pupil twice.","Commencez par vos classes attribuées. Ne saisissez pas deux fois le même élève.")}</p></div></div>
-   <div className="quick-grid">
-    <article className="quick-card"><span>01</span><h3>{text("Check my classes","Vérifier mes classes")}</h3><p>{text("Confirm your timetable and pupils. Ask administration to correct missing assignments.","Vérifiez l'emploi du temps et les élèves. Signalez toute attribution manquante à l'administration.")}</p><button type="button" onClick={()=>onNavigate("operations")}>{text("Open my classes","Ouvrir mes classes")}</button></article>
-    <article className="quick-card"><span>02</span><h3>{text("Record teaching work","Enregistrer le travail")}</h3><p>{text("Use your existing lesson and learning workflows; check that each submission is saved.","Utilisez les outils de cours et de suivi existants ; vérifiez que chaque envoi est enregistré.")}</p><button type="button" onClick={()=>onNavigate("learning")}>{text("Open learning","Ouvrir le suivi")}</button></article>
-    <article className="quick-card"><span>03</span><h3>{text("Raise a concern","Signaler une préoccupation")}</h3><p>{text("Send sensitive learner concerns through the restricted support workflow, not a public note.","Envoyez les préoccupations sensibles via le suivi protégé, jamais dans une note publique.")}</p><button type="button" onClick={()=>onNavigate("care")}>{text("Open support","Ouvrir le suivi protégé")}</button></article>
-   </div>
-  </section></>}
   <section className="intelligence-brief teacher-intelligence-brief">
    <div className="intelligence-brief-main">
     <span>{primaryTeacherAction.eyebrow}</span>
@@ -66,6 +58,14 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
    </div>
    <aside className="intelligence-evidence"><small>TODAY AT A GLANCE</small>{teacherEvidence.map(item=><div key={item}><span></span><p>{item}</p></div>)}</aside>
   </section>
+  {needsFirstDayGuide&&<>  <section className="focus-card" aria-label={text("Getting started with DREEM","Bien démarrer avec DREEM")} style={{marginBottom:16}}>
+   <div className="panel-title"><BookOpenCheck/><div><span>{text("YOUR FIRST DAY","VOTRE PREMIER JOUR")}</span><h3>{text("Three useful things to do","Trois actions pour commencer")}</h3><p>{text("Start with your assigned classes. No need to enter the same pupil twice.","Commencez par vos classes attribuées. Ne saisissez pas deux fois le même élève.")}</p></div></div>
+   <div className="quick-grid">
+    <article className="quick-card"><span>01</span><h3>{text("Check my classes","Vérifier mes classes")}</h3><p>{text("Confirm your timetable and pupils. Ask administration to correct missing assignments.","Vérifiez l'emploi du temps et les élèves. Signalez toute attribution manquante à l'administration.")}</p><button type="button" onClick={()=>onNavigate("operations")}>{text("Open my classes","Ouvrir mes classes")}</button></article>
+    <article className="quick-card"><span>02</span><h3>{text("Record teaching work","Enregistrer le travail")}</h3><p>{text("Use your existing lesson and learning workflows; check that each submission is saved.","Utilisez les outils de cours et de suivi existants ; vérifiez que chaque envoi est enregistré.")}</p><button type="button" onClick={()=>onNavigate("learning")}>{text("Open learning","Ouvrir le suivi")}</button></article>
+    <article className="quick-card"><span>03</span><h3>{text("Raise a concern","Signaler une préoccupation")}</h3><p>{text("Send sensitive learner concerns through the restricted support workflow, not a public note.","Envoyez les préoccupations sensibles via le suivi protégé, jamais dans une note publique.")}</p><button type="button" onClick={()=>onNavigate("care")}>{text("Open support","Ouvrir le suivi protégé")}</button></article>
+   </div>
+  </section></>}
   <section className="visual-stats">
    <article className="visual-stat"><div className="icon"><CalendarClock/></div><div><span>CLASSES TODAY</span><strong>{todayPeriods.length}</strong><small>{completed} completed · {upcoming} ahead</small></div></article>
    <article className="visual-stat green"><div className="icon"><ClipboardCheck/></div><div><span>TO REVIEW</span><strong>{pending.length}</strong><small>student submissions waiting</small></div></article>
