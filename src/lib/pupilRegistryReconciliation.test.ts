@@ -1,5 +1,5 @@
 import {describe,expect,it} from "vitest";
-import {parsePupilCsvForReconciliation,reconcilePupils,type RegistryPupil} from "./pupilRegistryReconciliation";
+import {parsePupilCsvForReconciliation,reconcilePupils,verifiedNewPupilCandidates,type RegistryPupil} from "./pupilRegistryReconciliation";
 const existing:RegistryPupil[]=[
  {id:"a",matricule:"A-001",fullName:"Nadia M.",className:"CM1"},
  {id:"b",matricule:"A-002",fullName:"Julien T.",className:"CM2"},
@@ -38,4 +38,22 @@ describe("non-destructive real school registry matching",()=>{
   expect(()=>parsePupilCsvForReconciliation('matricule,full_name,class\nA-1,"Unclosed,CM1')).toThrow(/Unclosed/);
   expect(reconcilePupils([{matricule:"",fullName:"",className:"CM1"}],existing,["CM1"]).issues[0].kind).toBe("missing");
  });
+ it("selects only truly new candidates and never re-creates registered pupils",()=>{
+  const incoming=[
+   {matricule:"A-001",fullName:"Nadia M.",className:"CM1"},
+   {matricule:"A-003",fullName:"Lina P.",className:"CM2"},
+  ];
+  expect(verifiedNewPupilCandidates(incoming,existing,["CM1","CM2"])).toEqual([incoming[1]]);
+ });
+ it("refuses batch import after conflicts, unknown classes or ambiguous identity",()=>{
+  expect(()=>verifiedNewPupilCandidates([{matricule:"A-001",fullName:"Different Name",className:"CM1"}],existing,["CM1"])).toThrow(/conflicting/);
+  expect(()=>verifiedNewPupilCandidates([{matricule:"A-003",fullName:"New Name",className:"Unknown"}],existing,["CM1"])).toThrow(/conflicting/);
+  expect(()=>verifiedNewPupilCandidates([{matricule:"A-003",fullName:"New Name",className:"CM1"},{matricule:"A-003",fullName:"New Name",className:"CM1"}],existing,["CM1"])).toThrow(/conflicting/);
+ });
+ it("refuses empty batches and batches above 200 rows",()=>{
+  expect(()=>verifiedNewPupilCandidates([],existing,["CM1"])).toThrow(/1–200/);
+  const large=Array.from({length:201},(_,i)=>({matricule:`NEW-${i}`,fullName:`Learner ${i}`,className:"CM1"}));
+  expect(()=>verifiedNewPupilCandidates(large,existing,["CM1"])).toThrow(/1–200/);
+ });
+
 });
