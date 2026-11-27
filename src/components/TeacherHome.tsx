@@ -4,6 +4,7 @@ import type { ViewKey } from "./Shell";
 import { evaluateRecommendedPolicies } from "../domain/operationalExcellence";
 import { useLanguage } from "../lib/useLanguage";
 import { schoolClock } from "../lib/academicWeek";
+import RoleWorkBoard from "./RoleWorkBoard";
 
 function minutes(value:string){const [h,m]=value.slice(0,5).split(":").map(Number);return h*60+m;}
 
@@ -58,6 +59,7 @@ export default function TeacherHome({workspace,onNavigate}:{workspace:WorkspaceD
    </div>
    <aside className="intelligence-evidence"><small>TODAY AT A GLANCE</small>{teacherEvidence.map(item=><div key={item}><span></span><p>{item}</p></div>)}</aside>
   </section>
+  <RoleWorkBoard workspace={workspace} onNavigate={onNavigate}/>
   {needsFirstDayGuide&&<>  <section className="focus-card" aria-label={text("Getting started with DREEM","Bien démarrer avec DREEM")} style={{marginBottom:16}}>
    <div className="panel-title"><BookOpenCheck/><div><span>{text("YOUR FIRST DAY","VOTRE PREMIER JOUR")}</span><h3>{text("Three useful things to do","Trois actions pour commencer")}</h3><p>{text("Start with your assigned classes. No need to enter the same pupil twice.","Commencez par vos classes attribuées. Ne saisissez pas deux fois le même élève.")}</p></div></div>
    <div className="quick-grid">
