@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { demoAcademics, demoAdmissions, demoBrand, demoFinance, demoLearners, demoSetup, demoSignals, demoStudentCases, demoTeachers, demoTransport } from "../domain/demo";
 import type { WorkspaceData } from "../lib/repository";
 import DriverWorkspace from "./DriverWorkspace";
@@ -14,7 +14,8 @@ const transport={
 const workspace:WorkspaceData={viewer:{id:"driver-user",name:"School Driver",email:"driver@example.test",role:"driver"},brand:demoBrand,setup:demoSetup,operations:{invitations:[],memberships:[],recentAttendance:0,recentAssessments:0},learners:demoLearners,teachers:demoTeachers,signals:demoSignals,cases:demoStudentCases,admissions:demoAdmissions,academics:demoAcademics,transport,finance:demoFinance};
 
 describe("DREEM Driver",()=>{
-  afterEach(cleanup);
+  beforeEach(()=>{vi.useFakeTimers({toFake:["Date"]});vi.setSystemTime(new Date("2026-09-11T08:00:00Z"));});
+  afterEach(()=>{cleanup();vi.useRealTimers();});
   it("shows only the assigned journey operations instead of fleet administration",()=>{
     render(<DriverWorkspace workspace={workspace} onRefresh={async()=>undefined}/>);
     expect(screen.getByRole("heading",{name:"Morning Route"})).toBeInTheDocument();
@@ -25,4 +26,13 @@ describe("DREEM Driver",()=>{
     expect(screen.queryByRole("button",{name:"Activate route"})).not.toBeInTheDocument();
     expect(screen.queryByRole("button",{name:"Register vehicle"})).not.toBeInTheDocument();
   });
+  it("does not expose stale or future pupil boarding controls as today's trip",()=>{
+    vi.setSystemTime(new Date("2026-11-27T08:00:00Z"));
+    render(<DriverWorkspace workspace={workspace} onRefresh={async()=>undefined}/>);
+    expect(screen.getByRole("heading",{name:"Waiting for today's trip"})).toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"Start / depart"})).not.toBeInTheDocument();
+    expect(screen.queryByRole("button",{name:"Boarded"})).not.toBeInTheDocument();
+    expect(screen.getByText(/Historical and future routes cannot be started/i)).toBeInTheDocument();
+  });
+
 });
