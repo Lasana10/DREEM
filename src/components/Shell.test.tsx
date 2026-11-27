@@ -30,4 +30,11 @@ describe("shell navigation",()=>{
     render(<Shell brand={demoBrand} viewer={{name:"Teacher",email:"teacher@example.test",role:"teacher"}} view="operations" onView={vi.fn()} signalCount={0} onFeedback={vi.fn()}><div>Teacher content</div></Shell>);
     expect(screen.queryByRole("button",{name:"Settings"})).not.toBeInTheDocument();
   });
+  it("keeps the important noun on compact parent navigation rather than rendering My alone",()=>{
+    const {container}=render(<Shell brand={demoBrand} viewer={{name:"Parent",email:"parent@example.test",role:"parent"}} view="learning" onView={vi.fn()} signalCount={0} onFeedback={vi.fn()}><div>Family home</div></Shell>);
+    const mobile=container.querySelector(".mobile-nav");
+    expect(mobile).toHaveTextContent("children");
+    expect(mobile).not.toHaveTextContent("My");
+  });
+
 });
