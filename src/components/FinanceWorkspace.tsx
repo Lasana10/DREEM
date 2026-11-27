@@ -25,5 +25,30 @@ export default function FinanceWorkspace({finance,learners,operations,setup,role
 
   if(isBursar)return <><BursarCollectionWorkspace finance={finance} learners={learners} onRecorded={onRecorded}/><div className="content role-workspace"><details className="depth-drawer"><summary>Finance controls and role separation</summary>{roleGuide}{prerequisites}</details><FinanceControlDesk role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/></div></>;
   const reviewer=canReview;
-  return <div className="content role-workspace"><section className="role-hero"><div><span className="eyebrow">FINANCE · TODAY</span><h2>{reviewer?"Money that needs review":"Financial assurance"}</h2><p>{reviewer?"Start with balances, exceptions and settlement. Open setup only when you need to change policy or payment methods.":"Review the verified financial position without changing operational records."}</p></div></section><div className="metrics"><Metric label="Open fee balance" value={money(finance.expectedToday)} detail="Across learner accounts" tone="blue"/><Metric label="Cash awaiting deposit" value={money(finance.cashAwaitingDeposit)} detail={`${money(finance.cashCollected)} collected`} tone="amber"/><Metric label="Digital confirmed" value={money(finance.digitalConfirmed)} detail="Provider references captured"/><Metric label="Open exceptions" value={String(finance.openExceptions)} detail={money(finance.openExceptionValue)} tone={finance.openExceptions?"red":"green"}/></div><FinanceControlDesk role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/><FinanceInstitutionControls role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/><details className="depth-drawer finance-setup-drawer"><summary>Finance setup & controls</summary><div className="finance-setup-stack"><details className="depth-drawer"><summary>Roles and separation of duties</summary>{roleGuide}{prerequisites}</details>{canManageFeePolicy?<><FeePlanStudio setup={setup} role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/><PaymentRailStudio/></>:null}</div></details></div>;
+  const policyOwner=canManageFeePolicy&&!isAccountant;
+  return <div className="content role-workspace">
+    <section className="role-hero"><div><span className="eyebrow">{policyOwner?"FINANCE · SCHOOL POLICY":isAccountant?"FINANCE · INDEPENDENT REVIEW":"FINANCE · AUDIT"}</span>
+      <h2>{policyOwner?"School fees and financial oversight":reviewer?"Money that needs review":"Financial assurance"}</h2>
+      <p>{policyOwner?"Set and review fee policy first. The bursar receives payments; the accountant independently reviews settlement and corrections.":reviewer?"Review cashier closings, deposits, refunds and financial exceptions. Collection remains with the bursar.":"Inspect financial records and audit evidence without changing transactions."}</p>
+    </div></section>
+    <div className="metrics"><Metric label="Expected today" value={money(finance.expectedToday)} detail="Scheduled collections today · not the total outstanding balance" tone="blue"/>
+      <Metric label="Cash awaiting deposit" value={money(finance.cashAwaitingDeposit)} detail={`${money(finance.cashCollected)} collected`} tone="amber"/>
+      <Metric label="Digital confirmed" value={money(finance.digitalConfirmed)} detail="Provider references captured"/>
+      <Metric label="Open exceptions" value={String(finance.openExceptions)} detail={money(finance.openExceptionValue)} tone={finance.openExceptions?"red":"green"}/></div>
+    {policyOwner?<section className="finance-policy-workspace" aria-label="School fee policy">
+      <div className="panel-title"><Landmark/><div><span>SCHOOL LEADERSHIP</span><h3>Set school fee policy</h3><p>Choose and review fee plans before activating changes. Collection and independent accounting stay with their authorised positions.</p></div></div>
+      <FeePlanStudio setup={setup} role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/>
+    </section>:null}
+    {policyOwner?<details className="depth-drawer finance-independent-review"><summary>Independent finance reviews and exceptions · {finance.openExceptions} exception(s)</summary>
+      <FinanceControlDesk role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/>
+      <FinanceInstitutionControls role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/>
+    </details>:<>
+      <FinanceControlDesk role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/>
+      <FinanceInstitutionControls role={role} authorityScopes={authorityScopes} onChanged={onRecorded}/>
+    </>}
+    <details className="depth-drawer finance-setup-drawer"><summary>Advanced finance setup and role separation</summary><div className="finance-setup-stack">
+      <details className="depth-drawer"><summary>Why collection and review are separate</summary>{roleGuide}{prerequisites}</details>
+      {policyOwner?<details className="depth-drawer"><summary>Payment methods and settlement accounts</summary><PaymentRailStudio/></details>:null}
+    </div></details>
+  </div>;
 }
