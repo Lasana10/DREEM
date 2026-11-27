@@ -5,6 +5,7 @@ import { buildInstitutionFlowHealth, evaluateRecommendedPolicies } from "../doma
 import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
 import ActionCentre from "./ActionCentre";
+import RoleWorkBoard from "./RoleWorkBoard";
 type QueueItem={id:string;view:ViewKey;title:string;detail:string;count:number;tone:"urgent"|"attention"|"normal";owner:string;icon:React.ReactNode};
 
 export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:WorkspaceData;onNavigate:(view:ViewKey)=>void}){
@@ -70,7 +71,8 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
     <div><span></span><p>{learnerOverlap} learner{learnerOverlap===1?"":"s"} with overlapping attendance + mastery concern</p></div>
    </aside>:null}
   </section>
-  <ActionCentre workspace={workspace} onNavigate={onNavigate}/>
+  <RoleWorkBoard workspace={workspace} onNavigate={onNavigate}/>
+  <details className="depth-drawer" style={{marginTop:14}}><summary>More insights and institutional follow-up</summary><ActionCentre workspace={workspace} onNavigate={onNavigate}/></details>
   {ownerView?<section className="visual-stats">
    <article className="visual-stat amber"><div className="icon"><CircleDollarSign/></div><div><span>CASH AWAITING CONFIRMATION</span><strong>{cashAwaiting.toLocaleString("fr-FR")}</strong><small>FCFA</small></div></article>
    <article className="visual-stat"><div className="icon"><ClipboardCheck/></div><div><span>ADMISSIONS</span><strong>{admissionPending}</strong><small>in progress</small></div></article>
