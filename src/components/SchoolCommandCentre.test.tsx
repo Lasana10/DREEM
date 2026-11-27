@@ -33,4 +33,17 @@ describe("SchoolCommandCentre operational excellence",()=>{
     expect(onNavigate).toHaveBeenCalledWith("academics");
   });
 
+  it("shows an unactivated school year as unfinished leadership work, not a ready school",()=>{
+    const onNavigate=vi.fn();
+    const planned:WorkspaceData={
+      ...workspace,
+      viewer:{...workspace.viewer,authorityScopes:[...workspace.viewer.authorityScopes??[],"school_configuration"]},
+      setup:{...workspace.setup,academicYears:workspace.setup.academicYears.map(y=>({...y,status:"planning" as const}))},
+    };
+    render(<SchoolCommandCentre workspace={planned} onNavigate={onNavigate}/>);
+    expect(screen.getByText("School calendar needs an authorised decision")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button",{name:"Open priority work"}));
+    expect(onNavigate).toHaveBeenCalledWith("studio");
+  });
+
 });
