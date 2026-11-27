@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { demoAcademics,demoAdmissions,demoBrand,demoFinance,demoLearners,demoSetup,demoSignals,demoStudentCases,demoTeachers,demoTransport } from "../domain/demo";
 import type { WorkspaceData } from "../lib/repository";
@@ -25,4 +25,12 @@ describe("SchoolCommandCentre operational excellence",()=>{
     expect(screen.getByText(/what this is based on/i)).toBeInTheDocument();
     expect(screen.getByText(/close the money loop|protect people first|fix the broken step|learner attention|school status/i)).toBeInTheDocument();
   });
+  it("opens the actual selected academic-role priority, not a hidden leadership destination",()=>{
+    const onNavigate=vi.fn();
+    const reviewer:WorkspaceData={...workspace,viewer:{...workspace.viewer,role:"academic_head",positionTitle:"Academic Head",authorityScopes:["academics_approval"]}};
+    render(<SchoolCommandCentre workspace={reviewer} onNavigate={onNavigate}/>);
+    fireEvent.click(screen.getByRole("button",{name:"Open priority work"}));
+    expect(onNavigate).toHaveBeenCalledWith("academics");
+  });
+
 });
