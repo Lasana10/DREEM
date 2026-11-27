@@ -13,7 +13,8 @@ export type LearnerFeeStatementRow = {
 };
 
 export async function loadLearnerFeeStatement(studentId: string): Promise<LearnerFeeStatementRow[]> {
-  if (!studentId || !isSupabaseConfigured || !supabase) return [];
+  if (!studentId) throw new Error("A linked learner is required before loading school fees.");
+  if (!isSupabaseConfigured || !supabase) throw new Error("School finance is unavailable because the database is not connected. No balance can be confirmed.");
   const { data, error } = await supabase.rpc("dreem_get_learner_fee_statement", {
     p_student_id: studentId,
   });
@@ -24,7 +25,7 @@ export async function loadLearnerFeeStatement(studentId: string): Promise<Learne
     label: String(row.label ?? "School fee entry"),
     occurredOn: String(row.occurred_on ?? ""),
     dueOn: String(row.due_on ?? ""),
-    amount: Number(row.amount ?? 0),
+    amount: typeof row.amount === "number" && Number.isFinite(row.amount) ? row.amount : Number.NaN,
     status: String(row.status ?? ""),
     receiptNumber: row.row_kind === "payment" ? String(row.reference ?? "") : "",
     note: row.row_kind === "adjustment" ? String(row.reference ?? "") : "",
