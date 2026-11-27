@@ -58,7 +58,7 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
   <section className="intelligence-brief leadership-intelligence-brief">
    <div className="intelligence-brief-main">
     <span>{roleFocus.eyebrow}</span><h3>{roleFocus.title}</h3><p>{roleFocus.detail}</p>
-    {roleFocus.view!=="command"?<button className="primary" onClick={()=>onNavigate(leadershipFocus.view)}>Open priority work</button>:null}
+    {roleFocus.view!=="command"?<button className="primary" onClick={()=>onNavigate(roleFocus.view)}>Open priority work</button>:null}
    </div>
    {ownerView?<aside className="intelligence-evidence"><small>WHAT THIS IS BASED ON</small>
     <div><span></span><p>{admissionPending} admission{admissionPending===1?"":"s"} in progress</p></div>
