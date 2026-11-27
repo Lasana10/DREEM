@@ -31,4 +31,20 @@ describe("Institution action centre bilingual presentation",()=>{
   expect(screen.getByText("VOTRE CENTRE D’ACTIONS")).toBeInTheDocument();
   expect(screen.getByText("Suivi")).toBeInTheDocument();
  });
+ it("does not assign independent academic moderation to a teaching-only role",()=>{
+  const teacher:WorkspaceData={...workspace,viewer:{id:"teach",name:"Teacher",email:"teacher@example.test",role:"teacher",authorityScopes:["academics_delivery"]}};
+  render(<ActionCentre workspace={teacher} onNavigate={vi.fn()}/>);
+  expect(screen.queryByText("Assessments awaiting moderation")).not.toBeInTheDocument();
+ });
+ it("shows academic moderation when the actual approval authority is delegated",()=>{
+  const academicHead:WorkspaceData={...workspace,viewer:{id:"head",name:"Head",email:"head@example.test",role:"academic_head",authorityScopes:["academics_approval"]}};
+  render(<ActionCentre workspace={academicHead} onNavigate={vi.fn()}/>);
+  expect(screen.getByText("Assessments awaiting moderation")).toBeInTheDocument();
+ });
+ it("does not present admissions decision queue to intake-only staff",()=>{
+  const admissionsOfficer:WorkspaceData={...workspace,viewer:{id:"office",name:"Office",email:"office@example.test",role:"administrator",authorityScopes:["admissions_intake"]}};
+  render(<ActionCentre workspace={admissionsOfficer} onNavigate={vi.fn()}/>);
+  expect(screen.queryByText("Admissions still in progress")).not.toBeInTheDocument();
+ });
+
 });
