@@ -56,6 +56,7 @@ import type { AuthorityScope } from "./authority";
 import { legacyAuthorityScopes } from "./authority";
 import { resolveActiveSchoolContext } from "./schoolContext";
 import { isDemoMode, isSupabaseConfigured, supabase } from "./supabase";
+import { validateSchoolSetup } from "./schoolSetupSafety";
 
 export interface WorkspaceData {
   viewer: { id?: string; name: string; email: string; role: Role; positionTitle?: string; authorityScopes?: AuthorityScope[] };
@@ -70,33 +71,6 @@ export interface WorkspaceData {
   academics: AcademicOperations;
   transport: TransportOperations;
   finance: FinanceSummary;
-}
-
-function formatInList(ids: string[]) {
-  return `(${ids.map((id) => `"${id}"`).join(",")})`;
-}
-
-async function deleteRemovedSetupRows(
-  table:
-    "dreem_academic_years" | "dreem_terms" | "dreem_classes" | "dreem_subjects",
-  schoolId: string,
-  keepIds: string[],
-) {
-  if (!supabase) return;
-  if (!keepIds.length) {
-    const { error } = await supabase
-      .from(table)
-      .delete()
-      .eq("school_id", schoolId);
-    if (error) throw error;
-    return;
-  }
-  const { error } = await supabase
-    .from(table)
-    .delete()
-    .eq("school_id", schoolId)
-    .not("id", "in", formatInList(keepIds));
-  if (error) throw error;
 }
 
 async function activeSchool() {
@@ -1372,6 +1346,8 @@ export async function saveSchoolSetup(
 ): Promise<SchoolSetup> {
   if (!isSupabaseConfigured || !supabase) return setup;
   const { schoolId } = await activeSchool();
+  const validationErrors=validateSchoolSetup(setup);
+  if(validationErrors.length)throw new Error(validationErrors.join(" "));
   const academicYears = setup.academicYears.filter(
     (year) => year.name.trim() && year.startsOn && year.endsOn,
   );
@@ -1475,49 +1451,26 @@ export async function saveSchoolSetup(
     grading_weight: subject.gradingWeight,
     updated_at: new Date().toISOString(),
   }));
-  const [yearsResult, termsResult, classesResult, subjectsResult] =
-    await Promise.all([
-      academicYearsPayload.length
-        ? supabase.from("dreem_academic_years").upsert(academicYearsPayload)
-        : Promise.resolve({ error: null }),
-      termsPayload.length
-        ? supabase.from("dreem_terms").upsert(termsPayload)
-        : Promise.resolve({ error: null }),
-      classesPayload.length
-        ? supabase.from("dreem_classes").upsert(classesPayload)
-        : Promise.resolve({ error: null }),
-      subjectsPayload.length
-        ? supabase.from("dreem_subjects").upsert(subjectsPayload)
-        : Promise.resolve({ error: null }),
-    ]);
-  for (const result of [
-    yearsResult,
-    termsResult,
-    classesResult,
-    subjectsResult,
-  ]) {
-    if (result.error) throw result.error;
+  // Academic years must exist before their dependent term and class foreign keys.
+  // Each write is checked before moving to the next stage; no implicit deletion.
+  if(academicYearsPayload.length){
+    const {error}=await supabase.from("dreem_academic_years").upsert(academicYearsPayload);
+    if(error)throw error;
   }
-  await deleteRemovedSetupRows(
-    "dreem_subjects",
-    schoolId,
-    sanitized.subjects.map((subject) => subject.id),
-  );
-  await deleteRemovedSetupRows(
-    "dreem_classes",
-    schoolId,
-    sanitized.classes.map((entry) => entry.id),
-  );
-  await deleteRemovedSetupRows(
-    "dreem_terms",
-    schoolId,
-    sanitized.terms.map((term) => term.id),
-  );
-  await deleteRemovedSetupRows(
-    "dreem_academic_years",
-    schoolId,
-    sanitized.academicYears.map((year) => year.id),
-  );
+  if(termsPayload.length){
+    const {error}=await supabase.from("dreem_terms").upsert(termsPayload);
+    if(error)throw error;
+  }
+  if(classesPayload.length){
+    const {error}=await supabase.from("dreem_classes").upsert(classesPayload);
+    if(error)throw error;
+  }
+  if(subjectsPayload.length){
+    const {error}=await supabase.from("dreem_subjects").upsert(subjectsPayload);
+    if(error)throw error;
+  }
+  // Deliberately additive: school-year edits must never delete omitted historical records.
+  // Removal/archival requires a separate, audited, school-authorised workflow.
   // Return the database's authoritative rows so generated IDs, defaults and
   // any server-side normalization are reflected immediately in the workspace.
   const refreshed = await loadWorkspace();
