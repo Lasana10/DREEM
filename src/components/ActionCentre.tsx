@@ -1,7 +1,7 @@
 import { AlertTriangle, ArrowRight, BookOpenCheck, CircleDollarSign, ClipboardCheck, FolderHeart, ShieldCheck, UserPlus } from "lucide-react";
 import type { WorkspaceData } from "../lib/repository";
 import { buildInstitutionFlowHealth, evaluateRecommendedPolicies, type PolicyAction } from "../domain/operationalExcellence";
-import { canOpenView } from "../lib/access";
+import { canAuthority, canOpenView } from "../lib/access";
 import type { ViewKey } from "./Shell";
 import { useLanguage } from "../lib/useLanguage";
 import PolicyFindingQueue from "./PolicyFindingQueue";
@@ -70,7 +70,7 @@ export default function ActionCentre({workspace,onNavigate}:{workspace:Workspace
       group:"handoff",
     }));
 
-  const allowed=(entry:ActionItem)=>canOpenView(workspace.viewer,entry.view);
+  const allowed=(entry:ActionItem)=>canOpenView(workspace.viewer,entry.view) && (entry.group!=="review" || (entry.id==="admission-review" ? canAuthority(workspace.viewer,"admissions_decision") : canAuthority(workspace.viewer,"academics_approval")));
   const items=[...handoffs,...reviews,...policy].filter(allowed);
   const critical=items.filter(entry=>entry.tone==="critical").length;
   const groups:[ActionItem["group"],string,string][]=[
