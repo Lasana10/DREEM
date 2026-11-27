@@ -6,6 +6,7 @@ import PolicyStudio from "./PolicyStudio";
 import YearTransitionStudio from "./YearTransitionStudio";
 import SchoolRecoveryPanel from "./SchoolRecoveryPanel";
 import LearnerMigrationPreflight from "./LearnerMigrationPreflight";
+import { validateSchoolSetup } from "../lib/schoolSetupSafety";
 import { buildClassPack, classPacks, type ClassPackId } from "../domain/classPacks";
 import { userFacingError } from "../lib/userFacingError";
 
@@ -31,7 +32,17 @@ export function SchoolStudioView({brand,setup,memberships,onSave,onSaveSetup,onU
  function field<K extends keyof SchoolBrand>(key:K,value:SchoolBrand[K]){setDraft(current=>({...current,[key]:value}))}
  async function saveIdentity(event:FormEvent){event.preventDefault();setFailed(false);setStatus("Saving school identity…");try{if(!readable)throw new Error("Choose colours with stronger contrast so text, buttons and printed IDs remain readable.");await onSave(draft);setStatus("School identity saved.");}catch(reason){setFailed(true);setStatus(studioError(reason,"School identity could not be saved."))}}
  async function logo(event:ChangeEvent<HTMLInputElement>){const file=event.target.files?.[0];if(!file)return;setUploading(true);setFailed(false);setStatus("Uploading logo…");try{const logoUrl=await onUploadLogo(file);field("logoUrl",logoUrl);setStatus("Logo uploaded. Save identity when you are ready to publish it.");}catch(reason){setFailed(true);setStatus(studioError(reason,"Logo could not be uploaded."));}finally{setUploading(false);event.target.value=""}}
- async function saveStructure(event:FormEvent){event.preventDefault();setFailed(false);setStatus("Saving school structure…");try{await onSaveSetup(setupDraft);setStatus("School structure saved.");}catch(reason){setFailed(true);setStatus(studioError(reason,"School structure could not be saved."));}}
+ async function saveStructure(event:FormEvent){event.preventDefault();setFailed(false);setStatus("");
+  const issues=validateSchoolSetup(setupDraft);
+  if(issues.length){setFailed(true);setStatus(issues.join(" "));return;}
+  const newActive=setupDraft.academicYears.filter(year=>year.status==="active"&&!setup.academicYears.some(old=>old.id===year.id&&old.status==="active"));
+  if(newActive.length){
+   const year=newActive[0];
+   if(!window.confirm(`Activate academic year "${year.name}"? This changes the school's live teaching calendar. Verify the dates, terms and classes before continuing.`))return;
+  }
+  setStatus("Saving school structure…");
+  try{await onSaveSetup(setupDraft);setStatus("School structure saved. Existing school records were preserved.");}catch(reason){setFailed(true);setStatus(studioError(reason,"School structure could not be saved."));}
+ }
  function applyPack(){const starter=buildClassPack(selectedPack),result=mergeStarter(setupDraft,starter);setSetupDraft(result.setup);setFailed(false);setStatus(setupDraft.academicYears.length||setupDraft.classes.length?`Starting point merged safely: ${result.classesAdded} missing class${result.classesAdded===1?"":"es"} and ${result.subjectsAdded} subject${result.subjectsAdded===1?"":"s"} added. Existing years, terms and records were kept.`:"Starting point loaded. Review dates and classes before saving.");}
  const missingSetup=[
   !setupDraft.academicYears.some(item=>item.status==="active")?"an active academic year":"",
