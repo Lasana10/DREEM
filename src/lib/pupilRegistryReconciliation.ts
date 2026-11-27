@@ -79,3 +79,33 @@ export async function fetchSchoolRegistryIndex():Promise<RegistryPupil[]>{
  }
  throw new Error("Registry exceeds the safe 10,000-pupil reconciliation limit; use a controlled server-side migration.");
 }
+
+/** Recompute from the verified live registry before any request is sent. */
+export function verifiedNewPupilCandidates(
+ incoming:ImportedPupil[],existing:RegistryPupil[],classes:string[]
+):ImportedPupil[]{
+ const comparison=reconcilePupils(incoming,existing,classes);
+ const unsafe=comparison.issues.filter(issue=>issue.kind!=="existing");
+ if(unsafe.length)throw new Error("Reconciliation has conflicting or incomplete identities. Resolve these records before import.");
+ const known=new Set(existing.map(p=>idKey(p.matricule)));
+ const candidates=incoming.filter(p=>!known.has(idKey(p.matricule)));
+ if(candidates.length!==comparison.newCandidates)throw new Error("Source changed during reconciliation; inspect again.");
+ if(candidates.length<1||candidates.length>200)throw new Error("Select a reviewed batch of 1–200 new pupils. Already registered pupils are never recreated.");
+ return candidates;
+}
+
+/** Uses only the authenticated, institution-authorised server RPC.
+ * The server rechecks identities, classes and active year in one atomic transaction.
+ */
+export async function importVerifiedPupils(rows:ImportedPupil[],key:string,confirmation:string):
+ Promise<{batchId:string;imported:number;alreadyApplied:boolean}>{
+ if(!supabase)throw new Error("School database is unavailable.");
+ if(!rows.length||rows.length>200)throw new Error("Only 1–200 reviewed pupils may be imported in a batch.");
+ const {data,error}=await supabase.rpc("dreem_import_verified_pupils",{
+  p_rows:rows,p_idempotency_key:key,p_confirmation:confirmation,
+ });
+ if(error)throw error;
+ if(!data||typeof data!=="object"||typeof data.batchId!=="string"||data.imported!==rows.length||typeof data.alreadyApplied!=="boolean")
+  throw new Error("The server response cannot confirm a completed import. Check the school registry and batch log before retrying.");
+ return{batchId:data.batchId,imported:data.imported,alreadyApplied:data.alreadyApplied};
+}
