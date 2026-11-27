@@ -28,11 +28,14 @@ export default function SchoolCommandCentre({workspace,onNavigate}:{workspace:Wo
    learners:workspace.learners,academics:workspace.academics,finance:workspace.finance,transport:workspace.transport,
    admissions:workspace.admissions,signals:workspace.signals,cases:workspace.cases,
  });
+ const yearNeedsActivation=workspace.setup.academicYears.length>0&&!workspace.setup.academicYears.some(year=>year.status==="active");
  const brokenFlow=flowHealth.filter(item=>item.status==="broken").length;
  const attentionTotal=priority+learnerOverlap+brokenFlow;
- const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":"School is operating normally";
+ const operatingSummary=attentionTotal?attentionTotal+" area"+(attentionTotal===1?"":"s")+" need attention":yearNeedsActivation?"Academic year is not yet active":"School is operating normally";
  const leadershipFocus=urgentCare||urgentSignals
    ? {eyebrow:"PROTECT PEOPLE FIRST",title:(urgentCare+urgentSignals)+" urgent learner/community signal"+(urgentCare+urgentSignals===1?"":"s")+" need ownership",detail:"Urgent learner or community issues are waiting. DREEM puts these ahead of routine work.",view:(urgentCare?"care":"signals") as ViewKey}
+   : yearNeedsActivation
+     ? {eyebrow:"ACADEMIC YEAR NOT ACTIVATED",title:"School calendar needs an authorised decision",detail:"The school has a planned academic year but none is active. An authorised administrator must confirm its dates, terms and classes before normal academic operations can be treated as ready.",view:(can("studio")?"studio":"command") as ViewKey}
    : financeExceptions||cashAwaiting
      ? {eyebrow:"CLOSE THE MONEY LOOP",title:financeExceptions?financeExceptions+" finance exception"+(financeExceptions===1?"":"s")+" need independent review":cashAwaiting.toLocaleString("fr-FR")+" FCFA still needs school confirmation",detail:"These collections are not finished until the school confirms the money received.",view:"finance" as ViewKey}
      : brokenFlow
