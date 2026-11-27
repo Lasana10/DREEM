@@ -33,7 +33,9 @@ describe("role-owned school work states",()=>{
   const onNavigate=vi.fn();
   render(<RoleWorkBoard workspace={baseline} onNavigate={onNavigate}/>);
   expect(screen.getByRole("tab",{name:/Needs me/i})).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button",{name:/Open/i}));
+  const reviewRow=screen.getByText("Moderate assessments").closest(".action-row");
+  expect(reviewRow).not.toBeNull();
+  fireEvent.click(reviewRow!.querySelector("button")!);
   expect(onNavigate).toHaveBeenCalledWith("academics");
   fireEvent.click(screen.getByRole("tab",{name:/Done/i}));
   expect(screen.getByText("Reviewed lesson plans")).toBeInTheDocument();
