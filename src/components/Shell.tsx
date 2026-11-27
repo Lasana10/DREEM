@@ -78,7 +78,7 @@ const frenchRoleViewLabels:Partial<Record<Role,Partial<Record<ViewKey,string>>>>
 };
 /** Preserve a meaningful mobile label: "My children" must not become "My". */
 function conciseMobileLabel(label:string){
- const parts=label.trim().split(/\\s+/);
+ const parts=label.trim().split(/\s+/);
  return /^(my|mes|mon|ma|nos|notre)$/i.test(parts[0])&&parts.length>1?parts.slice(1).join(" "):label;
 }
 function roleLabel(role:Role){return role.replaceAll("_"," ").replace(/\b\w/g,l=>l.toUpperCase());}
