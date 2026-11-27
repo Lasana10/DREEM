@@ -4,6 +4,7 @@ import type { WorkspaceData } from "../lib/repository";
 import { fetchQuestionBank, reviewQuestion, saveQuestionDraft, submitQuestion, type QuestionDraft, type QuestionItem } from "../lib/questionBank";
 import { userFacingError } from "../lib/userFacingError";
 import AssessmentPaperComposer from "./AssessmentPaperComposer";
+import QuestionImportPanel from "./QuestionImportPanel";
 
 export default function QuestionBankWorkspace({workspace,teacher,reviewer}:{workspace:WorkspaceData;teacher:boolean;reviewer:boolean}){
  const [items,setItems]=useState<QuestionItem[]>([]),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);
@@ -52,6 +53,7 @@ export default function QuestionBankWorkspace({workspace,teacher,reviewer}:{work
     <div className="excellence-question-actions"><button type="submit" className="excellence-register-action" disabled={busy}>Save draft</button>{editing&&<button type="button" onClick={()=>{setEditing(null);setEditId("");}} className="excellence-cancel">Cancel edit</button>}</div>
    </form>}
   </div>}
+  {teacher&&<QuestionImportPanel workspace={workspace} items={items} onReload={reload}/>}
   <div className="excellence-question-list"><div className="excellence-question-toolbar"><div><h3>Curated questions</h3><small>{pending.length} pending moderation · {own.length} authored by this account</small></div><label>Show<select aria-label="Filter questions" value={filter} onChange={e=>setFilter(e.target.value as typeof filter)}><option value="all">All accessible</option><option value="approved">Approved</option><option value="submitted">Awaiting review</option></select></label></div>
    {loading?<p role="status">Loading questions…</p>:visible.length===0?<p>No questions match this view yet.</p>:visible.map(item=>{
     const o=workspace.academics.curriculumOutcomes.find(x=>x.id===item.outcome_id);
